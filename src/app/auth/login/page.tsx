@@ -18,6 +18,36 @@ function LoginContent() {
     if (file) {
       setTimeout(() => setPendingFile(file), 0);
     }
+
+    // Seed premium tester credential
+    const users = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
+    if (!users["premium@similarfy.com"]) {
+      users["premium@similarfy.com"] = {
+        name: "Premium Tester",
+        email: "premium@similarfy.com",
+        password: "premium123",
+        credits: 150,
+        scans: [
+          {
+            id: "scan-mock-01",
+            filename: "Thesis_Final_Draft.docx",
+            similarityScore: 12,
+            aiScore: 8,
+            timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
+            status: "Completed"
+          },
+          {
+            id: "scan-mock-02",
+            filename: "AI_Research_Paper.pdf",
+            similarityScore: 8,
+            aiScore: 88,
+            timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
+            status: "Completed"
+          }
+        ]
+      };
+      localStorage.setItem("registeredUsers", JSON.stringify(users));
+    }
   }, [searchParams]);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -75,6 +105,16 @@ function LoginContent() {
           <p className="text-xs text-muted-foreground font-semibold">
             Log in to manage your scans and slots
           </p>
+        </div>
+
+        <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 text-xs text-muted-foreground font-semibold text-left space-y-1">
+          <p className="font-bold text-primary flex items-center gap-1.5">
+            <ShieldCheck className="h-4 w-4 shrink-0" />
+            <span>Developer Premium Credentials</span>
+          </p>
+          <p>Email: <strong className="text-foreground">premium@similarfy.com</strong></p>
+          <p>Password: <strong className="text-foreground">premium123</strong></p>
+          <p className="text-[10px] text-muted-foreground/80 mt-1">Pre-loaded with 150 credits and mock historical scans.</p>
         </div>
 
         {pendingFile && (
