@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  --background: 40 8% 97%;
+  --foreground: 20 10% 10%;
+  --card: 0 0% 100%;
+  --card-foreground: 20 10% 10%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 20 10% 10%;
+  --primary: 155 75% 36%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 40 6% 92%;
+  --secondary-foreground: 20 10% 10%;
+  --muted: 40 6% 92%;
+  --muted-foreground: 20 5% 46%;
+  --accent: 155 40% 92%;
+  --accent-foreground: 155 75% 36%;
+  --border: 40 5% 85%;
+  --ring: 155 75% 36%;
+}
+
+.dark {
+  --background: 24 5% 10%;
+  --foreground: 40 8% 90%;
+  --card: 24 5% 13%;
+  --card-foreground: 40 8% 90%;
+  --popover: 24 5% 13%;
+  --popover-foreground: 40 8% 90%;
+  --primary: 155 75% 42%;
+  --primary-foreground: 24 5% 10%;
+  --secondary: 24 5% 18%;
+  --secondary-foreground: 40 8% 90%;
+  --muted: 24 5% 18%;
+  --muted-foreground: 40 4% 65%;
+  --accent: 155 40% 16%;
+  --accent-foreground: 155 75% 42%;
+  --border: 24 5% 18%;
+  --ring: 155 75% 42%;
+}
+
+@theme {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+/* Animations for live scan scroll */
+@keyframes scrollUp {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-scroll {
+  animation: scrollUp 25s linear infinite;
+}
+
+.animate-scroll:hover {
+  animation-play-state: paused;
+}
