@@ -3,7 +3,9 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Mail, Lock, Check, ArrowRight } from "lucide-react";
+import { ShieldCheck, Mail, Lock, Check, ArrowRight, Loader2 } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 function LoginContent() {
   const router = useRouter();
@@ -11,6 +13,7 @@ function LoginContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [pendingFile, setPendingFile] = useState<string | null>(null);
 
   useEffect(() => {
@@ -18,39 +21,9 @@ function LoginContent() {
     if (file) {
       setTimeout(() => setPendingFile(file), 0);
     }
-
-    // Seed premium tester credential
-    const users = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-    if (!users["premium@similarfy.com"]) {
-      users["premium@similarfy.com"] = {
-        name: "Premium Tester",
-        email: "premium@similarfy.com",
-        password: "premium123",
-        credits: 150,
-        scans: [
-          {
-            id: "scan-mock-01",
-            filename: "Thesis_Final_Draft.docx",
-            similarityScore: 12,
-            aiScore: 8,
-            timestamp: new Date(Date.now() - 3600000 * 24).toISOString(),
-            status: "Completed"
-          },
-          {
-            id: "scan-mock-02",
-            filename: "AI_Research_Paper.pdf",
-            similarityScore: 8,
-            aiScore: 88,
-            timestamp: new Date(Date.now() - 3600000 * 12).toISOString(),
-            status: "Completed"
-          }
-        ]
-      };
-      localStorage.setItem("registeredUsers", JSON.stringify(users));
-    }
   }, [searchParams]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -59,30 +32,40 @@ function LoginContent() {
       return;
     }
 
-    const users = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-    const matchedUser = users[email];
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
 
-    if (!matchedUser || matchedUser.password !== password) {
-      setError("Invalid email address or password.");
-      return;
-    }
+      const data = await res.json();
 
-    // Set active user
-    localStorage.setItem(
-      "currentUser",
-      JSON.stringify({ email, name: matchedUser.name })
-    );
+      if (!res.ok) {
+        setError(data.message || "Invalid email address or password.");
+        return;
+      }
 
-    // Trigger storage event to notify navbar/tabs
-    window.dispatchEvent(new Event("storage"));
+      // Store token and user info
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({ email: data.user.email, name: data.user.fullName, id: data.user.id })
+      );
+      window.dispatchEvent(new Event("storage"));
 
-    // Check forward paths
-    const buy = searchParams.get("buy");
-    const price = searchParams.get("price");
-    if (buy && price) {
-      router.push(`/dashboard?buy=${buy}&price=${price}`);
-    } else {
-      router.push("/dashboard");
+      const buy = searchParams.get("buy");
+      const price = searchParams.get("price");
+      if (buy && price) {
+        router.push(`/dashboard?buy=${buy}&price=${price}`);
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("Unable to connect to the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -172,10 +155,20 @@ function LoginContent() {
 
           <button
             type="submit"
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 transition-all duration-200 hover:scale-[1.01] cursor-pointer"
+            disabled={loading}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 transition-all duration-200 hover:scale-[1.01] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            <span>Sign In</span>
-            <ArrowRight className="h-4 w-4" />
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Signing In...</span>
+              </>
+            ) : (
+              <>
+                <span>Sign In</span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </form>
 

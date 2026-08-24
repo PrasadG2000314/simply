@@ -375,9 +375,9 @@ function DashboardContent() {
                 </p>
               </div>
               <button
-                onClick={() => setIsCheckoutOpen(true)}
+                onClick={() => router.push("/packages")}
                 className="ml-2 inline-flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer"
-                title="Top-up Credits"
+                title="View Packages"
               >
                 <Plus className="h-4 w-4" />
               </button>

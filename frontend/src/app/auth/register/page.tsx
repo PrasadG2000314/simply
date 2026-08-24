@@ -3,7 +3,9 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Mail, Lock, User, Check, ArrowRight } from "lucide-react";
+import { ShieldCheck, Mail, Lock, User, Check, ArrowRight, Loader2 } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 function RegisterContent() {
   const router = useRouter();
@@ -13,6 +15,7 @@ function RegisterContent() {
   const [password, setPassword] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [pendingFile, setPendingFile] = useState<string | null>(null);
 
   useEffect(() => {
@@ -22,7 +25,7 @@ function RegisterContent() {
     }
   }, [searchParams]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
 
@@ -36,43 +39,50 @@ function RegisterContent() {
       return;
     }
 
-    // Basic email format check
     if (!/\S+@\S+\.\S+/.test(email)) {
       setError("Please enter a valid email address.");
       return;
     }
 
-    // Retrieve existing users
-    const users = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-    if (users[email]) {
-      setError("An account with this email already exists.");
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
       return;
     }
 
-    // Create user
-    const newUser = {
-      name,
-      email,
-      password,
-      credits: 0,
-      scans: [],
-    };
-    users[email] = newUser;
-    localStorage.setItem("registeredUsers", JSON.stringify(users));
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fullName: name, email, password }),
+      });
 
-    // Log user in
-    localStorage.setItem("currentUser", JSON.stringify({ email, name }));
+      const data = await res.json();
 
-    // Trigger storage event to notify other components/tabs
-    window.dispatchEvent(new Event("storage"));
+      if (!res.ok) {
+        setError(data.message || "Registration failed. Please try again.");
+        return;
+      }
 
-    // Forward path checks
-    const buy = searchParams.get("buy");
-    const price = searchParams.get("price");
-    if (buy && price) {
-      router.push(`/dashboard?buy=${buy}&price=${price}`);
-    } else {
-      router.push("/dashboard");
+      // Store token and user info
+      localStorage.setItem("authToken", data.token);
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({ email: data.user.email, name: data.user.fullName, id: data.user.id })
+      );
+      window.dispatchEvent(new Event("storage"));
+
+      const buy = searchParams.get("buy");
+      const price = searchParams.get("price");
+      if (buy && price) {
+        router.push(`/dashboard?buy=${buy}&price=${price}`);
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("Unable to connect to the server. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -184,10 +194,20 @@ function RegisterContent() {
 
           <button
             type="submit"
-            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 transition-all duration-200 hover:scale-[1.01] cursor-pointer"
+            disabled={loading}
+            className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 transition-all duration-200 hover:scale-[1.01] cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
           >
-            <span>Create Account</span>
-            <ArrowRight className="h-4 w-4" />
+            {loading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span>Creating Account...</span>
+              </>
+            ) : (
+              <>
+                <span>Create Account</span>
+                <ArrowRight className="h-4 w-4" />
+              </>
+            )}
           </button>
         </form>
 
