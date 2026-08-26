@@ -258,14 +258,14 @@ export default function PackagesPage() {
   const packages = activeTab === "standard" ? standardPackages : apiPackages;
 
   const handleBuy = (pkg: PackageTier) => {
-    const user = localStorage.getItem("currentUser");
+    const user = localStorage.getItem("currentUser") || localStorage.getItem("token");
     if (!user) {
       router.push(
-        `/auth/login?buy=${pkg.credits}&price=${pkg.discountedPrice}`
+        `/auth/login?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(pkg.name)}`
       );
       return;
     }
-    router.push(`/dashboard?buy=${pkg.credits}&price=${pkg.discountedPrice}`);
+    router.push(`/dashboard?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(pkg.name)}`);
   };
 
   return (

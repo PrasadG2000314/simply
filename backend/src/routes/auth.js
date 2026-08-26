@@ -52,6 +52,7 @@ router.post("/register", async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
+        credits: user.credits || 0,
         createdAt: user.createdAt,
       },
     });
@@ -114,6 +115,7 @@ router.post("/login", async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
+        credits: user.credits || 0,
         createdAt: user.createdAt,
       },
     });
@@ -132,6 +134,7 @@ router.get("/me", protect, async (req, res) => {
         id: req.user._id,
         fullName: req.user.fullName,
         email: req.user.email,
+        credits: req.user.credits || 0,
         createdAt: req.user.createdAt,
       },
     });
