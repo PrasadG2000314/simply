@@ -20,17 +20,26 @@ jobs:
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
           script: |
             set -e
-            echo "🚀 Deploying latest changes..."
+            echo "🚀 Deploying latest Simply updates to AWS Lightsail..."
+
+            # Ensure deployment directory exists and is owned by current user
+            if [ ! -d "/var/www/simply" ]; then
+              echo "📁 Creating /var/www/simply directory..."
+              sudo mkdir -p /var/www/simply
+              sudo chown -R $USER:$USER /var/www/simply
+              git clone https://github.com/PrasadG2000314/simply.git /var/www/simply
+            fi
+
             cd /var/www/simply
 
             echo "📥 Pulling latest code from GitHub main branch..."
-            git pull origin main
+            git fetch --all
+            git reset --hard origin/main
 
-            echo "🐳 Building and starting Docker containers..."
-            docker compose down
-            docker compose up -d --build
+            echo "🐳 Building and deploying Docker containers..."
+            docker compose up -d --build --remove-orphans
 
-            echo "🧹 Cleaning up unused Docker images..."
+            echo "🧹 Cleaning up old Docker images..."
             docker image prune -f
 
             echo "✅ Deployment completed successfully!"
