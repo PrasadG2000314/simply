@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
+import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import {
   ShieldCheck,
@@ -66,6 +66,10 @@ interface AssignmentRecord {
   deadline: string;
   attachment?: string;
   attachmentName?: string;
+  resultFile?: string;
+  resultFileName?: string;
+  similarityScore?: number;
+  aiScore?: number;
   status: "pending" | "approved" | "rejected";
   adminNote?: string;
   createdAt: string;
@@ -103,6 +107,16 @@ function AdminDashboardContent() {
   const [targetRejectSlip, setTargetRejectSlip] = useState<PaymentSlipRecord | null>(null);
   const [targetRejectAssignment, setTargetRejectAssignment] = useState<AssignmentRecord | null>(null);
 
+  // Approve Document & Upload Turnitin Report Modal State
+  const [isApproveModalOpen, setIsApproveModalOpen] = useState(false);
+  const [targetApproveDocument, setTargetApproveDocument] = useState<AssignmentRecord | null>(null);
+  const [approveResultFile, setApproveResultFile] = useState<string | null>(null);
+  const [approveResultFileName, setApproveResultFileName] = useState("");
+  const [approveSimilarityScore, setApproveSimilarityScore] = useState("");
+  const [approveAiScore, setApproveAiScore] = useState("");
+  const [approveAdminNote, setApproveAdminNote] = useState("");
+  const resultFileInputRef = useRef<HTMLInputElement>(null);
+
   const getToken = () => localStorage.getItem("adminToken");
 
   const fetchData = async (isRefresh = false) => {
@@ -127,7 +141,7 @@ function AdminDashboardContent() {
         fetch(`${API_URL}/admin/slips`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`${API_URL}/admin/assignments`, {
+        fetch(`${API_URL}/admin/documents`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -267,52 +281,97 @@ function AdminDashboardContent() {
   };
 
   // ─── Approve Assignment Handler (Consumes 1 Held Coin) ──────────────────────
-  const handleApproveAssignment = async (assn: AssignmentRecord) => {
-    const token = getToken();
-    const targetId = assn._id || assn.id;
+  const handleOpenApproveModal = (assn: AssignmentRecord) => {
+    setTargetApproveDocument(assn);
+    setApproveResultFile(assn.resultFile || null);
+    setApproveResultFileName(assn.resultFileName || "");
+    setApproveSimilarityScore(assn.similarityScore !== undefined && assn.similarityScore !== null ? String(assn.similarityScore) : "");
+    setApproveAiScore(assn.aiScore !== undefined && assn.aiScore !== null ? String(assn.aiScore) : "");
+    setApproveAdminNote(assn.adminNote || "");
+    setIsApproveModalOpen(true);
+  };
 
-    if (!confirm(`Approve assignment "${assn.title}"? 1 held coin will be consumed permanently.`)) {
+  const handleApproveFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setApproveResultFileName(file.name);
+
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setApproveResultFile(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleConfirmApproveDocument = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!targetApproveDocument) return;
+
+    if (!approveResultFile && !approveResultFileName) {
+      alert("Please select and upload the checked Turnitin result document.");
       return;
     }
 
+    const token = getToken();
+    const targetId = targetApproveDocument._id || targetApproveDocument.id;
     if (targetId) setActionLoadingId(targetId);
 
     // Sync local storage state
-    const localAssns: AssignmentRecord[] = JSON.parse(localStorage.getItem("myAssignments") || "[]");
+    const localAssns: AssignmentRecord[] = JSON.parse(
+      localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
+    );
     const updatedLocalAssns = localAssns.map((a) => {
       if ((a._id || a.id) === targetId) {
-        return { ...a, status: "approved" as const };
+        return {
+          ...a,
+          status: "approved" as const,
+          resultFile: approveResultFile || a.resultFile || "",
+          resultFileName: approveResultFileName || a.resultFileName || "Turnitin_Checked_Report.pdf",
+          similarityScore: approveSimilarityScore ? Number(approveSimilarityScore) : a.similarityScore,
+          aiScore: approveAiScore ? Number(approveAiScore) : a.aiScore,
+          adminNote: approveAdminNote || a.adminNote,
+        };
       }
       return a;
     });
+    localStorage.setItem("myDocuments", JSON.stringify(updatedLocalAssns));
     localStorage.setItem("myAssignments", JSON.stringify(updatedLocalAssns));
 
     // Decrement holdCredits in registeredUsers
-    if (assn.userEmail) {
+    if (targetApproveDocument.userEmail) {
       const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-      if (allUsers[assn.userEmail]) {
-        const curHold = allUsers[assn.userEmail].holdCredits || 0;
-        allUsers[assn.userEmail].holdCredits = Math.max(0, curHold - 1);
+      if (allUsers[targetApproveDocument.userEmail]) {
+        const curHold = allUsers[targetApproveDocument.userEmail].holdCredits || 0;
+        allUsers[targetApproveDocument.userEmail].holdCredits = Math.max(0, curHold - 1);
         localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
       }
     }
 
-    if (token && assn._id) {
+    if (token && targetApproveDocument._id) {
       try {
-        const res = await fetch(`${API_URL}/admin/assignments/${assn._id}/approve`, {
+        await fetch(`${API_URL}/admin/documents/${targetApproveDocument._id}/approve`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
+          body: JSON.stringify({
+            resultFile: approveResultFile,
+            resultFileName: approveResultFileName,
+            similarityScore: approveSimilarityScore,
+            aiScore: approveAiScore,
+            adminNote: approveAdminNote,
+          }),
         });
-        await res.json();
       } catch (err) {
-        console.error("API approve assignment error:", err);
+        console.error("API approve document error:", err);
       }
     }
 
-    alert(`Assignment approved! 1 held coin consumed for ${assn.userName}.`);
+    alert(`Document approved & Turnitin report uploaded for ${targetApproveDocument.userName}!`);
+    setIsApproveModalOpen(false);
+    setTargetApproveDocument(null);
     if (activeAssignmentModal && (activeAssignmentModal._id === targetId || activeAssignmentModal.id === targetId)) {
       setActiveAssignmentModal(null);
     }
@@ -400,7 +459,7 @@ function AdminDashboardContent() {
 
       if (token && targetRejectAssignment._id) {
         try {
-          const res = await fetch(`${API_URL}/admin/assignments/${targetRejectAssignment._id}/reject`, {
+          const res = await fetch(`${API_URL}/admin/documents/${targetRejectAssignment._id}/reject`, {
             method: "PUT",
             headers: {
               "Content-Type": "application/json",
@@ -541,7 +600,7 @@ function AdminDashboardContent() {
             </div>
             <div>
               <p className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">
-                Pending Assignments
+                Pending Documents
               </p>
               <p className="text-2xl font-black text-amber-400">{pendingAssnsCount}</p>
             </div>
@@ -609,7 +668,7 @@ function AdminDashboardContent() {
               }`}
             >
               <BookOpen className="h-4 w-4" />
-              Assignment Queue
+              Document Queue
               {pendingAssnsCount > 0 && (
                 <span className="rounded-full bg-black px-2 py-0.2 text-[10px] font-black text-amber-400">
                   {pendingAssnsCount}
@@ -676,12 +735,12 @@ function AdminDashboardContent() {
                         : "text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
-                    {st === "all" ? "All Assignments" : st}
+                    {st === "all" ? "All Documents" : st}
                   </button>
                 ))}
               </div>
               <span className="text-xs text-zinc-500 font-semibold">
-                Showing {filteredAssignments.length} assignments
+                Showing {filteredAssignments.length} documents
               </span>
             </div>
 
@@ -693,83 +752,78 @@ function AdminDashboardContent() {
                       Customer
                     </th>
                     <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Assignment Title & Scope
-                    </th>
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Deadline (Date & Time)
+                      Document Title
                     </th>
                     <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Attachment
+                      Document
                     </th>
                     <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
                       Status
                     </th>
                     <th className="px-6 py-3 text-right text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Action / Approval
+                      Action
                     </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-zinc-800/60">
                   {filteredAssignments.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center">
+                      <td colSpan={5} className="px-6 py-12 text-center">
                         <BookOpen className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
                         <p className="text-xs text-zinc-600 font-semibold">
-                          No assignments found matching this filter.
+                          No documents found matching this filter.
                         </p>
                       </td>
                     </tr>
                   ) : (
                     filteredAssignments.map((assn) => (
                       <tr key={assn._id || assn.id} className="hover:bg-zinc-800/40 transition-colors">
+                        {/* 1. Customer */}
                         <td className="px-6 py-4">
                           <div>
                             <p className="text-xs font-bold text-white">{assn.userName}</p>
                             <p className="text-[11px] text-zinc-400 font-medium">{assn.userEmail}</p>
                           </div>
                         </td>
+
+                        {/* 2. Document Title */}
                         <td className="px-6 py-4 max-w-xs">
                           <div>
                             <p className="text-xs font-bold text-white truncate">{assn.title}</p>
-                            <p className="text-[11px] text-zinc-400 font-medium truncate">{assn.description}</p>
+                            <p className="text-[10px] text-zinc-500 font-normal">
+                              Submitted: {new Date(assn.createdAt || Date.now()).toLocaleDateString("en-LK")}
+                            </p>
                           </div>
                         </td>
-                        <td className="px-6 py-4 text-xs font-bold text-amber-400">
-                          <span className="flex items-center gap-1">
-                            <Calendar className="h-3.5 w-3.5" />
-                            {new Date(assn.deadline).toLocaleString("en-LK", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </td>
+
+                        {/* 3. Document (Original Customer File) */}
                         <td className="px-6 py-4 text-center">
                           {assn.attachment ? (
-                            <button
-                              onClick={() => setActiveAssignmentModal(assn)}
-                              className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 px-2 py-1 text-[11px] font-bold text-primary hover:bg-primary/10 cursor-pointer"
+                            <a
+                              href={assn.attachment}
+                              download={assn.attachmentName || "Customer_Document"}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-extrabold text-amber-400 hover:bg-amber-500/20 cursor-pointer shadow-sm"
                             >
-                              <Paperclip className="h-3 w-3" />
-                              View Brief
-                            </button>
+                              <Paperclip className="h-3.5 w-3.5" />
+                              <span className="truncate max-w-[130px]">{assn.attachmentName || "Download File"}</span>
+                            </a>
                           ) : (
-                            <span className="text-xs text-zinc-600 italic">None</span>
+                            <span className="text-xs text-zinc-600 italic">No File</span>
                           )}
                         </td>
+
+                        {/* 4. Status */}
                         <td className="px-6 py-4 text-center">
                           {assn.status === "pending" && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/20 px-2.5 py-1 text-[10px] font-black text-amber-400">
                               <Lock className="h-3 w-3" />
-                              1 Coin Held
+                              Pending Check (1 Coin Held)
                             </span>
                           )}
                           {assn.status === "approved" && (
                             <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/20 px-2.5 py-1 text-[10px] font-black text-green-400">
                               <CheckCircle className="h-3 w-3" />
-                              Approved
+                              Approved & Delivered
                             </span>
                           )}
                           {assn.status === "rejected" && (
@@ -782,6 +836,8 @@ function AdminDashboardContent() {
                             </span>
                           )}
                         </td>
+
+                        {/* 5. Action */}
                         <td className="px-6 py-4 text-right space-x-2">
                           <button
                             onClick={() => setActiveAssignmentModal(assn)}
@@ -790,19 +846,29 @@ function AdminDashboardContent() {
                             <Eye className="h-3.5 w-3.5" />
                             Details
                           </button>
+                          {assn.status === "approved" && (
+                            <button
+                              onClick={() => handleOpenApproveModal(assn)}
+                              disabled={actionLoadingId === (assn._id || assn.id)}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-500/40 px-3 py-1 text-xs font-black text-blue-400 hover:bg-blue-600/30 cursor-pointer shadow-md disabled:opacity-50"
+                            >
+                              <Paperclip className="h-3.5 w-3.5 text-blue-400" />
+                              {assn.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
+                            </button>
+                          )}
                           {assn.status === "pending" && (
                             <>
                               <button
-                                onClick={() => handleApproveAssignment(assn)}
+                                onClick={() => handleOpenApproveModal(assn)}
                                 disabled={actionLoadingId === (assn._id || assn.id)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-md disabled:opacity-50"
+                                className="inline-flex items-center gap-1 rounded-lg bg-[#fe9a00] px-3 py-1 text-xs font-black text-black hover:bg-[#e08800] cursor-pointer shadow-md disabled:opacity-50"
                               >
                                 {actionLoadingId === (assn._id || assn.id) ? (
                                   <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                                 ) : (
                                   <Check className="h-3.5 w-3.5" />
                                 )}
-                                Approve
+                                Approve & Upload Report
                               </button>
                               <button
                                 onClick={() => handleOpenRejectAssignmentModal(assn)}
@@ -1056,7 +1122,7 @@ function AdminDashboardContent() {
 
             <div className="space-y-1">
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
-                <BookOpen className="h-3 w-3" /> Assignment Review Brief
+                <BookOpen className="h-3 w-3" /> Document Review Brief
               </span>
               <h3 className="text-lg font-black text-white">{activeAssignmentModal.title}</h3>
               <p className="text-xs text-zinc-400">
@@ -1117,6 +1183,33 @@ function AdminDashboardContent() {
             </div>
 
             {/* Actions inside modal */}
+            {activeAssignmentModal.status === "approved" && (
+              <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+                <div className="text-xs">
+                  {activeAssignmentModal.resultFile ? (
+                    <span className="text-green-400 font-bold flex items-center gap-1">
+                      <CheckCircle className="h-3.5 w-3.5" /> Turnitin Report Uploaded ({activeAssignmentModal.resultFileName || "Report.pdf"})
+                    </span>
+                  ) : (
+                    <span className="text-amber-400 font-bold flex items-center gap-1">
+                      <AlertCircle className="h-3.5 w-3.5" /> Pending Report Upload
+                    </span>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    const target = activeAssignmentModal;
+                    setActiveAssignmentModal(null);
+                    handleOpenApproveModal(target);
+                  }}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-500 cursor-pointer shadow-lg flex items-center gap-1.5"
+                >
+                  <Paperclip className="h-4 w-4" />
+                  {activeAssignmentModal.resultFile ? "Update / Replace Turnitin Report" : "Upload Turnitin Report"}
+                </button>
+              </div>
+            )}
+
             {activeAssignmentModal.status === "pending" && (
               <div className="flex items-center justify-end gap-3 pt-2">
                 <button
@@ -1126,12 +1219,15 @@ function AdminDashboardContent() {
                   Reject & Refund 1 Coin
                 </button>
                 <button
-                  onClick={() => handleApproveAssignment(activeAssignmentModal)}
-                  disabled={actionLoadingId === (activeAssignmentModal._id || activeAssignmentModal.id)}
-                  className="rounded-xl bg-green-600 px-5 py-2 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg disabled:opacity-50 flex items-center gap-1.5"
+                  onClick={() => {
+                    const target = activeAssignmentModal;
+                    setActiveAssignmentModal(null);
+                    handleOpenApproveModal(target);
+                  }}
+                  className="rounded-xl bg-green-600 px-5 py-2 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg flex items-center gap-1.5"
                 >
-                  {actionLoadingId === (activeAssignmentModal._id || activeAssignmentModal.id) && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                  Approve Assignment (Consume Held Coin)
+                  <CheckCircle className="h-4 w-4" />
+                  Approve & Upload Turnitin Report
                 </button>
               </div>
             )}
@@ -1262,6 +1358,134 @@ function AdminDashboardContent() {
                 Confirm Rejection
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Upload Checked Turnitin Report Modal ────────────────────────────── */}
+      {isApproveModalOpen && targetApproveDocument && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 overflow-y-auto">
+          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-5 relative shadow-2xl">
+            <button
+              onClick={() => {
+                setIsApproveModalOpen(false);
+                setTargetApproveDocument(null);
+              }}
+              className="absolute top-4 right-4 p-1.5 rounded-lg text-zinc-400 hover:text-white"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="space-y-1">
+              <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/20 px-2.5 py-0.5 text-[10px] font-black text-green-400">
+                <CheckCircle className="h-3 w-3" /> Approve Document & Upload Turnitin Report
+              </span>
+              <h3 className="text-base font-black text-white">{targetApproveDocument.title}</h3>
+              <p className="text-xs text-zinc-400 font-medium">
+                Customer: <strong className="text-white">{targetApproveDocument.userName}</strong> ({targetApproveDocument.userEmail})
+              </p>
+            </div>
+
+            {/* Original Uploaded File Download */}
+            {targetApproveDocument.attachment && (
+              <div className="p-3 bg-zinc-800/80 border border-zinc-700/80 rounded-xl flex items-center justify-between text-xs">
+                <span className="font-bold text-zinc-300 truncate max-w-xs">
+                  📁 Customer File: {targetApproveDocument.attachmentName || "Uploaded_Document"}
+                </span>
+                <a
+                  href={targetApproveDocument.attachment}
+                  download={targetApproveDocument.attachmentName || "customer_document"}
+                  className="px-3 py-1 rounded-lg bg-amber-500 text-black font-extrabold hover:bg-amber-400 text-xs shrink-0"
+                >
+                  Download Customer File
+                </a>
+              </div>
+            )}
+
+            <form onSubmit={handleConfirmApproveDocument} className="space-y-4 pt-2">
+              {/* Checked Turnitin Document Upload Box */}
+              <div className="space-y-1">
+                <label className="text-xs font-extrabold text-white">
+                  Upload Checked Turnitin Report Document <span className="text-red-400">*</span>
+                </label>
+                <div
+                  onClick={() => resultFileInputRef.current?.click()}
+                  className="border-2 border-dashed border-zinc-700 hover:border-primary/60 rounded-xl p-4 text-center cursor-pointer bg-zinc-800/40 transition-all"
+                >
+                  <input
+                    type="file"
+                    ref={resultFileInputRef}
+                    onChange={handleApproveFileChange}
+                    accept=".pdf,.docx,.zip,.png,.jpg"
+                    className="hidden"
+                  />
+                  {approveResultFileName ? (
+                    <p className="text-xs font-bold text-primary truncate">
+                      📄 {approveResultFileName}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-zinc-400 font-semibold flex items-center justify-center gap-1.5">
+                      <Paperclip className="h-4 w-4 text-primary" /> Click to upload Checked Turnitin PDF / Report
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {/* Optional Similarity & AI Scores */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-extrabold text-zinc-300">
+                    Similarity % (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={approveSimilarityScore}
+                    onChange={(e) => setApproveSimilarityScore(e.target.value)}
+                    placeholder="e.g. 12"
+                    className="w-full text-xs font-semibold text-white bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 focus:border-primary focus:outline-none"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-extrabold text-zinc-300">
+                    AI Detection % (Optional)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={approveAiScore}
+                    onChange={(e) => setApproveAiScore(e.target.value)}
+                    placeholder="e.g. 0"
+                    className="w-full text-xs font-semibold text-white bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 focus:border-primary focus:outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Optional Admin Note */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-extrabold text-zinc-300">Admin Note / Feedback (Optional)</label>
+                <textarea
+                  rows={2}
+                  value={approveAdminNote}
+                  onChange={(e) => setApproveAdminNote(e.target.value)}
+                  placeholder="e.g. Verified in No-Repository mode."
+                  className="w-full text-xs font-semibold text-white bg-zinc-800 border border-zinc-700 rounded-xl p-2.5 focus:border-primary focus:outline-none"
+                />
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={!approveResultFileName}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#fe9a00] py-3 text-xs font-extrabold text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
+                >
+                  <CheckCircle className="h-4 w-4" />
+                  Approve & Deliver Turnitin Report
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

@@ -2,7 +2,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const PaymentSlip = require("../models/PaymentSlip");
-const Assignment = require("../models/Assignment");
+const Document = require("../models/Document");
 const { adminProtect } = require("../middleware/adminAuth");
 
 const router = express.Router();
@@ -82,11 +82,11 @@ router.get("/stats", adminProtect, async (req, res) => {
     const newThisWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
 
     const pendingSlips = await PaymentSlip.countDocuments({ status: "pending" });
-    const pendingAssignments = await Assignment.countDocuments({ status: "pending" });
+    const pendingAssignments = await Document.countDocuments({ status: "pending" });
 
     res.status(200).json({
       success: true,
-      stats: { totalUsers, newToday, newThisWeek, pendingSlips, pendingAssignments },
+      stats: { totalUsers, newToday, newThisWeek, pendingSlips, pendingAssignments, pendingDocuments: pendingAssignments },
     });
   } catch (error) {
     console.error("Admin stats error:", error);
@@ -180,92 +180,113 @@ router.put("/slips/:id/reject", adminProtect, async (req, res) => {
   }
 });
 
-// ─── GET /api/admin/assignments ─────────────────────────────────────────────
-router.get("/assignments", adminProtect, async (req, res) => {
+const handleGetAdminDocuments = async (req, res) => {
   try {
     const { status } = req.query;
     const filter = status ? { status } : {};
 
-    const assignments = await Assignment.find(filter).sort({ createdAt: -1 });
+    const documents = await Document.find(filter).sort({ createdAt: -1 });
 
     res.status(200).json({
       success: true,
-      total: assignments.length,
-      assignments,
+      total: documents.length,
+      documents,
+      assignments: documents,
     });
   } catch (error) {
-    console.error("Admin get assignments error:", error);
-    res.status(500).json({ success: false, message: "Failed to fetch assignments." });
+    console.error("Admin get documents error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch documents." });
   }
-});
+};
 
-// ─── PUT /api/admin/assignments/:id/approve ──────────────────────────────────
-router.put("/assignments/:id/approve", adminProtect, async (req, res) => {
+router.get("/documents", adminProtect, handleGetAdminDocuments);
+router.get("/assignments", adminProtect, handleGetAdminDocuments);
+
+const handleApproveDocument = async (req, res) => {
   try {
-    const assignment = await Assignment.findById(req.params.id);
-    if (!assignment) {
-      return res.status(404).json({ success: false, message: "Assignment not found." });
+    const document = await Document.findById(req.params.id);
+    if (!document) {
+      return res.status(404).json({ success: false, message: "Document not found." });
     }
 
-    if (assignment.status === "approved") {
-      return res.status(400).json({ success: false, message: "Assignment is already approved." });
+    if (document.status === "approved") {
+      return res.status(400).json({ success: false, message: "Document is already approved." });
     }
 
-    assignment.status = "approved";
-    await assignment.save();
+    const { resultFile, resultFileName, similarityScore, aiScore, adminNote } = req.body;
+
+    document.status = "approved";
+    if (resultFile) document.resultFile = resultFile;
+    if (resultFileName) document.resultFileName = resultFileName;
+    if (similarityScore !== undefined && similarityScore !== null && similarityScore !== "") {
+      document.similarityScore = Number(similarityScore);
+    }
+    if (aiScore !== undefined && aiScore !== null && aiScore !== "") {
+      document.aiScore = Number(aiScore);
+    }
+    if (adminNote) document.adminNote = adminNote;
+
+    await document.save();
 
     // Held coin disappears (decrement holdCredits by 1)
-    await User.findByIdAndUpdate(assignment.userId, {
+    await User.findByIdAndUpdate(document.userId, {
       $inc: { holdCredits: -1 },
     });
 
     res.status(200).json({
       success: true,
-      message: "Assignment approved successfully! Held coin consumed.",
-      assignment,
+      message: "Document approved successfully! Held coin consumed.",
+      document,
+      assignment: document,
     });
   } catch (error) {
-    console.error("Admin approve assignment error:", error);
-    res.status(500).json({ success: false, message: "Failed to approve assignment." });
+    console.error("Admin approve document error:", error);
+    res.status(500).json({ success: false, message: "Failed to approve document." });
   }
-});
+};
 
-// ─── PUT /api/admin/assignments/:id/reject ───────────────────────────────────
-router.put("/assignments/:id/reject", adminProtect, async (req, res) => {
+router.put("/documents/:id/approve", adminProtect, handleApproveDocument);
+router.put("/assignments/:id/approve", adminProtect, handleApproveDocument);
+
+const handleRejectDocument = async (req, res) => {
   try {
     const { adminNote } = req.body;
-    const assignment = await Assignment.findById(req.params.id);
+    const document = await Document.findById(req.params.id);
 
-    if (!assignment) {
-      return res.status(404).json({ success: false, message: "Assignment not found." });
+    if (!document) {
+      return res.status(404).json({ success: false, message: "Document not found." });
     }
 
-    if (assignment.status === "approved") {
+    if (document.status === "approved") {
       return res.status(400).json({
         success: false,
-        message: "Cannot reject an already approved assignment.",
+        message: "Cannot reject an already approved document.",
       });
     }
 
-    assignment.status = "rejected";
-    if (adminNote) assignment.adminNote = adminNote;
-    await assignment.save();
+    document.status = "rejected";
+    if (adminNote) document.adminNote = adminNote;
+    await document.save();
 
     // Refund 1 coin back to customer (decrement holdCredits by 1, increment credits by 1)
-    await User.findByIdAndUpdate(assignment.userId, {
+    await User.findByIdAndUpdate(document.userId, {
       $inc: { holdCredits: -1, credits: 1 },
     });
 
     res.status(200).json({
       success: true,
-      message: "Assignment rejected. 1 coin refunded to customer's available balance.",
-      assignment,
+      message: "Document rejected. 1 coin refunded to customer's available balance.",
+      document,
+      assignment: document,
     });
   } catch (error) {
-    console.error("Admin reject assignment error:", error);
-    res.status(500).json({ success: false, message: "Failed to reject assignment." });
+    console.error("Admin reject document error:", error);
+    res.status(500).json({ success: false, message: "Failed to reject document." });
   }
-});
+};
+
+router.put("/documents/:id/reject", adminProtect, handleRejectDocument);
+router.put("/assignments/:id/reject", adminProtect, handleRejectDocument);
 
 module.exports = router;
 

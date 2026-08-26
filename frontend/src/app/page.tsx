@@ -34,7 +34,7 @@ interface ScanActivity {
 
 const INITIAL_ACTIVITIES: ScanActivity[] = [
   { id: "1", name: "Kasun P.", institution: "University of Kelaniya", type: "Thesis Draft", similarity: 12, ai: 0, time: "2 min ago" },
-  { id: "2", name: "Dilini S.", institution: "SLIIT", type: "Assignment 2", similarity: 8, ai: 14, time: "5 min ago" },
+  { id: "2", name: "Dilini S.", institution: "SLIIT", type: "Document 2", similarity: 8, ai: 14, time: "5 min ago" },
   { id: "3", name: "Tariq A.", institution: "University of Colombo", type: "Research Paper", similarity: 18, ai: 5, time: "9 min ago" },
   { id: "4", name: "Fathima R.", institution: "UOM - Moratuwa", type: "Dissertation", similarity: 4, ai: 0, time: "12 min ago" },
   { id: "5", name: "Sanduni W.", institution: "University of Peradeniya", type: "Literature Review", similarity: 15, ai: 45, time: "18 min ago" },
@@ -143,7 +143,7 @@ export default function Home() {
         "Sabaragamuwa University",
         "Eastern University"
       ];
-      const types = ["Thesis Chapter 3", "Final Dissertation", "Math Assignment", "Economics Essay", "Proposal Draft"];
+      const types = ["Thesis Chapter 3", "Final Dissertation", "Math Document", "Economics Essay", "Proposal Draft"];
       
       const newActivity: ScanActivity = {
         id: Date.now().toString(),
@@ -316,7 +316,7 @@ export default function Home() {
                 Submit Drafts Directly? Big Mistake.
               </h2>
               <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                If you submit a draft directly on standard university Turnitin assignments, the document might be saved into Turnitin&apos;s repository database. When you re-check or submit your final revision, it flags against your own draft as **100% Plagiarized**.
+                If you submit a draft directly on standard university Turnitin document portals, the document might be saved into Turnitin&apos;s repository database. When you re-check or submit your final revision, it flags against your own draft as **100% Plagiarized**.
               </p>
             </div>
 
@@ -618,7 +618,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
               {[
-                { name: "Single Check", slots: 1, price: "1,000", popular: false, desc: "For single assignment check" },
+                { name: "Single Check", slots: 1, price: "1,000", popular: false, desc: "For single document check" },
                 { name: "Revision Pack", slots: 5, price: "4,750", popular: true, desc: "Best for draft improvements" },
                 { name: "Scholar Pro", slots: 10, price: "7,500", popular: false, desc: "Ideal for dissertation check" },
                 { name: "Editor Elite", slots: 25, price: "21,250", popular: false, desc: "For researchers and tutors" },

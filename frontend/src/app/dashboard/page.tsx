@@ -56,7 +56,7 @@ interface PaymentSlipRecord {
   createdAt: string;
 }
 
-interface AssignmentRecord {
+interface DocumentRecord {
   _id?: string;
   id?: string;
   userName?: string;
@@ -68,10 +68,16 @@ interface AssignmentRecord {
   deadline: string;
   attachment?: string;
   attachmentName?: string;
+  resultFile?: string;
+  resultFileName?: string;
+  similarityScore?: number;
+  aiScore?: number;
   status: "pending" | "approved" | "rejected";
   adminNote?: string;
   createdAt: string;
 }
+
+type AssignmentRecord = DocumentRecord;
 
 interface UserData {
   id?: string;
@@ -181,24 +187,26 @@ function DashboardContent() {
 
   const fetchMyAssignments = async () => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-    let fetched: AssignmentRecord[] = [];
+    let fetched: DocumentRecord[] = [];
 
     if (token) {
       try {
-        const res = await fetch(`${API_URL}/assignments/my-assignments`, {
+        const res = await fetch(`${API_URL}/documents/my-documents`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await res.json();
         if (data.success) {
-          fetched = data.assignments;
+          fetched = data.documents || data.assignments || [];
         }
       } catch (e) {
-        console.error("Error fetching my assignments:", e);
+        console.error("Error fetching my documents:", e);
       }
     }
 
-    // Merge with local storage assignments
-    const localAssns: AssignmentRecord[] = JSON.parse(localStorage.getItem("myAssignments") || "[]");
+    // Merge with local storage documents
+    const localAssns: DocumentRecord[] = JSON.parse(
+      localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
+    );
     const combined = [...fetched];
     localAssns.forEach((la) => {
       const id = la._id || la.id;
@@ -475,13 +483,18 @@ function DashboardContent() {
 
     if (!userData) return;
 
-    if (!assignTitle || !assignDesc || !assignDeadline) {
-      setAssignError("Please enter the assignment title, description, and deadline.");
+    if (!assignTitle) {
+      setAssignError("Please enter the document title.");
+      return;
+    }
+
+    if (!assignAttachmentName) {
+      setAssignError("Please upload a document file.");
       return;
     }
 
     if ((userData.credits || 0) < 1) {
-      setAssignError("Insufficient available coins! You need at least 1 coin to submit an assignment.");
+      setAssignError("Insufficient available coins! You need at least 1 coin to submit a document.");
       return;
     }
 
@@ -497,9 +510,12 @@ function DashboardContent() {
       holdCredits: (userData.holdCredits || 0) + 1,
     };
 
+    const effectiveDesc = assignDesc || assignTitle || "Uploaded document";
+    const effectiveDeadline = assignDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
     if (token) {
       try {
-        const res = await fetch(`${API_URL}/assignments/submit`, {
+        const res = await fetch(`${API_URL}/documents/submit`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -507,10 +523,10 @@ function DashboardContent() {
           },
           body: JSON.stringify({
             title: assignTitle,
-            description: assignDesc,
+            description: effectiveDesc,
             requirements: assignReqs,
             deliverables: assignDeliverables,
-            deadline: assignDeadline,
+            deadline: effectiveDeadline,
             attachment: assignAttachment || "",
             attachmentName: assignAttachmentName || "",
           }),
@@ -527,35 +543,39 @@ function DashboardContent() {
           });
 
           // Sync local storage list
-          const localAssns: AssignmentRecord[] = JSON.parse(localStorage.getItem("myAssignments") || "[]");
-          const newLocalAssn: AssignmentRecord = {
-            _id: data.assignment?._id,
-            id: data.assignment?._id || Date.now().toString(),
+          const localAssns: DocumentRecord[] = JSON.parse(
+            localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
+          );
+          const docObj = data.document || data.assignment;
+          const newLocalAssn: DocumentRecord = {
+            _id: docObj?._id,
+            id: docObj?._id || Date.now().toString(),
             userName: userData.name,
             userEmail: userData.email,
             title: assignTitle,
-            description: assignDesc,
+            description: effectiveDesc,
             requirements: assignReqs,
             deliverables: assignDeliverables,
-            deadline: assignDeadline,
+            deadline: effectiveDeadline,
             attachment: assignAttachment || "",
             attachmentName: assignAttachmentName || "",
             status: "pending",
             createdAt: new Date().toISOString(),
           };
+          localStorage.setItem("myDocuments", JSON.stringify([newLocalAssn, ...localAssns]));
           localStorage.setItem("myAssignments", JSON.stringify([newLocalAssn, ...localAssns]));
 
-          alert("Assignment submitted successfully! 1 coin placed on hold awaiting admin approval.");
+          alert("Document submitted successfully! 1 coin placed on hold awaiting admin approval.");
           setIsAssignmentModalOpen(false);
           resetAssignmentForm();
           fetchMyAssignments();
           fetchMe();
           return;
         } else {
-          setAssignError(data.message || "Failed to submit assignment.");
+          setAssignError(data.message || "Failed to submit document.");
         }
       } catch (err) {
-        console.error("Assignment submit error:", err);
+        console.error("Document submit error:", err);
       }
     }
 
@@ -568,10 +588,10 @@ function DashboardContent() {
         userName: userData.name,
         userEmail: userData.email,
         title: assignTitle,
-        description: assignDesc,
+        description: effectiveDesc,
         requirements: assignReqs,
         deliverables: assignDeliverables,
-        deadline: assignDeadline,
+        deadline: effectiveDeadline,
         attachment: assignAttachment || "",
         attachmentName: assignAttachmentName || "",
         status: "pending",
@@ -586,7 +606,7 @@ function DashboardContent() {
       setAssignLoading(false);
       setIsAssignmentModalOpen(false);
       resetAssignmentForm();
-      alert("Assignment submitted successfully! 1 coin placed on hold awaiting admin approval.");
+      alert("Document submitted successfully! 1 coin placed on hold awaiting admin approval.");
     }
   };
 
@@ -793,7 +813,7 @@ function DashboardContent() {
                   className="inline-flex h-11 items-center gap-2 rounded-xl bg-amber-500 text-black px-4 text-xs font-black hover:bg-amber-400 transition-all shadow-md shadow-amber-500/10 cursor-pointer"
                 >
                   <BookOpen className="h-4 w-4" />
-                  Submit Assignment
+                  Submit Document
                 </button>
 
                 <button
@@ -841,7 +861,7 @@ function DashboardContent() {
             <div className="flex items-center justify-between">
               <h2 className="text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-amber-500" />
-                My Assignments Queue
+                Scan Turnitin Document
               </h2>
               <div className="flex items-center gap-2">
                 <button
@@ -849,7 +869,7 @@ function DashboardContent() {
                   className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 px-3 py-1.5 text-xs font-extrabold text-amber-600 hover:bg-amber-500/25 transition-all cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  New Assignment
+                  New Document
                 </button>
                 <button
                   onClick={() => {
@@ -867,9 +887,9 @@ function DashboardContent() {
               <div className="text-center py-10 space-y-3 border border-dashed border-border rounded-2xl bg-muted/5">
                 <BookOpen className="h-8 w-8 text-muted-foreground/60 mx-auto" />
                 <div>
-                  <p className="text-sm font-bold text-foreground">No assignments submitted yet</p>
+                  <p className="text-sm font-bold text-foreground">No documents submitted yet</p>
                   <p className="text-xs text-muted-foreground font-semibold max-w-sm mx-auto mt-1">
-                    Submit your assignment requirements, scope, and target deadline. 1 coin is placed on hold until admin approves the task.
+                    Upload your document. 1 coin is placed on hold until admin approves the submission.
                   </p>
                 </div>
                 <button
@@ -877,7 +897,7 @@ function DashboardContent() {
                   className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-black text-black hover:bg-amber-400 cursor-pointer shadow-md"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  Upload First Assignment
+                  Upload First Document
                 </button>
               </div>
             ) : (
@@ -885,61 +905,44 @@ function DashboardContent() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b border-border/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                      <th className="py-3 text-left font-bold">Assignment Title</th>
-                      <th className="py-3 text-left font-bold">Deadline (Date & Time)</th>
-                      <th className="py-3 text-center font-bold">Attachment</th>
+                      <th className="py-3 text-left font-bold">Document Title</th>
+                      <th className="py-3 text-center font-bold">Document</th>
                       <th className="py-3 text-center font-bold">Status</th>
-                      <th className="py-3 text-right font-bold">Actions</th>
+                      <th className="py-3 text-center font-bold">Turnitin Document</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
                     {myAssignments.map((assn, i) => (
                       <tr key={assn._id || assn.id || i} className="hover:bg-muted/10 transition-colors">
+                        {/* 1. Document Title */}
                         <td className="py-3.5 text-left text-foreground font-bold max-w-xs truncate">
                           <div>
-                            <p className="truncate">{assn.title}</p>
-                            <p className="text-[11px] font-semibold text-muted-foreground truncate max-w-xs">{assn.description}</p>
+                            <p className="truncate text-xs font-bold">{assn.title}</p>
+                            <p className="text-[10px] text-muted-foreground font-normal">
+                              Submitted: {new Date(assn.createdAt || Date.now()).toLocaleDateString("en-LK")}
+                            </p>
                           </div>
                         </td>
-                        <td className="py-3.5 text-left text-xs font-bold text-foreground">
-                          <span className="flex items-center gap-1.5">
-                            <Calendar className="h-3.5 w-3.5 text-primary shrink-0" />
-                            {new Date(assn.deadline).toLocaleString("en-LK", {
-                              year: "numeric",
-                              month: "short",
-                              day: "numeric",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </span>
-                        </td>
+
+                        {/* 2. Document (Original Customer File) */}
                         <td className="py-3.5 text-center">
                           {assn.attachment ? (
-                            <button
-                              onClick={() => setViewSlipUrl(assn.attachment || null)}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-primary hover:bg-primary/10 cursor-pointer"
+                            <a
+                              href={assn.attachment}
+                              download={assn.attachmentName || "Uploaded_Document"}
+                              className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-foreground hover:bg-secondary transition-colors cursor-pointer"
                             >
-                              <Paperclip className="h-3.5 w-3.5" />
-                              View Attached
-                            </button>
+                              <Paperclip className="h-3.5 w-3.5 text-amber-500" />
+                              <span className="truncate max-w-[120px]">{assn.attachmentName || "View File"}</span>
+                            </a>
                           ) : (
-                            <span className="text-xs text-muted-foreground italic">None</span>
+                            <span className="text-xs text-muted-foreground italic">No File</span>
                           )}
                         </td>
+
+                        {/* 3. Status */}
                         <td className="py-3.5 text-center">
-                          {assn.status === "pending" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black text-amber-600 border border-amber-500/20">
-                              <Lock className="h-3 w-3" />
-                              Pending Approval (1 Coin Held)
-                            </span>
-                          )}
-                          {assn.status === "approved" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[10px] font-black text-green-600 border border-green-500/20">
-                              <CheckCircle className="h-3 w-3" />
-                              Approved (Completed)
-                            </span>
-                          )}
-                          {assn.status === "rejected" && (
+                          {assn.status === "rejected" ? (
                             <span
                               className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-0.5 text-[10px] font-black text-red-600 border border-red-500/20"
                               title={assn.adminNote || "1 coin refunded"}
@@ -947,16 +950,40 @@ function DashboardContent() {
                               <XCircle className="h-3 w-3" />
                               Rejected (1 Coin Refunded)
                             </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black text-amber-600 border border-amber-500/20">
+                              <CheckCircle className="h-3 w-3" />
+                              Verified Upload document
+                            </span>
                           )}
                         </td>
-                        <td className="py-3.5 text-right">
-                          <button
-                            onClick={() => setActiveAssignmentModal(assn)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-foreground hover:bg-secondary cursor-pointer"
-                          >
-                            <Eye className="h-3.5 w-3.5 text-primary" />
-                            Details
-                          </button>
+
+                        {/* 4. Turnitin Document */}
+                        <td className="py-3.5 text-center">
+                          {assn.status === "approved" ? (
+                            <div className="flex flex-col items-center gap-1">
+                              <a
+                                href={assn.resultFile || assn.attachment}
+                                download={assn.resultFileName || `${assn.title}_Turnitin_Report.pdf`}
+                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#fe9a00] px-3 py-1.5 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
+                              >
+                                <Download className="h-3.5 w-3.5" />
+                                Download Turnitin Document 📥
+                              </a>
+                              {assn.similarityScore !== undefined && assn.similarityScore !== null && (
+                                <span className="text-[10px] font-extrabold text-[#fe9a00]">
+                                  Similarity: {assn.similarityScore}% {assn.aiScore !== undefined && assn.aiScore !== null ? `| AI: ${assn.aiScore}%` : ""}
+                                </span>
+                              )}
+                            </div>
+                          ) : assn.status === "rejected" ? (
+                            <span className="text-xs text-muted-foreground italic">N/A</span>
+                          ) : (
+                            <span className="inline-flex items-center justify-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-bold animate-pulse">
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-500" />
+                              Generating Report...
+                            </span>
+                          )}
                         </td>
                       </tr>
                     ))}
@@ -1001,11 +1028,10 @@ function DashboardContent() {
                     onDragLeave={handleDragLeave}
                     onDrop={handleDrop}
                     onClick={() => fileInputRef.current?.click()}
-                    className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${
-                      isDragging
-                        ? "border-primary bg-primary/5 scale-[1.01]"
-                        : "border-border hover:border-primary/20 bg-background"
-                    }`}
+                    className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${isDragging
+                      ? "border-primary bg-primary/5 scale-[1.01]"
+                      : "border-border hover:border-primary/20 bg-background"
+                      }`}
                   >
                     <input
                       type="file"
@@ -1191,22 +1217,20 @@ function DashboardContent() {
                         </td>
                         <td className="py-3.5 text-center">
                           <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-black rounded-lg ${
-                              scan.similarity > 15
-                                ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                                : "bg-primary/10 text-primary border border-primary/20"
-                            }`}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-black rounded-lg ${scan.similarity > 15
+                              ? "bg-red-500/10 text-red-500 border border-red-500/20"
+                              : "bg-primary/10 text-primary border border-primary/20"
+                              }`}
                           >
                             {scan.similarity}%
                           </span>
                         </td>
                         <td className="py-3.5 text-center">
                           <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-black rounded-lg ${
-                              scan.ai > 30
-                                ? "bg-cyan-500/10 text-cyan-500 border border-cyan-500/20"
-                                : "bg-primary/10 text-primary border border-primary/20"
-                            }`}
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-black rounded-lg ${scan.ai > 30
+                              ? "bg-cyan-500/10 text-cyan-500 border border-cyan-500/20"
+                              : "bg-primary/10 text-primary border border-primary/20"
+                              }`}
                           >
                             {scan.ai}%
                           </span>
@@ -1263,10 +1287,10 @@ function DashboardContent() {
             <div className="space-y-1">
               <h3 className="text-lg font-black text-foreground tracking-tight flex items-center gap-2">
                 <BookOpen className="h-5 w-5 text-amber-500" />
-                Submit New Assignment
+                Submit New Document
               </h3>
               <p className="text-xs text-muted-foreground font-semibold">
-                Provide your assignment requirements and target deadline. Submitting places **1 coin on Hold**.
+                Upload your document for review. Submitting places <strong>1 coin on Hold</strong>.
               </p>
             </div>
 
@@ -1286,81 +1310,29 @@ function DashboardContent() {
             )}
 
             <form onSubmit={handleAssignmentSubmit} className="space-y-4">
-              {/* Assignment Title */}
+              {/* Document Title */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-foreground">
-                  Assignment Title <span className="text-red-500">*</span>
+                  Document Title <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
                   value={assignTitle}
                   onChange={(e) => setAssignTitle(e.target.value)}
-                  placeholder="e.g. Data Structures & Algorithms Final Essay"
+                  placeholder="e.g. Data Structures & Algorithms Essay"
                   className="w-full text-xs font-semibold text-foreground bg-background border border-border rounded-xl px-3 py-2.5 focus:border-primary focus:outline-none"
                 />
               </div>
 
-              {/* Description */}
+              {/* Document Uploader */}
               <div className="space-y-1">
                 <label className="text-xs font-extrabold text-foreground">
-                  Description <span className="text-red-500">*</span>
+                  Document Uploader <span className="text-red-500">*</span>
                 </label>
-                <textarea
-                  rows={3}
-                  required
-                  value={assignDesc}
-                  onChange={(e) => setAssignDesc(e.target.value)}
-                  placeholder="Describe your assignment topic, main objectives, and instructions..."
-                  className="w-full text-xs font-semibold text-foreground bg-background border border-border rounded-xl p-3 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              {/* Requirements / Scope */}
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold text-foreground">Requirements / Scope</label>
-                <textarea
-                  rows={2}
-                  value={assignReqs}
-                  onChange={(e) => setAssignReqs(e.target.value)}
-                  placeholder="e.g. Minimum 2500 words, APA 7th edition referencing, Turnitin check..."
-                  className="w-full text-xs font-semibold text-foreground bg-background border border-border rounded-xl p-3 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              {/* Deliverables */}
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold text-foreground">Deliverables</label>
-                <input
-                  type="text"
-                  value={assignDeliverables}
-                  onChange={(e) => setAssignDeliverables(e.target.value)}
-                  placeholder="e.g. Word Document (.docx) & Source Code (.zip)"
-                  className="w-full text-xs font-semibold text-foreground bg-background border border-border rounded-xl px-3 py-2.5 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              {/* Deadline Date & Time */}
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold text-foreground flex items-center justify-between">
-                  <span>Target Deadline (Date & Time) <span className="text-red-500">*</span></span>
-                  <span className="text-[10px] text-muted-foreground font-normal">Select date & time</span>
-                </label>
-                <input
-                  type="datetime-local"
-                  required
-                  value={assignDeadline}
-                  onChange={(e) => setAssignDeadline(e.target.value)}
-                  className="w-full text-xs font-semibold text-foreground bg-background border border-border rounded-xl px-3 py-2.5 focus:border-primary focus:outline-none"
-                />
-              </div>
-
-              {/* File Attachment Upload */}
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold text-foreground">Attachments (Brief, Specs, Files)</label>
                 <div
                   onClick={() => assignFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-border hover:border-primary/40 rounded-xl p-3 text-center cursor-pointer bg-background transition-all"
+                  className="border-2 border-dashed border-border hover:border-primary/40 rounded-xl p-4 text-center cursor-pointer bg-background transition-all"
                 >
                   <input
                     type="file"
@@ -1375,7 +1347,7 @@ function DashboardContent() {
                     </p>
                   ) : (
                     <p className="text-xs text-muted-foreground font-semibold flex items-center justify-center gap-1.5">
-                      <Paperclip className="h-4 w-4" /> Click to attach specification documents (PDF, DOCX, ZIP)
+                      <Paperclip className="h-4 w-4" /> Click to upload document (PDF, DOCX, ZIP, images)
                     </p>
                   )}
                 </div>
@@ -1391,12 +1363,12 @@ function DashboardContent() {
                   {assignLoading ? (
                     <>
                       <RefreshCw className="h-4 w-4 animate-spin" />
-                      <span>Submitting Assignment...</span>
+                      <span>Submitting Document...</span>
                     </>
                   ) : (
                     <>
                       <Send className="h-4 w-4" />
-                      <span>Submit Assignment (Hold 1 Coin)</span>
+                      <span>Submit Document (Hold 1 Coin)</span>
                     </>
                   )}
                 </button>
@@ -1419,7 +1391,7 @@ function DashboardContent() {
 
             <div className="space-y-1">
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-black text-amber-600">
-                <BookOpen className="h-3 w-3" /> Assignment Details
+                <BookOpen className="h-3 w-3" /> Document Details
               </span>
               <h3 className="text-base font-black text-foreground tracking-tight">
                 {activeAssignmentModal.title}
@@ -1465,9 +1437,42 @@ function DashboardContent() {
                 </div>
               )}
 
+              {activeAssignmentModal.status === "approved" && (
+                <div className="p-4 bg-[#fe9a00]/10 border border-[#fe9a00]/20 rounded-2xl space-y-2">
+                  <p className="text-xs font-extrabold text-[#fe9a00] flex items-center gap-1.5">
+                    <CheckCircle className="h-4 w-4" /> Turnitin Check Completed!
+                  </p>
+                  <p className="text-[11px] text-muted-foreground font-semibold">
+                    Admin has processed your document in No-Repository mode and uploaded your checked Turnitin report.
+                  </p>
+                  {activeAssignmentModal.similarityScore !== undefined && activeAssignmentModal.similarityScore !== null && (
+                    <div className="flex items-center gap-3 text-xs font-bold pt-1">
+                      <span className="px-2.5 py-1 rounded-lg bg-[#fe9a00]/20 text-[#fe9a00]">
+                        Similarity Score: {activeAssignmentModal.similarityScore}%
+                      </span>
+                      {activeAssignmentModal.aiScore !== undefined && activeAssignmentModal.aiScore !== null && (
+                        <span className="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-700 dark:text-blue-300">
+                          AI Score: {activeAssignmentModal.aiScore}%
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <div className="pt-2">
+                    <a
+                      href={activeAssignmentModal.resultFile || activeAssignmentModal.attachment}
+                      download={activeAssignmentModal.resultFileName || `${activeAssignmentModal.title}_Turnitin_Report.pdf`}
+                      className="inline-flex items-center gap-2 rounded-xl bg-[#fe9a00] px-4 py-2 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
+                    >
+                      <Paperclip className="h-4 w-4" />
+                      Download Checked Turnitin Report 📥
+                    </a>
+                  </div>
+                </div>
+              )}
+
               {activeAssignmentModal.adminNote && (
-                <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-600 font-bold">
-                  <p className="text-[10px] uppercase">Admin Feedback / Rejection Reason</p>
+                <div className="p-3 bg-muted/40 border border-border rounded-xl text-foreground font-semibold text-xs">
+                  <p className="text-[10px] uppercase font-bold text-muted-foreground">Admin Note</p>
                   <p className="mt-0.5">{activeAssignmentModal.adminNote}</p>
                 </div>
               )}
@@ -1526,11 +1531,10 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => setPaymentTab("card")}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  paymentTab === "card"
-                    ? "bg-card text-foreground shadow-sm border border-border"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${paymentTab === "card"
+                  ? "bg-card text-foreground shadow-sm border border-border"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 <CreditCard className="h-3.5 w-3.5" />
                 Card Payment
@@ -1538,11 +1542,10 @@ function DashboardContent() {
               <button
                 type="button"
                 onClick={() => setPaymentTab("bank")}
-                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                  paymentTab === "bank"
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+                className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${paymentTab === "bank"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:text-foreground"
+                  }`}
               >
                 <Building2 className="h-3.5 w-3.5" />
                 Bank Transfer & Slip
@@ -1624,11 +1627,10 @@ function DashboardContent() {
 
                   <div
                     onClick={() => slipInputRef.current?.click()}
-                    className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center cursor-pointer transition-all duration-200 ${
-                      slipPreview
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/30 bg-background"
-                    }`}
+                    className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center cursor-pointer transition-all duration-200 ${slipPreview
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/30 bg-background"
+                      }`}
                   >
                     <input
                       type="file"

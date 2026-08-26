@@ -74,7 +74,7 @@ export default function HowItWorks() {
               Strict No-Repository Mode Explained
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-              Turnitin provides multiple setup profiles for user assignments. Standard student submissions are set to &quot;Standard Repository,&quot; meaning Turnitin indexes the draft to match future uploads. Similarfy routes your uploads strictly through verified Instructor licenses set to **&quot;No-Repository&quot;**.
+              Turnitin provides multiple setup profiles for document submissions. Standard student submissions are set to &quot;Standard Repository,&quot; meaning Turnitin indexes the draft to match future uploads. Similarfy routes your uploads strictly through verified Instructor licenses set to **&quot;No-Repository&quot;**.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">
