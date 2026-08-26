@@ -33,6 +33,11 @@ const UserSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Credits cannot be negative"],
     },
+    holdCredits: {
+      type: Number,
+      default: 0,
+      min: [0, "Hold credits cannot be negative"],
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically

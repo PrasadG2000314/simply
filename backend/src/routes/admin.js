@@ -2,6 +2,7 @@ const express = require("express");
 const jwt = require("jsonwebtoken");
 const User = require("../models/User");
 const PaymentSlip = require("../models/PaymentSlip");
+const Assignment = require("../models/Assignment");
 const { adminProtect } = require("../middleware/adminAuth");
 
 const router = express.Router();
@@ -46,7 +47,7 @@ router.post("/login", (req, res) => {
 router.get("/users", adminProtect, async (req, res) => {
   try {
     const users = await User.find()
-      .select("fullName email credits createdAt token")
+      .select("fullName email credits holdCredits createdAt token")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -57,6 +58,7 @@ router.get("/users", adminProtect, async (req, res) => {
         fullName: u.fullName,
         email: u.email,
         credits: u.credits || 0,
+        holdCredits: u.holdCredits || 0,
         createdAt: u.createdAt,
         hasActiveToken: !!u.token,
       })),
@@ -80,10 +82,11 @@ router.get("/stats", adminProtect, async (req, res) => {
     const newThisWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
 
     const pendingSlips = await PaymentSlip.countDocuments({ status: "pending" });
+    const pendingAssignments = await Assignment.countDocuments({ status: "pending" });
 
     res.status(200).json({
       success: true,
-      stats: { totalUsers, newToday, newThisWeek, pendingSlips },
+      stats: { totalUsers, newToday, newThisWeek, pendingSlips, pendingAssignments },
     });
   } catch (error) {
     console.error("Admin stats error:", error);
@@ -174,6 +177,93 @@ router.put("/slips/:id/reject", adminProtect, async (req, res) => {
   } catch (error) {
     console.error("Admin reject slip error:", error);
     res.status(500).json({ success: false, message: "Failed to reject payment slip." });
+  }
+});
+
+// ─── GET /api/admin/assignments ─────────────────────────────────────────────
+router.get("/assignments", adminProtect, async (req, res) => {
+  try {
+    const { status } = req.query;
+    const filter = status ? { status } : {};
+
+    const assignments = await Assignment.find(filter).sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      total: assignments.length,
+      assignments,
+    });
+  } catch (error) {
+    console.error("Admin get assignments error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch assignments." });
+  }
+});
+
+// ─── PUT /api/admin/assignments/:id/approve ──────────────────────────────────
+router.put("/assignments/:id/approve", adminProtect, async (req, res) => {
+  try {
+    const assignment = await Assignment.findById(req.params.id);
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: "Assignment not found." });
+    }
+
+    if (assignment.status === "approved") {
+      return res.status(400).json({ success: false, message: "Assignment is already approved." });
+    }
+
+    assignment.status = "approved";
+    await assignment.save();
+
+    // Held coin disappears (decrement holdCredits by 1)
+    await User.findByIdAndUpdate(assignment.userId, {
+      $inc: { holdCredits: -1 },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Assignment approved successfully! Held coin consumed.",
+      assignment,
+    });
+  } catch (error) {
+    console.error("Admin approve assignment error:", error);
+    res.status(500).json({ success: false, message: "Failed to approve assignment." });
+  }
+});
+
+// ─── PUT /api/admin/assignments/:id/reject ───────────────────────────────────
+router.put("/assignments/:id/reject", adminProtect, async (req, res) => {
+  try {
+    const { adminNote } = req.body;
+    const assignment = await Assignment.findById(req.params.id);
+
+    if (!assignment) {
+      return res.status(404).json({ success: false, message: "Assignment not found." });
+    }
+
+    if (assignment.status === "approved") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot reject an already approved assignment.",
+      });
+    }
+
+    assignment.status = "rejected";
+    if (adminNote) assignment.adminNote = adminNote;
+    await assignment.save();
+
+    // Refund 1 coin back to customer (decrement holdCredits by 1, increment credits by 1)
+    await User.findByIdAndUpdate(assignment.userId, {
+      $inc: { holdCredits: -1, credits: 1 },
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Assignment rejected. 1 coin refunded to customer's available balance.",
+      assignment,
+    });
+  } catch (error) {
+    console.error("Admin reject assignment error:", error);
+    res.status(500).json({ success: false, message: "Failed to reject assignment." });
   }
 });
 

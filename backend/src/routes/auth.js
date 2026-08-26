@@ -53,6 +53,7 @@ router.post("/register", async (req, res) => {
         fullName: user.fullName,
         email: user.email,
         credits: user.credits || 0,
+        holdCredits: user.holdCredits || 0,
         createdAt: user.createdAt,
       },
     });
@@ -116,6 +117,7 @@ router.post("/login", async (req, res) => {
         fullName: user.fullName,
         email: user.email,
         credits: user.credits || 0,
+        holdCredits: user.holdCredits || 0,
         createdAt: user.createdAt,
       },
     });
@@ -135,6 +137,7 @@ router.get("/me", protect, async (req, res) => {
         fullName: req.user.fullName,
         email: req.user.email,
         credits: req.user.credits || 0,
+        holdCredits: req.user.holdCredits || 0,
         createdAt: req.user.createdAt,
       },
     });
