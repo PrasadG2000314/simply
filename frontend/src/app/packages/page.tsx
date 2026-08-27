@@ -31,7 +31,7 @@ type PackageTier = {
 
 const standardPackages: PackageTier[] = [
   {
-    name: "1 Credit",
+    name: "1 Credits",
     credits: 1,
     originalPrice: 1000,
     discountedPrice: 500,

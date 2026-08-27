@@ -12,6 +12,7 @@ import {
   Shield,
   ShieldCheck,
   FileCheck,
+  FileText,
   Brain,
   Zap,
   Star,
@@ -20,6 +21,8 @@ import {
   Check,
   ArrowRight,
   Globe,
+  Sparkles,
+  CreditCard,
 } from "lucide-react";
 
 // Types for live activity stream
@@ -123,6 +126,7 @@ const FAQS = [
 
 export default function Home() {
   const [activeReportTab, setActiveReportTab] = useState<"similarity" | "ai">("similarity");
+  const [pricingTab, setPricingTab] = useState<"standard" | "api">("standard");
   const [openFaqs, setOpenFaqs] = useState<Record<number, boolean>>({});
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -561,100 +565,308 @@ export default function Home() {
 
         {/* Pricing Cards Grid */}
         <section id="pricing" className="py-20 border-b border-border/40 bg-background relative overflow-hidden">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
-              <span className="inline-block rounded-xl bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
-                PRICING
-              </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                Transparent Pay-As-You-Go Packages
+          <div className="mx-auto max-w-6xl px-6 space-y-12">
+            {/* Header */}
+            <div className="text-center max-w-3xl mx-auto space-y-4">
+              <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-xs font-extrabold text-primary uppercase tracking-widest">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                No-Repository Turnitin Scans
+              </div>
+              <h2 className="text-3xl sm:text-5xl font-black text-foreground tracking-tight">
+                Choose Your Credit Package
               </h2>
-              <p className="text-sm text-muted-foreground font-medium max-w-xl mx-auto">
-                No monthly subscriptions. Buy scan slots as needed. Each scan includes both Similarity and AI writing analysis.
+              <p className="text-sm text-muted-foreground font-semibold max-w-xl mx-auto leading-relaxed">
+                Each credit unlocks one full Turnitin Similarity + AI Detection scan. Credits are valid for 30 days and are securely processed.
               </p>
+
+              {/* Trust badges */}
+              <div className="flex flex-wrap justify-center gap-4 pt-2">
+                {[
+                  { icon: ShieldCheck, text: "100% No-Repository" },
+                  { icon: Clock, text: "24h Auto-Deletion" },
+                  { icon: FileText, text: "Official PDF Report" },
+                  { icon: Zap, text: "Instant Processing" },
+                ].map(({ icon: Icon, text }) => (
+                  <div
+                    key={text}
+                    className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"
+                  >
+                    <Icon className="h-3.5 w-3.5 text-primary" />
+                    {text}
+                  </div>
+                ))}
+              </div>
+
+              {/* Tab Toggle Switcher */}
+              <div className="flex flex-col items-center gap-3 pt-4">
+                <div className="inline-flex rounded-2xl border border-border bg-card p-1.5 gap-1.5 shadow-md">
+                  <button
+                    id="home-pricing-standard"
+                    onClick={() => setPricingTab("standard")}
+                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${
+                      pricingTab === "standard"
+                        ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-primary/25"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    Standard / Discounted
+                  </button>
+                  <button
+                    id="home-pricing-api"
+                    onClick={() => setPricingTab("api")}
+                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${
+                      pricingTab === "api"
+                        ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-primary/25"
+                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    }`}
+                  >
+                    API Tool
+                  </button>
+                </div>
+                <p className="text-xs text-muted-foreground font-semibold">
+                  {pricingTab === "standard"
+                    ? "Best value for students, researchers, and academic writers."
+                    : "Optimized for developers and teams integrating via our API."}
+                </p>
+              </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              {[
-                { name: "Single Check", slots: 1, price: "1,000", popular: false, desc: "For single document check" },
-                { name: "Revision Pack", slots: 5, price: "4,750", popular: true, desc: "Best for draft improvements" },
-                { name: "Scholar Pro", slots: 10, price: "7,500", popular: false, desc: "Ideal for dissertation check" },
-                { name: "Editor Elite", slots: 25, price: "21,250", popular: false, desc: "For researchers and tutors" },
-                { name: "Department", slots: 50, price: "40,000", popular: false, desc: "Great for research teams" },
-                { name: "Institution", slots: 100, price: "75,000", popular: false, desc: "Best value for departments" },
-              ].map((pkg, i) => (
+            {/* Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+              {(pricingTab === "standard"
+                ? [
+                    {
+                      name: "1 Credits",
+                      credits: 1,
+                      originalPrice: 1000,
+                      discountedPrice: 500,
+                      perCreditPrice: 500,
+                      discount: "20% OFF",
+                      savings: 500,
+                    },
+                    {
+                      name: "5 Credits",
+                      credits: 5,
+                      originalPrice: 4750,
+                      discountedPrice: 2500,
+                      perCreditPrice: 500,
+                      discount: "21% OFF",
+                      savings: 2250,
+                    },
+                    {
+                      name: "10 Credits",
+                      credits: 10,
+                      originalPrice: 9000,
+                      discountedPrice: 4500,
+                      perCreditPrice: 450,
+                      discount: "22% OFF",
+                      savings: 4500,
+                      popular: true,
+                    },
+                    {
+                      name: "Editor Elite",
+                      credits: 25,
+                      originalPrice: 21250,
+                      discountedPrice: 10000,
+                      perCreditPrice: 400,
+                      discount: "24% OFF",
+                      savings: 11250,
+                    },
+                    {
+                      name: "Department",
+                      credits: 50,
+                      originalPrice: 40000,
+                      discountedPrice: 17500,
+                      perCreditPrice: 350,
+                      discount: "25% OFF",
+                      savings: 22500,
+                    },
+                    {
+                      name: "Institution",
+                      credits: 100,
+                      originalPrice: 75000,
+                      discountedPrice: 30000,
+                      perCreditPrice: 300,
+                      discount: "27% OFF",
+                      savings: 45000,
+                    },
+                  ]
+                : [
+                    {
+                      name: "1 Credits",
+                      credits: 1,
+                      originalPrice: 1000,
+                      discountedPrice: 700,
+                      perCreditPrice: 700,
+                      discount: "20% OFF",
+                      savings: 300,
+                    },
+                    {
+                      name: "5 Credits",
+                      credits: 5,
+                      originalPrice: 4750,
+                      discountedPrice: 3500,
+                      perCreditPrice: 700,
+                      discount: "21% OFF",
+                      savings: 1250,
+                    },
+                    {
+                      name: "10 Credits",
+                      credits: 10,
+                      originalPrice: 9000,
+                      discountedPrice: 6500,
+                      perCreditPrice: 650,
+                      discount: "22% OFF",
+                      savings: 2500,
+                      popular: true,
+                    },
+                    {
+                      name: "Editor Elite",
+                      credits: 25,
+                      originalPrice: 21250,
+                      discountedPrice: 15000,
+                      perCreditPrice: 600,
+                      discount: "24% OFF",
+                      savings: 6250,
+                    },
+                    {
+                      name: "Department",
+                      credits: 50,
+                      originalPrice: 40000,
+                      discountedPrice: 27500,
+                      perCreditPrice: 550,
+                      discount: "25% OFF",
+                      savings: 12500,
+                    },
+                    {
+                      name: "Institution",
+                      credits: 100,
+                      originalPrice: 75000,
+                      discountedPrice: 50000,
+                      perCreditPrice: 500,
+                      discount: "27% OFF",
+                      savings: 25000,
+                    },
+                  ]
+              ).map((pkg) => (
                 <div
-                  key={i}
-                  className={`bg-card border rounded-3xl p-7 flex flex-col justify-between transition-all duration-200 relative ${pkg.popular
-                    ? "border-primary shadow-xl shadow-primary/5 ring-1 ring-primary"
-                    : "border-border hover:border-primary/20"
-                    }`}
+                  key={pkg.name}
+                  className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
+                    pkg.popular
+                      ? "border-primary bg-card shadow-xl shadow-primary/10 ring-2 ring-primary/40"
+                      : "border-border bg-card hover:border-primary/40"
+                  }`}
                 >
                   {pkg.popular && (
-                    <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-full">
-                      Most Popular
-                    </span>
+                    <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-gradient-to-r from-[#fe9a00] to-[#ff7700] px-4 py-1 text-[10px] font-black text-white uppercase tracking-widest shadow-md">
+                        <Sparkles className="h-3 w-3" />
+                        Most Popular
+                      </span>
+                    </div>
                   )}
-                  <div className="space-y-4 text-left">
-                    <div>
-                      <h4 className="text-sm font-bold text-muted-foreground">{pkg.name}</h4>
-                      <div className="flex items-baseline gap-1 mt-2">
-                        <span className="text-3xl font-black text-foreground">{pkg.slots}</span>
-                        <span className="text-xs font-semibold text-muted-foreground">Scan Credits</span>
-                      </div>
-                      <p className="text-xs text-muted-foreground/80 mt-1 font-medium">{pkg.desc}</p>
-                    </div>
 
-                    <hr className="border-border/40" />
+                  {/* Package Label */}
+                  {pkg.name !== "1 Credits" && pkg.name !== "5 Credits" && pkg.name !== "10 Credits" && (
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
+                      {pkg.name}
+                    </p>
+                  )}
 
-                    <div className="space-y-1">
-                      <span className="text-xs font-bold text-muted-foreground">PRICE</span>
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-xs font-extrabold text-foreground">LKR</span>
-                        <span className="text-3xl font-black text-foreground">{pkg.price}</span>
-                      </div>
-                    </div>
-
-                    <ul className="space-y-2 pt-2 text-xs font-semibold text-muted-foreground">
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-primary shrink-0" />
-                        <span>Similarity Report (PDF)</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-primary shrink-0" />
-                        <span>AI Writing Detection (PDF)</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-primary shrink-0" />
-                        <span>No-Repository scan mode</span>
-                      </li>
-                      <li className="flex items-center gap-2">
-                        <Check className="h-4 w-4 text-primary shrink-0" />
-                        <span>Credits valid for 30 days</span>
-                      </li>
-                    </ul>
+                  {/* Credits Count */}
+                  <div className="flex items-baseline gap-1.5 mb-1">
+                    <span className="text-4xl font-black text-foreground tracking-tight">
+                      {pkg.credits}
+                    </span>
+                    <span className="text-xs font-black text-muted-foreground uppercase tracking-wider">
+                      Credits
+                    </span>
                   </div>
 
-                  <div className="pt-6">
-                    <button
-                      onClick={() => {
-                        const storedUser = localStorage.getItem("currentUser");
-                        if (storedUser) {
-                          router.push(`/dashboard?buy=${pkg.slots}&price=${pkg.price.replace(",", "")}`);
-                        } else {
-                          router.push(`/auth/register?buy=${pkg.slots}&price=${pkg.price.replace(",", "")}`);
-                        }
-                      }}
-                      className={`w-full justify-center py-3 rounded-xl text-sm font-extrabold transition-all duration-200 cursor-pointer ${pkg.popular
-                        ? "bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/25"
-                        : "bg-secondary text-foreground hover:bg-muted"
-                        }`}
-                    >
-                      Buy Credits
-                    </button>
+                  <p className="text-[10px] font-extrabold text-primary uppercase tracking-wider mb-4">
+                    Valid for 30 days only
+                  </p>
+
+                  {/* Price */}
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <span className="text-2xl font-black text-foreground">
+                      LKR {pkg.discountedPrice.toLocaleString("en-LK")}
+                    </span>
+                    <span className="text-xs text-muted-foreground line-through font-semibold">
+                      LKR {pkg.originalPrice.toLocaleString("en-LK")}
+                    </span>
+                    <span className="rounded-full bg-green-500/15 px-2.5 py-0.5 text-[10px] font-black text-green-600 dark:text-green-400">
+                      {pkg.discount}
+                    </span>
                   </div>
+                  <p className="text-xs text-muted-foreground font-semibold mb-5">
+                    LKR {pkg.perCreditPrice} per credit
+                  </p>
+
+                  {/* Feature list */}
+                  <ul className="space-y-2.5 mb-6 flex-1 text-xs text-foreground font-semibold">
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      <span>{pkg.credits} Similarity + AI Detection Reports</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      <span>24h secure auto-deletion</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      <span>100% No-Repository Guaranteed</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      <span>Official Feedback Studio PDF</span>
+                    </li>
+                    <li className="flex items-center gap-2">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      <span>Revision-Safe Scanning</span>
+                    </li>
+                  </ul>
+
+                  {/* Savings Box */}
+                  <div className="rounded-xl bg-muted/40 border border-border px-3.5 py-2.5 mb-5 text-center">
+                    <p className="text-[10px] text-muted-foreground font-semibold">You save</p>
+                    <p className="text-sm font-black text-green-600 dark:text-green-400">
+                      LKR {pkg.savings.toLocaleString("en-LK")}
+                    </p>
+                  </div>
+
+                  {/* CTA button */}
+                  <button
+                    id={`home-buy-${pkg.credits}`}
+                    onClick={() => {
+                      const storedUser = localStorage.getItem("currentUser") || localStorage.getItem("token");
+                      if (storedUser) {
+                        router.push(`/dashboard?buy=${pkg.credits}&price=${pkg.discountedPrice}`);
+                      } else {
+                        router.push(`/auth/register?buy=${pkg.credits}&price=${pkg.discountedPrice}`);
+                      }
+                    }}
+                    className={`w-full rounded-xl py-3 text-sm font-extrabold transition-all duration-300 hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 ${
+                      pkg.popular
+                        ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35"
+                        : "border border-border bg-secondary text-foreground hover:bg-muted/80"
+                    }`}
+                  >
+                    <CreditCard className="h-4 w-4" />
+                    <span>Buy Credits</span>
+                  </button>
                 </div>
               ))}
+            </div>
+
+            {/* Security note */}
+            <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-1 max-w-3xl mx-auto">
+              <p className="text-xs font-extrabold text-foreground">
+                🔒 Secure & Private
+              </p>
+              <p className="text-xs text-muted-foreground font-semibold leading-relaxed">
+                All documents are auto-deleted within 24 hours after scanning. Your files never enter any repository database. Payments are processed securely.
+              </p>
             </div>
           </div>
         </section>

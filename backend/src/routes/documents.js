@@ -71,6 +71,53 @@ router.post("/submit", protect, async (req, res) => {
   }
 });
 
+// ─── POST /api/documents/:id/cancel (Protected) ──────────────────────────────
+router.post("/:id/cancel", protect, async (req, res) => {
+  try {
+    const documentId = req.params.id;
+    const document = await Document.findOne({ _id: documentId, userId: req.user._id });
+
+    if (!document) {
+      return res.status(404).json({
+        success: false,
+        message: "Document submission not found.",
+      });
+    }
+
+    if (document.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Document is already cancelled.",
+      });
+    }
+
+    // Refund 1 coin from holdCredits back to available credits if pending
+    const freshUser = await User.findById(req.user._id);
+    if (freshUser && document.status === "pending") {
+      freshUser.credits = (freshUser.credits || 0) + 1;
+      freshUser.holdCredits = Math.max(0, (freshUser.holdCredits || 0) - 1);
+      await freshUser.save({ validateBeforeSave: false });
+    }
+
+    document.status = "cancelled";
+    await document.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Document submission cancelled. 1 coin returned to available balance.",
+      documentId: document._id,
+      availableCredits: freshUser ? freshUser.credits : 0,
+      holdCredits: freshUser ? freshUser.holdCredits : 0,
+    });
+  } catch (error) {
+    console.error("Cancel document error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to cancel document submission.",
+    });
+  }
+});
+
 // ─── GET /api/documents/my-documents (Protected) ─────────────────────────────
 const handleGetMyDocuments = async (req, res) => {
   try {

@@ -62,17 +62,17 @@ interface DocumentRecord {
   userName?: string;
   userEmail?: string;
   title: string;
-  description: string;
+  description?: string;
   requirements?: string;
   deliverables?: string;
-  deadline: string;
+  deadline?: string;
   attachment?: string;
   attachmentName?: string;
   resultFile?: string;
   resultFileName?: string;
   similarityScore?: number;
   aiScore?: number;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled" | string;
   adminNote?: string;
   createdAt: string;
 }
@@ -162,6 +162,8 @@ function DashboardContent() {
   // Scan Upload State
   const [isDragging, setIsDragging] = useState(false);
   const [scanFile, setScanFile] = useState<string | null>(null);
+  const [scanTitle, setScanTitle] = useState("");
+  const [scanUploader, setScanUploader] = useState("");
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatusText, setScanStatusText] = useState("");
   const [isScanning, setIsScanning] = useState(false);
@@ -301,7 +303,12 @@ function DashboardContent() {
       const pendingFile = sessionStorage.getItem("pendingUploadFile");
       if (pendingFile) {
         setScanFile(pendingFile);
+        const titleWOExt = pendingFile.substring(0, pendingFile.lastIndexOf(".")) || pendingFile;
+        setScanTitle(titleWOExt);
         sessionStorage.removeItem("pendingUploadFile");
+      }
+      if (activeUser?.name) {
+        setScanUploader(activeUser.name);
       }
     }, 0);
   }, [router, searchParams]);
@@ -649,41 +656,100 @@ function DashboardContent() {
 
   const validateAndSetFile = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase();
-    if (ext !== "pdf" && ext !== "docx" && ext !== "doc") {
-      alert("Unsupported file format. Please upload PDF, DOCX, or DOC.");
+    const allowed = ["pdf", "docx", "doc", "zip", "png", "jpg", "jpeg"];
+    if (!ext || !allowed.includes(ext)) {
+      alert("Unsupported file format. Please upload PDF, DOCX, ZIP, or Image files.");
       return;
     }
     setScanFile(fileName);
   };
 
-  // Trigger Mock Turnitin Scan
-  const startScan = () => {
+  // Submit Document & Hold 1 Coin (Calls POST /api/documents/submit)
+  const startScan = async () => {
     if (!userData || !scanFile) return;
 
-    if (userData.credits <= 0) {
-      alert("Insufficient scan credits. Please buy credits to scan this document.");
+    if ((userData.credits || 0) < 1) {
+      alert("Insufficient available coins! You need at least 1 coin to scan a document.");
       setIsCheckoutOpen(true);
       return;
     }
 
     setIsScanning(true);
     setScanProgress(0);
-    setScanStatusText("Preparing file upload...");
+    setScanStatusText("Submitting document to Turnitin & placing 1 coin on hold...");
 
-    // Deduct 1 credit immediately
+    const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+    let apiSuccess = false;
+
+    // Deduct 1 coin from available credits and move to holdCredits
     const updatedUser = {
       ...userData,
-      credits: userData.credits - 1,
+      credits: (userData.credits || 0) - 1,
+      holdCredits: (userData.holdCredits || 0) + 1,
     };
-    syncUserData(updatedUser);
+
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/documents/submit`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            title: scanFile, // Use filename as title directly!
+            description: `Turnitin No-Repository Scan for ${scanFile}`,
+            attachmentName: scanFile,
+            deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+          apiSuccess = true;
+          syncUserData({
+            ...userData,
+            credits: data.availableCredits !== undefined ? data.availableCredits : updatedUser.credits,
+            holdCredits: data.holdCredits !== undefined ? data.holdCredits : updatedUser.holdCredits,
+          });
+          fetchMyAssignments();
+        }
+      } catch (e) {
+        console.error("Backend submit document error:", e);
+      }
+    }
+
+    if (!apiSuccess) {
+      // Local fallback submission
+      const newDoc: DocumentRecord = {
+        id: Date.now().toString(),
+        title: scanFile,
+        description: `Turnitin No-Repository Scan for ${scanFile}`,
+        attachmentName: scanFile,
+        userName: userData.name || "User",
+        userEmail: userData.email,
+        deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        status: "pending",
+        createdAt: new Date().toISOString(),
+      };
+      const localAssns: DocumentRecord[] = JSON.parse(
+        localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
+      );
+      const updatedLocal = [newDoc, ...localAssns];
+      localStorage.setItem("myDocuments", JSON.stringify(updatedLocal));
+      localStorage.setItem("myAssignments", JSON.stringify(updatedLocal));
+      setMyAssignments(updatedLocal);
+      syncUserData(updatedUser);
+    }
 
     // Animation progress simulation
     const intervals = [
-      { prg: 25, text: "Extracting document sentences...", delay: 2000 },
-      { prg: 55, text: "Submitting to Turnitin Feedback Studio (No-Repository Mode)...", delay: 4000 },
-      { prg: 80, text: "Analyzing matching document databases...", delay: 6000 },
-      { prg: 95, text: "Verifying AI writing patterns...", delay: 8000 },
-      { prg: 100, text: "Generating originality report sheets...", delay: 9500 },
+      { prg: 25, text: "Extracting document text...", delay: 1500 },
+      { prg: 55, text: "Submitting to Turnitin Feedback Studio (No-Repository Mode)...", delay: 3000 },
+      { prg: 80, text: "Analyzing matching document databases...", delay: 4500 },
+      { prg: 95, text: "Verifying AI writing patterns...", delay: 6000 },
+      { prg: 100, text: "Generating originality report...", delay: 7500 },
     ];
 
     intervals.forEach((step) => {
@@ -711,18 +777,79 @@ function DashboardContent() {
 
             const finalizedUser = {
               ...userData,
-              credits: userData.credits - 1,
-              scans: [newScan, ...userData.scans],
+              credits: Math.max(0, (userData.credits || 1) - 1),
+              holdCredits: (userData.holdCredits || 0) + 1,
+              scans: [newScan, ...(userData.scans || [])],
             };
 
             syncUserData(finalizedUser);
             setIsScanning(false);
             setScanFile(null);
-            alert("Scan completed! Check originality metrics in the history list below.");
-          }, 1000);
+            alert(`Document "${scanFile}" submitted successfully! 1 coin placed on hold.`);
+          }, 600);
         }
       }, step.delay);
     });
+  };
+
+  // Cancel Document Case (Refunds 1 coin back to total available coins)
+  const handleCancelDocument = async (docId: string) => {
+    if (!userData) return;
+    if (!confirm("Are you sure you want to cancel this submission? 1 held coin will be returned to your total available coins.")) {
+      return;
+    }
+
+    const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+    let apiSuccess = false;
+
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/documents/${docId}/cancel`, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        const data = await res.json();
+        if (data.success) {
+          apiSuccess = true;
+          syncUserData({
+            ...userData,
+            credits: data.availableCredits !== undefined ? data.availableCredits : (userData.credits || 0) + 1,
+            holdCredits: data.holdCredits !== undefined ? data.holdCredits : Math.max(0, (userData.holdCredits || 0) - 1),
+          });
+          fetchMyAssignments();
+          fetchMe();
+          alert("Document case cancelled! 1 coin returned to your total available coins.");
+          return;
+        }
+      } catch (err) {
+        console.error("Error cancelling document:", err);
+      }
+    }
+
+    if (!apiSuccess) {
+      const localAssns: DocumentRecord[] = JSON.parse(
+        localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
+      );
+      const updatedLocal: DocumentRecord[] = localAssns.map((d) => {
+        if ((d._id || d.id) === docId) {
+          return { ...d, status: "cancelled" };
+        }
+        return d;
+      });
+      localStorage.setItem("myDocuments", JSON.stringify(updatedLocal));
+      localStorage.setItem("myAssignments", JSON.stringify(updatedLocal));
+      setMyAssignments(updatedLocal);
+
+      const updatedUser = {
+        ...userData,
+        credits: (userData.credits || 0) + 1,
+        holdCredits: Math.max(0, (userData.holdCredits || 0) - 1),
+      };
+      syncUserData(updatedUser);
+      alert("Document case cancelled! 1 coin returned to your total available coins.");
+    }
   };
 
   const deleteScan = (scanId: string) => {
@@ -906,9 +1033,9 @@ function DashboardContent() {
                   <thead>
                     <tr className="border-b border-border/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
                       <th className="py-3 text-left font-bold">Document Title</th>
-                      <th className="py-3 text-center font-bold">Document</th>
+                      <th className="py-3 text-center font-bold">Document File</th>
                       <th className="py-3 text-center font-bold">Status</th>
-                      <th className="py-3 text-center font-bold">Turnitin Document</th>
+                      <th className="py-3 text-center font-bold">Turnitin Document / Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
@@ -917,23 +1044,23 @@ function DashboardContent() {
                         {/* 1. Document Title */}
                         <td className="py-3.5 text-left text-foreground font-bold max-w-xs truncate">
                           <div>
-                            <p className="truncate text-xs font-bold">{assn.title}</p>
-                            <p className="text-[10px] text-muted-foreground font-normal">
+                            <p className="truncate text-xs font-extrabold">{assn.title || assn.attachmentName}</p>
+                            <p className="text-[10px] text-muted-foreground font-semibold">
                               Submitted: {new Date(assn.createdAt || Date.now()).toLocaleDateString("en-LK")}
                             </p>
                           </div>
                         </td>
 
-                        {/* 2. Document (Original Customer File) */}
+                        {/* 2. Document File */}
                         <td className="py-3.5 text-center">
-                          {assn.attachment ? (
+                          {assn.attachment || assn.attachmentName ? (
                             <a
-                              href={assn.attachment}
-                              download={assn.attachmentName || "Uploaded_Document"}
+                              href={assn.attachment || "#"}
+                              download={assn.attachmentName || assn.title || "Uploaded_Document"}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-foreground hover:bg-secondary transition-colors cursor-pointer"
                             >
-                              <Paperclip className="h-3.5 w-3.5 text-amber-500" />
-                              <span className="truncate max-w-[120px]">{assn.attachmentName || "View File"}</span>
+                              <Paperclip className="h-3.5 w-3.5 text-primary" />
+                              <span className="truncate max-w-[120px]">{assn.attachmentName || assn.title || "View File"}</span>
                             </a>
                           ) : (
                             <span className="text-xs text-muted-foreground italic">No File</span>
@@ -950,15 +1077,25 @@ function DashboardContent() {
                               <XCircle className="h-3 w-3" />
                               Rejected (1 Coin Refunded)
                             </span>
+                          ) : assn.status === "cancelled" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-gray-500/15 px-2.5 py-0.5 text-[10px] font-black text-gray-400 border border-gray-500/20">
+                              <XCircle className="h-3 w-3" />
+                              Cancelled (1 Coin Returned)
+                            </span>
+                          ) : assn.status === "approved" ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[10px] font-black text-green-600 border border-green-500/20">
+                              <CheckCircle className="h-3 w-3" />
+                              Completed Scan
+                            </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black text-amber-600 border border-amber-500/20">
-                              <CheckCircle className="h-3 w-3" />
-                              Verified Upload document
+                              <Clock className="h-3 w-3" />
+                              1 Coin On Hold
                             </span>
                           )}
                         </td>
 
-                        {/* 4. Turnitin Document */}
+                        {/* 4. Action / Turnitin Document */}
                         <td className="py-3.5 text-center">
                           {assn.status === "approved" ? (
                             <div className="flex flex-col items-center gap-1">
@@ -968,7 +1105,7 @@ function DashboardContent() {
                                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#fe9a00] px-3 py-1.5 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
                               >
                                 <Download className="h-3.5 w-3.5" />
-                                Download Turnitin Document 📥
+                                Download Report 📥
                               </a>
                               {assn.similarityScore !== undefined && assn.similarityScore !== null && (
                                 <span className="text-[10px] font-extrabold text-[#fe9a00]">
@@ -976,13 +1113,18 @@ function DashboardContent() {
                                 </span>
                               )}
                             </div>
-                          ) : assn.status === "rejected" ? (
+                          ) : assn.status === "cancelled" || assn.status === "rejected" ? (
                             <span className="text-xs text-muted-foreground italic">N/A</span>
                           ) : (
-                            <span className="inline-flex items-center justify-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 font-bold animate-pulse">
-                              <RefreshCw className="h-3.5 w-3.5 animate-spin text-amber-500" />
-                              Generating Report...
-                            </span>
+                            <div className="flex items-center justify-center gap-2">
+                              <button
+                                onClick={() => handleCancelDocument(assn._id || assn.id || "")}
+                                className="inline-flex items-center gap-1 rounded-xl bg-red-500/10 border border-red-500/30 px-3 py-1.5 text-xs font-extrabold text-red-500 hover:bg-red-500/20 transition-all cursor-pointer"
+                              >
+                                <XCircle className="h-3.5 w-3.5" />
+                                Cancel Case
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -994,11 +1136,29 @@ function DashboardContent() {
           </div>
 
           {/* Upload Document Scan Panel */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
-            <h2 className="text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
-              <FileCheck className="h-5 w-5 text-primary" />
-              Scan Turnitin Document
-            </h2>
+          <div id="scan-document-panel" className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+              <div>
+                <h2 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
+                  <FileCheck className="h-6 w-6 text-primary" />
+                  Submit New Document
+                </h2>
+                <p className="text-xs text-muted-foreground font-semibold mt-1">
+                  Upload your document for review. Submitting places 1 coin on Hold.
+                </p>
+              </div>
+
+              {/* 1 Coin Hold Rule & Available Coins Banner */}
+              <div className="flex items-center gap-3 bg-primary/10 border border-primary/25 px-4 py-2.5 rounded-xl text-xs font-extrabold text-foreground shrink-0">
+                <div className="flex items-center gap-1.5 text-primary">
+                  <Coins className="h-4 w-4" />
+                  <span>1 Coin Hold Rule:</span>
+                </div>
+                <div className="bg-primary text-primary-foreground px-2.5 py-0.5 rounded-lg text-xs font-black">
+                  Available: {userData.credits || 0} Coins
+                </div>
+              </div>
+            </div>
 
             {isScanning ? (
               <div className="py-10 text-center space-y-6 max-w-md mx-auto">
@@ -1020,81 +1180,96 @@ function DashboardContent() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
-                {/* Upload drag drop */}
-                <div className="md:col-span-7">
-                  <div
-                    onDragOver={handleDragOver}
-                    onDragLeave={handleDragLeave}
-                    onDrop={handleDrop}
-                    onClick={() => fileInputRef.current?.click()}
-                    className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${isDragging
-                      ? "border-primary bg-primary/5 scale-[1.01]"
-                      : "border-border hover:border-primary/20 bg-background"
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                  {/* Upload drag & drop zone */}
+                  <div className="md:col-span-7">
+                    <div
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={handleDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${
+                        isDragging
+                          ? "border-primary bg-primary/5 scale-[1.01]"
+                          : "border-border hover:border-primary/40 bg-background hover:bg-muted/10"
                       }`}
-                  >
-                    <input
-                      type="file"
-                      ref={fileInputRef}
-                      onChange={handleFileChange}
-                      accept=".pdf,.docx,.doc"
-                      className="hidden"
-                    />
+                    >
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        onChange={handleFileChange}
+                        accept=".pdf,.docx,.doc,.zip,.png,.jpg,.jpeg"
+                        className="hidden"
+                      />
 
-                    {scanFile ? (
-                      <div className="space-y-3 py-6">
-                        <FileText className="h-10 w-10 text-primary mx-auto" />
-                        <div>
-                          <p className="text-sm font-extrabold text-foreground max-w-xs truncate mx-auto">
-                            {scanFile}
-                          </p>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setScanFile(null);
-                            }}
-                            className="text-xs text-red-500 font-bold hover:underline mt-1"
-                          >
-                            Remove File
-                          </button>
+                      {scanFile ? (
+                        <div className="space-y-3 py-4 w-full">
+                          <div className="flex items-center justify-between bg-card border border-border/80 p-4 rounded-xl shadow-sm text-left">
+                            <div className="flex items-center gap-3 overflow-hidden">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                                <FileText className="h-5 w-5" />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-extrabold text-foreground truncate">
+                                  {scanFile}
+                                </p>
+                                <p className="text-[10px] text-muted-foreground font-semibold">
+                                  1 Coin Hold rule applied
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setScanFile(null);
+                              }}
+                              className="text-xs text-red-500 font-bold hover:underline shrink-0 ml-2"
+                            >
+                              Remove File
+                            </button>
+                          </div>
                         </div>
-                      </div>
-                    ) : (
-                      <div className="space-y-3 py-6">
-                        <Upload className="h-8 w-8 text-muted-foreground mx-auto" />
-                        <div>
-                          <p className="text-sm font-bold text-foreground">Drag & drop report file here</p>
-                          <p className="text-xs text-muted-foreground">or click to browse documents</p>
+                      ) : (
+                        <div className="space-y-3 py-6">
+                          <Upload className="h-8 w-8 text-primary mx-auto" />
+                          <div>
+                            <p className="text-sm font-extrabold text-foreground">
+                              Click to upload document (PDF, DOCX, ZIP, images)
+                            </p>
+                            <p className="text-xs text-muted-foreground font-medium mt-0.5">
+                              or drag & drop file here
+                            </p>
+                          </div>
+                          <span className="inline-block text-[10px] font-bold text-muted-foreground uppercase bg-muted px-2.5 py-1 rounded-lg border border-border/60">
+                            PDF, DOCX, ZIP, Images up to 50MB
+                          </span>
                         </div>
-                        <span className="inline-block text-[10px] font-bold text-muted-foreground uppercase bg-muted px-2 py-0.5 rounded">
-                          PDF, DOCX up to 50MB
-                        </span>
-                      </div>
-                    )}
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Scan Policy Summary & CTA */}
+                  <div className="md:col-span-5 space-y-4 text-left">
+                    <div className="p-4 bg-muted/30 border border-border/80 rounded-2xl space-y-2.5 text-xs font-semibold text-muted-foreground leading-relaxed">
+                      <p className="flex items-center gap-1.5 text-foreground font-extrabold text-xs">
+                        <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                        Scan Policy Summary:
+                      </p>
+                      <p className="text-xs">• Deducts exactly <strong className="text-foreground">{"1 coin / credit"}</strong>.</p>
+                      <p className="text-xs">• Strict No-Repository analysis activated.</p>
+                      <p className="text-xs">• Data auto-delete executes in exactly 24 hours.</p>
+                    </div>
+
+                    <button
+                      onClick={startScan}
+                      disabled={!scanFile}
+                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 disabled:opacity-40 disabled:pointer-events-none transition-all duration-300 hover:scale-[1.01] cursor-pointer"
+                    >
+                      <FileCheck className="h-4.5 w-4.5" />
+                      <span>Analyze Document</span>
+                    </button>
                   </div>
                 </div>
-
-                {/* Confirm upload col */}
-                <div className="md:col-span-5 space-y-4">
-                  <div className="p-4 bg-muted/30 border border-border/80 rounded-xl space-y-2.5 text-xs font-semibold text-muted-foreground leading-relaxed">
-                    <p className="flex items-center gap-1.5 text-foreground font-bold">
-                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                      Scan Policy Summary:
-                    </p>
-                    <p>• Deducts exactly **1 coin / credit**.</p>
-                    <p>• Strict No-Repository analysis activated.</p>
-                    <p>• Data auto-delete executes in exactly 24 hours.</p>
-                  </div>
-
-                  <button
-                    onClick={startScan}
-                    disabled={!scanFile}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 disabled:opacity-40 disabled:pointer-events-none transition-all duration-200 hover:scale-[1.01] cursor-pointer"
-                  >
-                    <span>Analyze Document</span>
-                  </button>
-                </div>
-              </div>
             )}
           </div>
 
@@ -1402,7 +1577,7 @@ function DashboardContent() {
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">Deadline</p>
                 <p className="font-extrabold text-foreground">
-                  {new Date(activeAssignmentModal.deadline).toLocaleString("en-LK", {
+                  {new Date(activeAssignmentModal.deadline || Date.now()).toLocaleString("en-LK", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
