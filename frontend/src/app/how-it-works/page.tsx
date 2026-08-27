@@ -11,8 +11,8 @@ export default function HowItWorks() {
     <div className="flex flex-col min-h-screen">
       <Navbar />
 
-      <main className="flex-1 bg-background text-left py-16">
-        <div className="mx-auto max-w-4xl px-6 space-y-12">
+      <main className="flex-1 bg-background text-left py-10 sm:py-16">
+        <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-10 sm:space-y-12">
           {/* Header */}
           <div className="space-y-4">
             <span className="inline-block rounded-xl bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">

@@ -42,7 +42,7 @@ export default function Footer() {
                 aria-label="Facebook"
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-4 w-4">
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
+                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" />
                 </svg>
               </a>
               <a
@@ -160,7 +160,7 @@ export default function Footer() {
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold">
           <p>© {new Date().getFullYear()} TurniPass.com. All rights reserved.</p>
           <p className="flex items-center gap-1.5">
-            Designed for researchers & students across Sri Lanka
+            Designed by Source Code
           </p>
         </div>
       </div>

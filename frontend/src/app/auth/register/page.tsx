@@ -87,8 +87,8 @@ function RegisterContent() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-muted/20 px-6 py-12">
-      <div className="w-full max-w-md space-y-8 rounded-3xl border border-border bg-card p-8 shadow-xl">
+    <div className="flex min-h-screen items-center justify-center bg-muted/20 px-4 sm:px-6 py-8 sm:py-12">
+      <div className="w-full max-w-md space-y-6 sm:space-y-8 rounded-3xl border border-border bg-card p-5 sm:p-8 shadow-xl">
         {/* Header logo */}
         <div className="flex flex-col items-center space-y-2 text-center">
           <Link href="/" className="flex items-center gap-2 group">

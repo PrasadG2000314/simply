@@ -143,8 +143,8 @@ export default function LegalPage({ params }: { params: Promise<{ slug: string }
     <div className="flex flex-col min-h-screen">
       <Navbar />
 
-      <main className="flex-1 bg-background text-left py-16">
-        <div className="mx-auto max-w-3xl px-6 space-y-8">
+      <main className="flex-1 bg-background text-left py-10 sm:py-16">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 space-y-6 sm:space-y-8">
           {/* Back */}
           <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline">
             <ArrowLeft className="h-4 w-4" />

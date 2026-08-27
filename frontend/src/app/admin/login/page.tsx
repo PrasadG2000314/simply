@@ -49,7 +49,7 @@ export default function AdminLogin() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-6">
+    <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4 sm:px-6 py-8">
       {/* Subtle background grid */}
       <div
         className="absolute inset-0 opacity-[0.04]"
@@ -60,18 +60,18 @@ export default function AdminLogin() {
         }}
       />
 
-      <div className="relative w-full max-w-sm space-y-8">
+      <div className="relative w-full max-w-sm space-y-6 sm:space-y-8">
         {/* Logo / header */}
         <div className="text-center space-y-3">
           <Link href="/" className="inline-block group">
             <img
               src="/logo-white.png"
               alt="TurniPass Logo"
-              className="h-16 w-auto mx-auto object-contain transition-transform group-hover:scale-105"
+              className="h-12 sm:h-16 w-auto mx-auto object-contain transition-transform group-hover:scale-105"
             />
           </Link>
           <div>
-            <h1 className="text-2xl font-black text-white tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
               Admin Portal
             </h1>
             <p className="text-xs text-zinc-500 font-semibold mt-1">
@@ -81,7 +81,7 @@ export default function AdminLogin() {
         </div>
 
         {/* Card */}
-        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-8 shadow-2xl space-y-6">
+        <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 sm:p-8 shadow-2xl space-y-6">
           {error && (
             <div className="flex items-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400">
               <AlertTriangle className="h-4 w-4 shrink-0" />

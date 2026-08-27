@@ -877,56 +877,56 @@ function DashboardContent() {
     <div className="flex flex-col min-h-screen">
       <Navbar />
 
-      <main className="flex-1 bg-muted/15 py-10 text-left">
-        <div className="mx-auto max-w-5xl px-6 space-y-8">
+      <main className="flex-1 bg-muted/15 py-6 sm:py-10 text-left">
+        <div className="mx-auto max-w-5xl px-3.5 sm:px-6 space-y-6 sm:space-y-8">
           {/* Welcome row & Stats Cards */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-card border border-border p-6 rounded-2xl">
-            <div>
-              <h1 className="text-2xl font-black text-foreground tracking-tight">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm">
+            <div className="space-y-1">
+              <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                 Welcome, {userData.name}!
               </h1>
-              <p className="text-xs text-muted-foreground font-semibold">
+              <p className="text-xs text-muted-foreground font-semibold truncate max-w-xs sm:max-w-md">
                 Workspace Dashboard · {userData.email}
               </p>
             </div>
 
             {/* Credit count & Hold Coins */}
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3">
               {/* Available Coins */}
-              <div className="flex items-center gap-3 bg-muted/30 border border-border/80 px-4 py-2.5 rounded-xl">
-                <Coins className="h-5 w-5 text-primary shrink-0 animate-pulse" />
-                <div>
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
-                    Available Coins
+              <div className="flex items-center gap-2.5 sm:gap-3 bg-muted/30 border border-border/80 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl">
+                <Coins className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0 animate-pulse" />
+                <div className="min-w-0">
+                  <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
+                    Available
                   </p>
-                  <p className="text-lg font-black text-foreground tracking-tight">
-                    {userData.credits} Coins
+                  <p className="text-base sm:text-lg font-black text-foreground tracking-tight">
+                    {userData.credits} <span className="text-xs font-bold text-muted-foreground hidden sm:inline">Coins</span>
                   </p>
                 </div>
               </div>
 
               {/* Hold Coins */}
-              <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 px-4 py-2.5 rounded-xl">
-                <Lock className="h-5 w-5 text-amber-500 shrink-0" />
-                <div>
-                  <p className="text-[10px] font-extrabold text-amber-600 uppercase tracking-wider">
+              <div className="flex items-center gap-2.5 sm:gap-3 bg-amber-500/10 border border-amber-500/20 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl">
+                <Lock className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
+                <div className="min-w-0">
+                  <p className="text-[9px] sm:text-[10px] font-extrabold text-amber-600 uppercase tracking-wider truncate">
                     Hold Position
                   </p>
-                  <p className="text-lg font-black text-amber-600 tracking-tight">
-                    {holdCoins} Coins
+                  <p className="text-base sm:text-lg font-black text-amber-600 tracking-tight">
+                    {holdCoins} <span className="text-xs font-bold text-amber-600/80 hidden sm:inline">Coins</span>
                   </p>
                 </div>
               </div>
 
               {/* Pending Balance Top-up */}
               {pendingCoins > 0 && (
-                <div className="flex items-center gap-3 bg-blue-500/10 border border-blue-500/20 px-4 py-2.5 rounded-xl">
-                  <Clock className="h-5 w-5 text-blue-500 shrink-0 animate-spin" />
-                  <div>
-                    <p className="text-[10px] font-extrabold text-blue-600 uppercase tracking-wider">
+                <div className="col-span-2 sm:col-span-1 flex items-center gap-2.5 sm:gap-3 bg-blue-500/10 border border-blue-500/20 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl">
+                  <Clock className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-blue-500 shrink-0 animate-spin" />
+                  <div className="min-w-0">
+                    <p className="text-[9px] sm:text-[10px] font-extrabold text-blue-600 uppercase tracking-wider truncate">
                       Pending Top-up
                     </p>
-                    <p className="text-lg font-black text-blue-600 tracking-tight">
+                    <p className="text-base sm:text-lg font-black text-blue-600 tracking-tight">
                       +{pendingCoins} Coins
                     </p>
                   </div>
@@ -934,21 +934,13 @@ function DashboardContent() {
               )}
 
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setIsAssignmentModalOpen(true)}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-amber-500 text-black px-4 text-xs font-black hover:bg-amber-400 transition-all shadow-md shadow-amber-500/10 cursor-pointer"
-                >
-                  <BookOpen className="h-4 w-4" />
-                  Submit Document
-                </button>
-
+              <div className="col-span-2 sm:col-span-1 flex items-center">
                 <button
                   onClick={() => router.push("/packages")}
-                  className="inline-flex h-11 items-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer"
+                  className="w-full sm:w-auto inline-flex h-10 sm:h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer"
                 >
                   <Plus className="h-4 w-4" />
-                  Buy Plan
+                  <span>Buy Plan</span>
                 </button>
               </div>
             </div>
@@ -956,9 +948,9 @@ function DashboardContent() {
 
           {/* Pending Coin Notification Banner */}
           {pendingCoins > 0 && (
-            <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-4 flex items-center justify-between gap-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 text-blue-600 shrink-0">
+            <div className="rounded-2xl border border-blue-500/30 bg-blue-500/10 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start sm:items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-500/20 text-blue-600 shrink-0 mt-0.5 sm:mt-0">
                   <Clock className="h-5 w-5" />
                 </div>
                 <div>
@@ -975,7 +967,7 @@ function DashboardContent() {
                   fetchMySlips();
                   fetchMe();
                 }}
-                className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:underline shrink-0"
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-700 hover:underline shrink-0 self-end sm:self-center"
               >
                 <RefreshCw className="h-3.5 w-3.5" />
                 Check Status
@@ -983,35 +975,172 @@ function DashboardContent() {
             </div>
           )}
 
+          {/* Upload Document Scan Panel */}
+          <div id="scan-document-panel" className="bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
+              <div>
+                <h2 className="text-lg sm:text-xl font-black text-foreground tracking-tight flex items-center gap-2">
+                  <FileCheck className="h-5 w-5 sm:h-6 sm:w-6 text-primary shrink-0" />
+                  <span>Submit New Document</span>
+                </h2>
+                <p className="text-xs text-muted-foreground font-semibold mt-1">
+                  Upload your document for review. Submitting places 1 coin on Hold.
+                </p>
+              </div>
+
+              {/* 1 Coin Hold Rule & Available Coins Banner */}
+              {/* <div className="flex items-center gap-2.5 sm:gap-3 bg-primary/10 border border-primary/25 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-extrabold text-foreground shrink-0 self-start sm:self-auto">
+                <div className="flex items-center gap-1.5 text-primary">
+                  <Coins className="h-4 w-4 shrink-0" />
+                  <span className="hidden xs:inline">1 Coin Hold Rule:</span>
+                </div>
+                <div className="bg-primary text-primary-foreground px-2.5 py-0.5 rounded-lg text-xs font-black">
+                  Available: {userData.credits || 0} Coins
+                </div>
+              </div> */}
+            </div>
+
+            {isScanning ? (
+              <div className="py-10 text-center space-y-6 max-w-md mx-auto">
+                <div className="relative flex items-center justify-center">
+                  <RefreshCw className="h-10 w-10 text-primary animate-spin" />
+                  <span className="absolute text-xs font-black text-primary font-mono">{scanProgress}%</span>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-bold text-foreground">Turnitin scan processing...</h4>
+                  <p className="text-xs text-muted-foreground font-semibold leading-relaxed animate-pulse">
+                    {scanStatusText}
+                  </p>
+                </div>
+                <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden">
+                  <div
+                    className="bg-primary h-2.5 transition-all duration-300 ease-out"
+                    style={{ width: `${scanProgress}%` }}
+                  ></div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+                {/* Upload drag & drop zone */}
+                <div className="md:col-span-7">
+                  <div
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => fileInputRef.current?.click()}
+                    className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center cursor-pointer transition-all duration-200 ${isDragging
+                      ? "border-primary bg-primary/5 scale-[1.01]"
+                      : "border-border hover:border-primary/40 bg-background hover:bg-muted/10"
+                      }`}
+                  >
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleFileChange}
+                      accept=".pdf,.docx,.doc,.zip,.png,.jpg,.jpeg"
+                      className="hidden"
+                    />
+
+                    {scanFile ? (
+                      <div className="space-y-3 py-3 w-full">
+                        <div className="flex items-center justify-between bg-card border border-border/80 p-3 sm:p-4 rounded-xl shadow-sm text-left">
+                          <div className="flex items-center gap-2.5 sm:gap-3 overflow-hidden min-w-0">
+                            <div className="flex h-9 w-9 sm:h-10 sm:w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                              <FileText className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-xs font-extrabold text-foreground truncate">
+                                {scanFile}
+                              </p>
+                              <p className="text-[10px] text-muted-foreground font-semibold">
+                                1 Coin Hold rule applied
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setScanFile(null);
+                            }}
+                            className="text-xs text-red-500 font-bold hover:underline shrink-0 ml-2"
+                          >
+                            Remove
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2.5 py-4 sm:py-6">
+                        <Upload className="h-7 w-7 sm:h-8 sm:w-8 text-primary mx-auto" />
+                        <div>
+                          <p className="text-xs sm:text-sm font-extrabold text-foreground">
+                            Click to upload document (PDF, DOCX, ZIP, images)
+                          </p>
+                          <p className="text-[11px] sm:text-xs text-muted-foreground font-medium mt-0.5">
+                            or drag & drop file here
+                          </p>
+                        </div>
+                        <span className="inline-block text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase bg-muted px-2.5 py-1 rounded-lg border border-border/60">
+                          PDF, DOCX, ZIP, Images up to 50MB
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Scan Policy Summary & CTA */}
+                <div className="md:col-span-5 space-y-4 text-left">
+                  <div className="p-4 bg-muted/30 border border-border/80 rounded-2xl space-y-2.5 text-xs font-semibold text-muted-foreground leading-relaxed">
+                    <p className="flex items-center gap-1.5 text-foreground font-extrabold text-xs">
+                      <CheckCircle className="h-4 w-4 text-primary shrink-0" />
+                      Scan Policy Summary:
+                    </p>
+                    <p className="text-xs">• Deducts exactly <strong className="text-foreground">{"1 coin / credit"}</strong>.</p>
+                    <p className="text-xs">• Strict No-Repository analysis activated.</p>
+                    <p className="text-xs">• Data auto-delete executes in exactly 24 hours.</p>
+                  </div>
+
+                  <button
+                    onClick={startScan}
+                    disabled={!scanFile}
+                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 disabled:opacity-40 disabled:pointer-events-none transition-all duration-300 hover:scale-[1.01] cursor-pointer"
+                  >
+                    <FileCheck className="h-4.5 w-4.5" />
+                    <span>Analyze Document</span>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Customer Assignments Table / Section */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
-                <BookOpen className="h-5 w-5 text-amber-500" />
-                Scan Turnitin Document
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                <BookOpen className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
+                <span>Scan Turnitin Document</span>
               </h2>
               <div className="flex items-center gap-2">
-                <button
+                {/* <button
                   onClick={() => setIsAssignmentModalOpen(true)}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 px-3 py-1.5 text-xs font-extrabold text-amber-600 hover:bg-amber-500/25 transition-all cursor-pointer"
                 >
                   <Plus className="h-3.5 w-3.5" />
-                  New Document
-                </button>
+                  <span>New Document</span>
+                </button> */}
                 <button
                   onClick={() => {
                     fetchMyAssignments();
                     fetchMe();
                   }}
-                  className="text-xs font-extrabold text-primary hover:underline flex items-center gap-1"
+                  className="text-xs font-extrabold text-primary hover:underline flex items-center gap-1 p-1"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Refresh
+                  <RefreshCw className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Refresh</span>
                 </button>
               </div>
             </div>
 
             {myAssignments.length === 0 ? (
-              <div className="text-center py-10 space-y-3 border border-dashed border-border rounded-2xl bg-muted/5">
+              <div className="text-center py-8 sm:py-10 px-4 space-y-3 border border-dashed border-border rounded-2xl bg-muted/5">
                 <BookOpen className="h-8 w-8 text-muted-foreground/60 mx-auto" />
                 <div>
                   <p className="text-sm font-bold text-foreground">No documents submitted yet</p>
@@ -1028,8 +1157,8 @@ function DashboardContent() {
                 </button>
               </div>
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+                <table className="w-full text-sm min-w-[560px]">
                   <thead>
                     <tr className="border-b border-border/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
                       <th className="py-3 text-left font-bold">Document Title</th>
@@ -1135,151 +1264,13 @@ function DashboardContent() {
             )}
           </div>
 
-          {/* Upload Document Scan Panel */}
-          <div id="scan-document-panel" className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-5">
-              <div>
-                <h2 className="text-xl font-black text-foreground tracking-tight flex items-center gap-2">
-                  <FileCheck className="h-6 w-6 text-primary" />
-                  Submit New Document
-                </h2>
-                <p className="text-xs text-muted-foreground font-semibold mt-1">
-                  Upload your document for review. Submitting places 1 coin on Hold.
-                </p>
-              </div>
-
-              {/* 1 Coin Hold Rule & Available Coins Banner */}
-              <div className="flex items-center gap-3 bg-primary/10 border border-primary/25 px-4 py-2.5 rounded-xl text-xs font-extrabold text-foreground shrink-0">
-                <div className="flex items-center gap-1.5 text-primary">
-                  <Coins className="h-4 w-4" />
-                  <span>1 Coin Hold Rule:</span>
-                </div>
-                <div className="bg-primary text-primary-foreground px-2.5 py-0.5 rounded-lg text-xs font-black">
-                  Available: {userData.credits || 0} Coins
-                </div>
-              </div>
-            </div>
-
-            {isScanning ? (
-              <div className="py-10 text-center space-y-6 max-w-md mx-auto">
-                <div className="relative flex items-center justify-center">
-                  <RefreshCw className="h-10 w-10 text-primary animate-spin" />
-                  <span className="absolute text-xs font-black text-primary font-mono">{scanProgress}%</span>
-                </div>
-                <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-foreground">Turnitin scan processing...</h4>
-                  <p className="text-xs text-muted-foreground font-semibold leading-relaxed animate-pulse">
-                    {scanStatusText}
-                  </p>
-                </div>
-                <div className="w-full bg-secondary h-2.5 rounded-full overflow-hidden">
-                  <div
-                    className="bg-primary h-2.5 transition-all duration-300 ease-out"
-                    style={{ width: `${scanProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
-                  {/* Upload drag & drop zone */}
-                  <div className="md:col-span-7">
-                    <div
-                      onDragOver={handleDragOver}
-                      onDragLeave={handleDragLeave}
-                      onDrop={handleDrop}
-                      onClick={() => fileInputRef.current?.click()}
-                      className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center cursor-pointer transition-all duration-200 ${
-                        isDragging
-                          ? "border-primary bg-primary/5 scale-[1.01]"
-                          : "border-border hover:border-primary/40 bg-background hover:bg-muted/10"
-                      }`}
-                    >
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        onChange={handleFileChange}
-                        accept=".pdf,.docx,.doc,.zip,.png,.jpg,.jpeg"
-                        className="hidden"
-                      />
-
-                      {scanFile ? (
-                        <div className="space-y-3 py-4 w-full">
-                          <div className="flex items-center justify-between bg-card border border-border/80 p-4 rounded-xl shadow-sm text-left">
-                            <div className="flex items-center gap-3 overflow-hidden">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                                <FileText className="h-5 w-5" />
-                              </div>
-                              <div className="min-w-0">
-                                <p className="text-xs font-extrabold text-foreground truncate">
-                                  {scanFile}
-                                </p>
-                                <p className="text-[10px] text-muted-foreground font-semibold">
-                                  1 Coin Hold rule applied
-                                </p>
-                              </div>
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setScanFile(null);
-                              }}
-                              className="text-xs text-red-500 font-bold hover:underline shrink-0 ml-2"
-                            >
-                              Remove File
-                            </button>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-3 py-6">
-                          <Upload className="h-8 w-8 text-primary mx-auto" />
-                          <div>
-                            <p className="text-sm font-extrabold text-foreground">
-                              Click to upload document (PDF, DOCX, ZIP, images)
-                            </p>
-                            <p className="text-xs text-muted-foreground font-medium mt-0.5">
-                              or drag & drop file here
-                            </p>
-                          </div>
-                          <span className="inline-block text-[10px] font-bold text-muted-foreground uppercase bg-muted px-2.5 py-1 rounded-lg border border-border/60">
-                            PDF, DOCX, ZIP, Images up to 50MB
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Scan Policy Summary & CTA */}
-                  <div className="md:col-span-5 space-y-4 text-left">
-                    <div className="p-4 bg-muted/30 border border-border/80 rounded-2xl space-y-2.5 text-xs font-semibold text-muted-foreground leading-relaxed">
-                      <p className="flex items-center gap-1.5 text-foreground font-extrabold text-xs">
-                        <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                        Scan Policy Summary:
-                      </p>
-                      <p className="text-xs">• Deducts exactly <strong className="text-foreground">{"1 coin / credit"}</strong>.</p>
-                      <p className="text-xs">• Strict No-Repository analysis activated.</p>
-                      <p className="text-xs">• Data auto-delete executes in exactly 24 hours.</p>
-                    </div>
-
-                    <button
-                      onClick={startScan}
-                      disabled={!scanFile}
-                      className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 disabled:opacity-40 disabled:pointer-events-none transition-all duration-300 hover:scale-[1.01] cursor-pointer"
-                    >
-                      <FileCheck className="h-4.5 w-4.5" />
-                      <span>Analyze Document</span>
-                    </button>
-                  </div>
-                </div>
-            )}
-          </div>
-
           {/* Payment Slips History Section */}
           {mySlips.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
+            <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 shadow-sm">
               <div className="flex items-center justify-between">
-                <h2 className="text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
-                  <Building2 className="h-5 w-5 text-primary" />
-                  Bank Slip Top-up Requests
+                <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                  <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0" />
+                  <span>Bank Slip Top-up Requests</span>
                 </h2>
                 <button
                   onClick={() => {
@@ -1288,12 +1279,12 @@ function DashboardContent() {
                   }}
                   className="text-xs font-extrabold text-primary hover:underline flex items-center gap-1"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> Refresh
+                  <RefreshCw className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Refresh</span>
                 </button>
               </div>
 
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+              <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+                <table className="w-full text-sm min-w-[540px]">
                   <thead>
                     <tr className="border-b border-border/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
                       <th className="py-3 text-left font-bold">Package</th>
@@ -1355,100 +1346,13 @@ function DashboardContent() {
               </div>
             </div>
           )}
-
-          {/* Scan history logs */}
-          <div className="bg-card border border-border rounded-2xl p-6 sm:p-8 space-y-6">
-            <h2 className="text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
-              <Clock className="h-5 w-5 text-primary" />
-              Scan History
-            </h2>
-
-            {userData.scans.length === 0 ? (
-              <div className="text-center py-12 space-y-2 border border-dashed border-border rounded-xl bg-muted/5">
-                <FileText className="h-8 w-8 text-muted-foreground/60 mx-auto" />
-                <p className="text-sm font-bold text-muted-foreground">No scans found</p>
-                <p className="text-xs text-muted-foreground/80">Upload your first draft above to see results.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-border/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                      <th className="py-3 text-left font-bold">File Checked</th>
-                      <th className="py-3 text-left font-bold">Date Scanned</th>
-                      <th className="py-3 text-center font-bold">Similarity Index</th>
-                      <th className="py-3 text-center font-bold">AI Writing</th>
-                      <th className="py-3 text-right font-bold">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
-                    {userData.scans.map((scan) => (
-                      <tr key={scan.id} className="hover:bg-muted/10 transition-colors">
-                        <td className="py-3.5 text-left text-foreground font-bold max-w-xs truncate">
-                          {scan.filename}
-                        </td>
-                        <td className="py-3.5 text-left text-xs font-medium">
-                          {scan.date}
-                        </td>
-                        <td className="py-3.5 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-black rounded-lg ${scan.similarity > 15
-                              ? "bg-red-500/10 text-red-500 border border-red-500/20"
-                              : "bg-primary/10 text-primary border border-primary/20"
-                              }`}
-                          >
-                            {scan.similarity}%
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-center">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 text-xs font-black rounded-lg ${scan.ai > 30
-                              ? "bg-cyan-500/10 text-cyan-500 border border-cyan-500/20"
-                              : "bg-primary/10 text-primary border border-primary/20"
-                              }`}
-                          >
-                            {scan.ai}%
-                          </span>
-                        </td>
-                        <td className="py-3.5 text-right space-x-1">
-                          <button
-                            onClick={() => triggerPdfDownload(scan.filename, scan.similarity, "similarity")}
-                            className="inline-flex h-8 items-center gap-1 px-2.5 rounded-lg border border-border bg-background text-xs font-bold text-foreground hover:bg-secondary cursor-pointer"
-                            title="Download Similarity Report"
-                          >
-                            <Download className="h-3.5 w-3.5 text-primary" />
-                            <span className="hidden sm:inline">Similarity</span>
-                          </button>
-                          <button
-                            onClick={() => triggerPdfDownload(scan.filename, scan.ai, "ai")}
-                            className="inline-flex h-8 items-center gap-1 px-2.5 rounded-lg border border-border bg-background text-xs font-bold text-foreground hover:bg-secondary cursor-pointer"
-                            title="Download AI Report"
-                          >
-                            <Download className="h-3.5 w-3.5 text-cyan-500" />
-                            <span className="hidden sm:inline">AI</span>
-                          </button>
-                          <button
-                            onClick={() => deleteScan(scan.id)}
-                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-500/15 bg-background text-red-500 hover:bg-red-500/10 cursor-pointer"
-                            title="Delete Record"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
         </div>
       </main>
 
       {/* ─── Submit Assignment Modal ────────────────────────────────────────── */}
       {isAssignmentModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6 text-left overflow-y-auto">
-          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 relative shadow-2xl animate-in scale-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3.5 sm:p-6 text-left overflow-y-auto">
+          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-5 sm:p-8 space-y-5 relative shadow-2xl animate-in scale-in duration-200 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => {
                 setIsAssignmentModalOpen(false);
@@ -1555,8 +1459,8 @@ function DashboardContent() {
 
       {/* ─── Assignment Details Modal ────────────────────────────────────────── */}
       {activeAssignmentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-6 text-left overflow-y-auto">
-          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-5 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-3.5 sm:p-6 text-left overflow-y-auto">
+          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-5 sm:p-8 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setActiveAssignmentModal(null)}
               className="absolute top-4 right-4 p-1.5 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg cursor-pointer"
@@ -1621,13 +1525,13 @@ function DashboardContent() {
                     Admin has processed your document in No-Repository mode and uploaded your checked Turnitin report.
                   </p>
                   {activeAssignmentModal.similarityScore !== undefined && activeAssignmentModal.similarityScore !== null && (
-                    <div className="flex items-center gap-3 text-xs font-bold pt-1">
+                    <div className="flex flex-wrap items-center gap-2 text-xs font-bold pt-1">
                       <span className="px-2.5 py-1 rounded-lg bg-[#fe9a00]/20 text-[#fe9a00]">
-                        Similarity Score: {activeAssignmentModal.similarityScore}%
+                        Similarity: {activeAssignmentModal.similarityScore}%
                       </span>
                       {activeAssignmentModal.aiScore !== undefined && activeAssignmentModal.aiScore !== null && (
                         <span className="px-2.5 py-1 rounded-lg bg-blue-500/20 text-blue-700 dark:text-blue-300">
-                          AI Score: {activeAssignmentModal.aiScore}%
+                          AI: {activeAssignmentModal.aiScore}%
                         </span>
                       )}
                     </div>
@@ -1656,7 +1560,7 @@ function DashboardContent() {
             <div className="pt-2 flex justify-end">
               <button
                 onClick={() => setActiveAssignmentModal(null)}
-                className="rounded-xl border border-border px-5 py-2 text-xs font-bold text-foreground hover:bg-secondary cursor-pointer"
+                className="w-full sm:w-auto rounded-xl border border-border px-5 py-2.5 text-xs font-bold text-foreground hover:bg-secondary cursor-pointer"
               >
                 Close
               </button>
@@ -1667,8 +1571,8 @@ function DashboardContent() {
 
       {/* Checkout Modal (Buy Plan) */}
       {isCheckoutOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-6 text-left overflow-y-auto">
-          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-6 sm:p-8 space-y-6 relative shadow-2xl animate-in scale-in duration-200 max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-3.5 sm:p-6 text-left overflow-y-auto">
+          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-5 sm:p-8 space-y-6 relative shadow-2xl animate-in scale-in duration-200 max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => {
                 setIsCheckoutOpen(false);
@@ -1744,68 +1648,40 @@ function DashboardContent() {
                     Please switch to **Bank Transfer & Upload Slip** to complete your order now.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setPaymentTab("bank")}
-                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-extrabold text-primary-foreground hover:bg-primary/95 cursor-pointer shadow-md"
-                >
-                  <Building2 className="h-3.5 w-3.5" />
-                  Use Bank Transfer & Upload Slip
-                </button>
               </div>
             )}
 
             {paymentTab === "bank" && (
-              <form onSubmit={handleBankSlipSubmit} className="space-y-5">
-                <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-3">
-                  <div className="flex items-center justify-between">
-                    <p className="text-xs font-black text-foreground flex items-center gap-1.5">
-                      <Building2 className="h-4 w-4 text-primary" />
-                      Company Bank Details:
-                    </p>
-                    <span className="text-[10px] font-bold bg-primary/10 text-primary px-2 py-0.5 rounded-full">
-                      LKR Account
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Bank Name</p>
-                      <p className="font-extrabold text-foreground">Commercial Bank</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Account Name</p>
-                      <p className="font-extrabold text-foreground">TurniPass Academic Solutions</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Account Number</p>
-                      <p className="font-mono font-black text-foreground">8009123456</p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-bold text-muted-foreground uppercase">Branch</p>
-                      <p className="font-extrabold text-foreground">Colombo Main Branch</p>
-                    </div>
-                  </div>
-                </div>
-
+              <form onSubmit={handleBankSlipSubmit} className="space-y-4 text-xs font-semibold">
                 {checkoutError && (
-                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-xs font-bold text-red-500 rounded-xl">
-                    {checkoutError}
+                  <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-xl flex items-center gap-2">
+                    <AlertCircle className="h-4 w-4 shrink-0" />
+                    <span>{checkoutError}</span>
                   </div>
                 )}
 
-                <div className="space-y-2">
-                  <label className="text-xs font-extrabold text-foreground flex items-center justify-between">
-                    <span>Upload Payment Slip / Receipt Image</span>
-                    <span className="text-[10px] font-normal text-muted-foreground">JPG, PNG, PDF</span>
-                  </label>
+                {/* Bank Details Card */}
+                <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-2.5">
+                  <p className="font-extrabold text-foreground text-xs flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-primary" />
+                    Commercial Bank of Ceylon
+                  </p>
+                  <div className="space-y-1 text-muted-foreground text-[11px]">
+                    <p>Account Name: <strong className="text-foreground">TurniPass Lanka (Pvt) Ltd</strong></p>
+                    <p>Account Number: <strong className="text-foreground font-mono text-xs">8012 3456 7890</strong></p>
+                    <p>Branch: <strong className="text-foreground">Kollupitiya Branch (Code: 045)</strong></p>
+                    <p>Reference: <strong className="text-primary font-mono">{userData.email.split("@")[0]}</strong></p>
+                  </div>
+                </div>
 
+                {/* File Upload for Bank Slip */}
+                <div className="space-y-1.5">
+                  <label className="font-bold text-foreground">
+                    Upload Bank Transfer Receipt / Slip <span className="text-red-500">*</span>
+                  </label>
                   <div
                     onClick={() => slipInputRef.current?.click()}
-                    className={`relative flex flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 text-center cursor-pointer transition-all duration-200 ${slipPreview
-                      ? "border-primary bg-primary/5"
-                      : "border-border hover:border-primary/30 bg-background"
-                      }`}
+                    className="border-2 border-dashed border-border hover:border-primary/50 rounded-2xl p-4 text-center cursor-pointer bg-background hover:bg-muted/10 transition-colors"
                   >
                     <input
                       type="file"
@@ -1814,52 +1690,41 @@ function DashboardContent() {
                       accept="image/*,.pdf"
                       className="hidden"
                     />
-
                     {slipPreview ? (
-                      <div className="space-y-2 py-2">
+                      <div className="space-y-2">
                         <img
                           src={slipPreview}
-                          alt="Payment Slip Preview"
-                          className="h-32 object-contain mx-auto rounded-lg border border-border shadow-sm"
+                          alt="Slip Preview"
+                          className="max-h-36 mx-auto rounded-lg object-contain border border-border"
                         />
-                        <p className="text-xs font-bold text-primary truncate max-w-xs mx-auto">
-                          {slipFile ? slipFile.name : "Payment Slip Selected"}
+                        <p className="text-[11px] text-green-600 font-bold flex items-center justify-center gap-1">
+                          <Check className="h-3.5 w-3.5" />
+                          Slip Selected: {slipFile?.name}
                         </p>
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSlipFile(null);
-                            setSlipPreview(null);
+                            slipInputRef.current?.click();
                           }}
-                          className="text-[11px] text-red-500 font-bold hover:underline"
+                          className="text-[11px] text-primary underline"
                         >
                           Change Slip Image
                         </button>
                       </div>
                     ) : (
-                      <div className="space-y-2 py-4">
-                        <Upload className="h-7 w-7 text-muted-foreground mx-auto" />
-                        <div>
-                          <p className="text-xs font-bold text-foreground">Click to browse slip receipt image</p>
-                          <p className="text-[11px] text-muted-foreground">Make sure reference number and amount are visible</p>
-                        </div>
+                      <div className="py-4 space-y-2">
+                        <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                        <p className="text-xs font-bold">Click to upload transfer receipt</p>
                       </div>
                     )}
                   </div>
                 </div>
 
-                <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-300 font-semibold">
-                  <Info className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
-                  <p className="leading-snug">
-                    After uploading, your payment will be marked as **Pending**. Once approved by admin, **{selectedPack.slots} coins** will be added to your account balance.
-                  </p>
-                </div>
-
                 <button
                   type="submit"
                   disabled={paymentLoading || !slipPreview}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 disabled:opacity-40 disabled:pointer-events-none transition-all duration-200 cursor-pointer"
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-primary py-3.5 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 disabled:opacity-40 disabled:pointer-events-none transition-all duration-200 cursor-pointer"
                 >
                   {paymentLoading ? (
                     <>
@@ -1881,8 +1746,8 @@ function DashboardContent() {
 
       {/* Lightbox Slip View Modal */}
       {viewSlipUrl && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-          <div className="relative max-w-2xl w-full bg-card border border-border rounded-3xl p-6 space-y-4 text-center">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3.5 sm:p-4">
+          <div className="relative max-w-2xl w-full bg-card border border-border rounded-3xl p-4 sm:p-6 space-y-4 text-center max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setViewSlipUrl(null)}
               className="absolute top-4 right-4 p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground hover:bg-secondary cursor-pointer"
@@ -1890,12 +1755,12 @@ function DashboardContent() {
               <X className="h-5 w-5" />
             </button>
             <h4 className="text-sm font-black text-foreground">Uploaded Slip / Attachment Document</h4>
-            <div className="max-h-[70vh] overflow-auto rounded-xl border border-border bg-black/20 p-2">
+            <div className="max-h-[65vh] overflow-auto rounded-xl border border-border bg-black/20 p-2">
               <img src={viewSlipUrl} alt="Slip / Attachment" className="max-w-full h-auto mx-auto rounded-lg" />
             </div>
             <button
               onClick={() => setViewSlipUrl(null)}
-              className="rounded-xl border border-border px-5 py-2 text-xs font-bold hover:bg-secondary cursor-pointer"
+              className="w-full sm:w-auto rounded-xl border border-border px-5 py-2.5 text-xs font-bold hover:bg-secondary cursor-pointer"
             >
               Close
             </button>

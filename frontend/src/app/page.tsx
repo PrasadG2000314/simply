@@ -227,34 +227,34 @@ export default function Home() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background py-20 lg:py-28">
-          <div className="mx-auto max-w-6xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+        <section className="relative overflow-hidden bg-gradient-to-b from-primary/5 via-background to-background py-12 sm:py-20 lg:py-28">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
             {/* Left Content */}
-            <div className="lg:col-span-7 space-y-6 text-left">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fe9a00]/10 border border-[#fe9a00]/25 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#fe9a00] shadow-[0_2px_15px_rgba(254,154,0,0.15)]">
+            <div className="lg:col-span-7 space-y-5 sm:space-y-6 text-left">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fe9a00]/10 border border-[#fe9a00]/25 px-3.5 py-1 text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#fe9a00] shadow-[0_2px_15px_rgba(254,154,0,0.15)]">
                 <Check className="h-3.5 w-3.5" /> 100% No-Repository Guarantee
               </span>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-foreground">
+              <h1 className="text-3xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.1] sm:leading-[1.08] text-foreground">
                 Turnitin Checker <br />
                 <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fe9a00] via-[#ff7700] to-[#e11d48]">Sri Lanka</span>
               </h1>
-              <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl font-medium">
-                Get your AI & Similarity Report with no repository mode.Your draft will not be added to the university repositories.
+              <p className="text-sm sm:text-base lg:text-lg text-muted-foreground leading-relaxed max-w-xl font-medium">
+                Get your AI & Similarity Report with no repository mode. Your draft will not be added to the university repositories.
               </p>
 
               {/* Stats badges */}
-              <div className="grid grid-cols-3 gap-4 pt-2">
-                <div className="flex flex-col border-l-2 border-primary/30 pl-3">
-                  <span className="text-2xl font-black text-foreground tracking-tight">3,000+</span>
-                  <span className="text-xs text-muted-foreground font-semibold">Sri Lankan Students</span>
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 pt-2">
+                <div className="flex flex-col border-l-2 border-primary/30 pl-2.5 sm:pl-3">
+                  <span className="text-xl sm:text-2xl font-black text-foreground tracking-tight">3,000+</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-semibold">Students</span>
                 </div>
-                <div className="flex flex-col border-l-2 border-primary/30 pl-3">
-                  <span className="text-2xl font-black text-foreground tracking-tight">5-30m</span>
-                  <span className="text-xs text-muted-foreground font-semibold">Average Scan Time</span>
+                <div className="flex flex-col border-l-2 border-primary/30 pl-2.5 sm:pl-3">
+                  <span className="text-xl sm:text-2xl font-black text-foreground tracking-tight">5-30m</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-semibold">Average Scan</span>
                 </div>
-                <div className="flex flex-col border-l-2 border-primary/30 pl-3">
-                  <span className="text-2xl font-black text-foreground tracking-tight">100%</span>
-                  <span className="text-xs text-muted-foreground font-semibold">Revision Safe</span>
+                <div className="flex flex-col border-l-2 border-primary/30 pl-2.5 sm:pl-3">
+                  <span className="text-xl sm:text-2xl font-black text-foreground tracking-tight">100%</span>
+                  <span className="text-[10px] sm:text-xs text-muted-foreground font-semibold">Revision Safe</span>
                 </div>
               </div>
             </div>
@@ -266,7 +266,7 @@ export default function Home() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative flex flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-300 ${isDragging
+                className={`relative flex flex-col items-center justify-center rounded-3xl border-2 border-dashed p-6 sm:p-8 text-center cursor-pointer transition-all duration-300 ${isDragging
                   ? "border-[#fe9a00] bg-[#fe9a00]/10 scale-[1.02] shadow-[0_0_30px_rgba(254,154,0,0.3)]"
                   : "border-border hover:border-[#fe9a00]/60 bg-card hover:shadow-2xl hover:shadow-[#fe9a00]/15"
                   }`}
@@ -280,17 +280,17 @@ export default function Home() {
                 />
 
                 {loadingRedirect ? (
-                  <div className="py-12 space-y-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#fe9a00] mx-auto"></div>
-                    <p className="text-sm font-bold text-foreground">Preparing workspace for {selectedFile}...</p>
+                  <div className="py-10 sm:py-12 space-y-4">
+                    <div className="animate-spin rounded-full h-10 w-10 sm:h-12 sm:w-12 border-b-2 border-[#fe9a00] mx-auto"></div>
+                    <p className="text-xs sm:text-sm font-bold text-foreground">Preparing workspace for {selectedFile}...</p>
                   </div>
                 ) : (
-                  <div className="space-y-4 py-8">
-                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#fe9a00]/20 to-[#ff7700]/10 text-[#fe9a00] border border-[#fe9a00]/30 shadow-[0_0_20px_rgba(254,154,0,0.2)]">
-                      <Upload className="h-8 w-8 animate-bounce" />
+                  <div className="space-y-3 sm:space-y-4 py-6 sm:py-8">
+                    <div className="inline-flex h-14 w-14 sm:h-16 sm:w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#fe9a00]/20 to-[#ff7700]/10 text-[#fe9a00] border border-[#fe9a00]/30 shadow-[0_0_20px_rgba(254,154,0,0.2)]">
+                      <Upload className="h-7 w-7 sm:h-8 sm:w-8 animate-bounce" />
                     </div>
                     <div className="space-y-1">
-                      <p className="text-base font-extrabold text-foreground">
+                      <p className="text-sm sm:text-base font-extrabold text-foreground">
                         Drag & drop your file here
                       </p>
                       <p className="text-xs text-muted-foreground font-medium">
@@ -310,21 +310,21 @@ export default function Home() {
         </section>
 
         {/* Benefits Grid */}
-        <section id="features" className="py-20 border-b border-border/40 bg-background">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
+        <section id="features" className="py-14 sm:py-20 border-b border-border/40 bg-background">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="text-center max-w-3xl mx-auto mb-12 sm:mb-16 space-y-3">
               <span className="inline-block rounded-xl bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
                 THE TURNIPASS DIFFERENCE
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
                 Official Instructor Account. Based Checking.
               </h2>
-              <p className="text-sm text-muted-foreground font-medium max-w-xl mx-auto">
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium max-w-xl mx-auto">
                 Your documents are checked through authorised instructor-level access, helping keep your drafts separate from institutional repositories and suitable for pre-submission review.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
               {[
                 {
                   icon: <FileCheck className="h-6 w-6" />,
@@ -362,17 +362,17 @@ export default function Home() {
                   desc: "Your documents are handled with a privacy-focused approach, with files retained only for the period necessary to process and deliver your report.",
                 },
               ].map((benefit, i) => (
-                <div key={i} className="flex flex-col bg-card border border-border/80 rounded-2xl p-8 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all">
-                  <div className="flex items-start justify-between mb-6">
-                    <div className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div key={i} className="flex flex-col bg-card border border-border/80 rounded-2xl p-6 sm:p-8 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all">
+                  <div className="flex items-start justify-between mb-5 sm:mb-6">
+                    <div className="inline-flex h-11 w-11 sm:h-12 sm:w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
                       {benefit.icon}
                     </div>
-                    <span className="font-mono text-3xl font-black text-muted-foreground/15 select-none">
+                    <span className="font-mono text-2xl sm:text-3xl font-black text-muted-foreground/15 select-none">
                       {String(i + 1).padStart(2, "0")}
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-2">{benefit.title}</h3>
-                  <p className="text-sm text-muted-foreground font-medium leading-relaxed">{benefit.desc}</p>
+                  <h3 className="text-base sm:text-lg font-bold text-foreground mb-2">{benefit.title}</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground font-medium leading-relaxed">{benefit.desc}</p>
                 </div>
               ))}
             </div>
@@ -380,16 +380,16 @@ export default function Home() {
         </section>
 
         {/* Interactive Sample Viewer Tabbed Panel */}
-        <section id="samples-section" className="py-20 border-b border-border/40 bg-muted/10">
-          <div className="mx-auto max-w-6xl px-6">
-            <div className="text-center max-w-3xl mx-auto mb-12 space-y-3">
+        <section id="samples-section" className="py-14 sm:py-20 border-b border-border/40 bg-muted/10">
+          <div className="mx-auto max-w-6xl px-4 sm:px-6">
+            <div className="text-center max-w-3xl mx-auto mb-10 sm:mb-12 space-y-3">
               <span className="inline-block rounded-xl bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
                 REPORT SAMPLES
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
                 Explore Turnitin Feedback Studio Layouts
               </h2>
-              <p className="text-sm text-muted-foreground font-medium max-w-xl mx-auto">
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium max-w-xl mx-auto">
                 Select a tab below to inspect how similarity highlights and AI percentage scorecards look inside the exported PDFs.
               </p>
             </div>
@@ -398,7 +398,7 @@ export default function Home() {
             <div className="flex items-center justify-center gap-2 mb-8">
               <button
                 onClick={() => setActiveReportTab("similarity")}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "similarity"
+                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "similarity"
                   ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                   : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
                   }`}
@@ -407,7 +407,7 @@ export default function Home() {
               </button>
               <button
                 onClick={() => setActiveReportTab("ai")}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "ai"
+                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "ai"
                   ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
                   : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
                   }`}
@@ -421,19 +421,19 @@ export default function Home() {
               {activeReportTab === "similarity" ? (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-0 animate-in fade-in duration-300">
                   {/* Left Doc Body */}
-                  <div className="md:col-span-8 p-6 sm:p-8 space-y-4 border-r border-border min-h-[400px] text-left">
-                    <div className="flex items-center justify-between border-b border-border pb-3 mb-6">
-                      <span className="text-xs font-bold text-muted-foreground font-mono">document_draft_v2.docx</span>
+                  <div className="md:col-span-8 p-5 sm:p-8 space-y-4 border-b md:border-b-0 md:border-r border-border min-h-[300px] sm:min-h-[400px] text-left">
+                    <div className="flex items-center justify-between border-b border-border pb-3 mb-4 sm:mb-6">
+                      <span className="text-xs font-bold text-muted-foreground font-mono truncate max-w-[200px]">document_draft_v2.docx</span>
                       <span className="text-xs font-bold text-muted-foreground font-mono">Page 1 of 1</span>
                     </div>
-                    <p className="text-sm leading-relaxed text-foreground">
+                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
                       This research examines the role of neural network architecture in optimization algorithms.
                       <span className="bg-red-500/20 border-b-2 border-red-500 text-foreground px-1 py-0.5" title="Match 1: Internet Source">
                         The primary goal of optimization is to locate the global minimum of the loss function, preventing local minimum traps.
                       </span>
                       Through our initial benchmarks at the Colombo institute, we observed that network width scales convergence rates non-linearly.
                     </p>
-                    <p className="text-sm leading-relaxed text-foreground">
+                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
                       Moreover, researchers at the SLIIT laboratory suggest that
                       <span className="bg-purple-500/20 border-b-2 border-purple-500 text-foreground px-1 py-0.5" title="Match 2: Student Paper">
                         learning rate decay is a crucial hyperparameter that dictates model generalization.
@@ -442,51 +442,51 @@ export default function Home() {
                     </p>
                   </div>
                   {/* Right Panel */}
-                  <div className="md:col-span-4 p-6 bg-muted/10 flex flex-col justify-between text-left">
+                  <div className="md:col-span-4 p-5 sm:p-6 bg-muted/10 flex flex-col justify-between text-left">
                     <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Similarity Index</h4>
-                      <div className="flex items-baseline gap-2 mb-6">
-                        <span className="text-5xl font-black text-red-500">14%</span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 sm:mb-4">Similarity Index</h4>
+                      <div className="flex items-baseline gap-2 mb-4 sm:mb-6">
+                        <span className="text-4xl sm:text-5xl font-black text-red-500">14%</span>
                         <span className="text-xs font-bold text-muted-foreground">OVERALL MATCH</span>
                       </div>
                       <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Primary Matches</h5>
-                      <div className="space-y-3">
+                      <div className="space-y-2.5 sm:space-y-3">
                         <div className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border text-xs">
-                          <span className="font-semibold text-foreground flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                          <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
+                            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
                             1. Internet Source
                           </span>
-                          <span className="font-black text-red-500">8%</span>
+                          <span className="font-black text-red-500 ml-2">8%</span>
                         </div>
                         <div className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border text-xs">
-                          <span className="font-semibold text-foreground flex items-center gap-1.5">
-                            <span className="w-2 h-2 rounded-full bg-purple-500"></span>
+                          <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
+                            <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
                             2. Student Paper
                           </span>
-                          <span className="font-black text-purple-500">6%</span>
+                          <span className="font-black text-purple-500 ml-2">6%</span>
                         </div>
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-border/80 text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <CheckCircle className="h-3.5 w-3.5 text-primary" /> Filtered Quotes: EXCLUDED
+                    <div className="pt-4 sm:pt-6 mt-4 border-t border-border/80 text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" /> Filtered Quotes: EXCLUDED
                     </div>
                   </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-0 animate-in fade-in duration-300">
                   {/* Left Doc Body */}
-                  <div className="md:col-span-8 p-6 sm:p-8 space-y-4 border-r border-border min-h-[400px] text-left">
-                    <div className="flex items-center justify-between border-b border-border pb-3 mb-6">
-                      <span className="text-xs font-bold text-muted-foreground font-mono">artificial_intelligence.docx</span>
+                  <div className="md:col-span-8 p-5 sm:p-8 space-y-4 border-b md:border-b-0 md:border-r border-border min-h-[300px] sm:min-h-[400px] text-left">
+                    <div className="flex items-center justify-between border-b border-border pb-3 mb-4 sm:mb-6">
+                      <span className="text-xs font-bold text-muted-foreground font-mono truncate max-w-[200px]">artificial_intelligence.docx</span>
                       <span className="text-xs font-bold text-muted-foreground font-mono">Page 1 of 1</span>
                     </div>
-                    <p className="text-sm leading-relaxed text-foreground">
+                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
                       <span className="bg-cyan-500/20 border-b-2 border-cyan-500 text-foreground px-1 py-0.5" title="98% AI Probability">
                         Artificial intelligence has experienced significant growth over the past decade, revolutionizing various sectors of modern society. In the field of healthcare, machines diagnose patterns with higher accuracy.
                       </span>
                       In contrast, the human element of clinical assessment retains key contextual parameters that standard transformers cannot duplicate.
                     </p>
-                    <p className="text-sm leading-relaxed text-foreground">
+                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
                       <span className="bg-cyan-500/20 border-b-2 border-cyan-500 text-foreground px-1 py-0.5" title="94% AI Probability">
                         The integration of neural layers in computer vision algorithms enables automatic classification. This technique parses matrices in parallel pipelines to expedite the inference cycle.
                       </span>
@@ -494,11 +494,11 @@ export default function Home() {
                     </p>
                   </div>
                   {/* Right Panel */}
-                  <div className="md:col-span-4 p-6 bg-muted/10 flex flex-col justify-between text-left">
+                  <div className="md:col-span-4 p-5 sm:p-6 bg-muted/10 flex flex-col justify-between text-left">
                     <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">AI Detection Score</h4>
-                      <div className="flex items-baseline gap-2 mb-6">
-                        <span className="text-5xl font-black text-cyan-500">68%</span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 sm:mb-4">AI Detection Score</h4>
+                      <div className="flex items-baseline gap-2 mb-4 sm:mb-6">
+                        <span className="text-4xl sm:text-5xl font-black text-cyan-500">68%</span>
                         <span className="text-xs font-bold text-muted-foreground font-mono">AI GENERATED</span>
                       </div>
                       <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl text-xs space-y-2 leading-relaxed font-semibold text-cyan-600 dark:text-cyan-400">
@@ -506,8 +506,8 @@ export default function Home() {
                         <p>Turnitin underlines AI phrases in blue for easy editing.</p>
                       </div>
                     </div>
-                    <div className="pt-6 border-t border-border/80 text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <Brain className="h-3.5 w-3.5 text-cyan-500" /> Language: ENGLISH ONLY
+                    <div className="pt-4 sm:pt-6 mt-4 border-t border-border/80 text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5">
+                      <Brain className="h-3.5 w-3.5 text-cyan-500 shrink-0" /> Language: ENGLISH ONLY
                     </div>
                   </div>
                 </div>

@@ -538,49 +538,49 @@ function AdminDashboardContent() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Topbar */}
-      <header className="border-b border-zinc-800 bg-zinc-900 px-6 py-4">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      <header className="border-b border-zinc-800 bg-zinc-900 px-4 sm:px-6 py-3.5 sm:py-4">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <Link href="/" className="group">
+            <Link href="/" className="group shrink-0">
               <img
                 src="/logo-white.png"
                 alt="TurniPass Logo"
-                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                className="h-8 sm:h-10 w-auto object-contain transition-transform group-hover:scale-105"
               />
             </Link>
-            <div>
-              <p className="text-sm font-black text-white tracking-tight">
+            <div className="min-w-0">
+              <p className="text-xs sm:text-sm font-black text-white tracking-tight">
                 Simply Admin Panel
               </p>
-              <p className="text-[10px] text-zinc-500 font-semibold">
+              <p className="text-[10px] text-zinc-500 font-semibold truncate">
                 Control Center · {adminUser?.username}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 self-end sm:self-auto">
             <button
               id="admin-refresh"
               onClick={() => fetchData(true)}
               disabled={refreshing}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-2 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 sm:py-2 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              Refresh
+              <span>Refresh</span>
             </button>
             <button
               id="admin-logout"
               onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 sm:py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
             >
               <LogOut className="h-3.5 w-3.5" />
-              Logout
+              <span>Logout</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <main className="max-w-7xl mx-auto px-3.5 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
         {error && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400">
             {error}
@@ -588,26 +588,26 @@ function AdminDashboardContent() {
         )}
 
         {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div
             onClick={() => {
               setActiveTab("assignments");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-5 flex items-center gap-4 cursor-pointer transition-all ${
+            className={`rounded-2xl border p-4 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
               pendingAssnsCount > 0
                 ? "border-amber-500/40 bg-amber-500/10 shadow-lg shadow-amber-500/5 hover:border-amber-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
             }`}
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
-              <BookOpen className="h-5 w-5" />
+            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
+              <BookOpen className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-amber-500 uppercase tracking-widest">
-                Pending Documents
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-amber-500 uppercase tracking-widest truncate">
+                Pending Docs
               </p>
-              <p className="text-2xl font-black text-amber-400">{pendingAssnsCount}</p>
+              <p className="text-xl sm:text-2xl font-black text-amber-400">{pendingAssnsCount}</p>
             </div>
           </div>
 
@@ -616,66 +616,66 @@ function AdminDashboardContent() {
               setActiveTab("slips");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-5 flex items-center gap-4 cursor-pointer transition-all ${
+            className={`rounded-2xl border p-4 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
               pendingSlipsCount > 0
                 ? "border-blue-500/40 bg-blue-500/10 shadow-lg shadow-blue-500/5 hover:border-blue-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
             }`}
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
-              <Building2 className="h-5 w-5" />
+            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
+              <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-blue-400 uppercase tracking-widest">
-                Pending Top-up Slips
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-blue-400 uppercase tracking-widest truncate">
+                Pending Slips
               </p>
-              <p className="text-2xl font-black text-blue-400">{pendingSlipsCount}</p>
+              <p className="text-xl sm:text-2xl font-black text-blue-400">{pendingSlipsCount}</p>
             </div>
           </div>
 
           <div
             onClick={() => setActiveTab("users")}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 flex items-center gap-4 cursor-pointer hover:border-zinc-700 transition-all"
+            className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer hover:border-zinc-700 transition-all"
           >
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Users className="h-5 w-5" />
+            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Users className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                Total Customers
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest truncate">
+                Customers
               </p>
-              <p className="text-2xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
+              <p className="text-xl sm:text-2xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5 flex items-center gap-4">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
-              <Activity className="h-5 w-5" />
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
+            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
+              <Activity className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </div>
-            <div>
-              <p className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                New This Week
+            <div className="min-w-0">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest truncate">
+                This Week
               </p>
-              <p className="text-2xl font-black text-white">{stats?.newThisWeek ?? 0}</p>
+              <p className="text-xl sm:text-2xl font-black text-white">{stats?.newThisWeek ?? 0}</p>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full -mx-1 px-1">
             <button
               onClick={() => setActiveTab("assignments")}
-              className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
                 activeTab === "assignments"
                   ? "bg-amber-500 text-black shadow-md"
                   : "bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <BookOpen className="h-4 w-4" />
-              Document Queue
+              <BookOpen className="h-3.5 w-3.5" />
+              <span>Document Queue</span>
               {pendingAssnsCount > 0 && (
-                <span className="rounded-full bg-black px-2 py-0.2 text-[10px] font-black text-amber-400">
+                <span className="rounded-full bg-black px-1.5 py-0.2 text-[10px] font-black text-amber-400">
                   {pendingAssnsCount}
                 </span>
               )}
@@ -683,16 +683,16 @@ function AdminDashboardContent() {
 
             <button
               onClick={() => setActiveTab("slips")}
-              className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
                 activeTab === "slips"
                   ? "bg-primary text-primary-foreground shadow-md"
                   : "bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Building2 className="h-4 w-4" />
-              Bank Slip Approvals
+              <Building2 className="h-3.5 w-3.5" />
+              <span>Bank Slips</span>
               {pendingSlipsCount > 0 && (
-                <span className="rounded-full bg-blue-500 px-2 py-0.2 text-[10px] font-black text-black">
+                <span className="rounded-full bg-blue-500 px-1.5 py-0.2 text-[10px] font-black text-black">
                   {pendingSlipsCount}
                 </span>
               )}
@@ -700,24 +700,24 @@ function AdminDashboardContent() {
 
             <button
               onClick={() => setActiveTab("users")}
-              className={`px-4 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
                 activeTab === "users"
                   ? "bg-primary text-primary-foreground shadow-md"
                   : "bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"
               }`}
             >
-              <Users className="h-4 w-4" />
-              Registered Users
+              <Users className="h-3.5 w-3.5" />
+              <span>Users</span>
             </button>
           </div>
 
           {/* Search */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full md:w-72">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-zinc-500" />
             <input
               id="admin-search"
               type="text"
-              placeholder="Search by customer, title..."
+              placeholder="Search customer, title, email..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full rounded-xl border border-zinc-700 bg-zinc-900 pl-9 pr-4 py-2 text-xs text-white font-semibold placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all"
@@ -1116,26 +1116,26 @@ function AdminDashboardContent() {
 
       {/* ─── Assignment Detail Lightbox Modal ───────────────────────────────── */}
       {activeAssignmentModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 overflow-y-auto">
-          <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-5 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3.5 sm:p-6 overflow-y-auto">
+          <div className="w-full max-w-xl bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setActiveAssignmentModal(null)}
-              className="absolute top-4 right-4 p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 sm:p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
 
             <div className="space-y-1">
               <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
                 <BookOpen className="h-3 w-3" /> Document Review Brief
               </span>
-              <h3 className="text-lg font-black text-white">{activeAssignmentModal.title}</h3>
-              <p className="text-xs text-zinc-400">
+              <h3 className="text-base sm:text-lg font-black text-white">{activeAssignmentModal.title}</h3>
+              <p className="text-xs text-zinc-400 truncate">
                 Customer: <strong className="text-white">{activeAssignmentModal.userName}</strong> ({activeAssignmentModal.userEmail})
               </p>
             </div>
 
-            <div className="space-y-3 text-xs bg-zinc-800/50 p-4 border border-zinc-700/60 rounded-2xl">
+            <div className="space-y-3 text-xs bg-zinc-800/50 p-3.5 sm:p-4 border border-zinc-700/60 rounded-2xl">
               <div>
                 <p className="text-[10px] text-zinc-500 font-bold uppercase">Target Deadline</p>
                 <p className="font-extrabold text-amber-400">
@@ -1151,13 +1151,13 @@ function AdminDashboardContent() {
 
               <div>
                 <p className="text-[10px] text-zinc-500 font-bold uppercase">Description</p>
-                <p className="font-semibold text-zinc-200 whitespace-pre-wrap">{activeAssignmentModal.description}</p>
+                <p className="font-semibold text-zinc-200 whitespace-pre-wrap leading-relaxed">{activeAssignmentModal.description}</p>
               </div>
 
               {activeAssignmentModal.requirements && (
                 <div>
                   <p className="text-[10px] text-zinc-500 font-bold uppercase">Requirements / Scope</p>
-                  <p className="font-semibold text-zinc-200 whitespace-pre-wrap">{activeAssignmentModal.requirements}</p>
+                  <p className="font-semibold text-zinc-200 whitespace-pre-wrap leading-relaxed">{activeAssignmentModal.requirements}</p>
                 </div>
               )}
 
@@ -1171,14 +1171,14 @@ function AdminDashboardContent() {
               {activeAssignmentModal.attachment && (
                 <div>
                   <p className="text-[10px] text-zinc-500 font-bold uppercase mb-1">Attached Document</p>
-                  <div className="p-2.5 bg-black/40 border border-zinc-700 rounded-xl flex items-center justify-between">
-                    <span className="truncate max-w-xs font-mono text-zinc-300">
-                      📎 {activeAssignmentModal.attachmentName || "Attached_Specification_Document"}
+                  <div className="p-2.5 bg-black/40 border border-zinc-700 rounded-xl flex items-center justify-between gap-2">
+                    <span className="truncate max-w-[180px] sm:max-w-xs font-mono text-zinc-300">
+                      📎 {activeAssignmentModal.attachmentName || "Attached_Document"}
                     </span>
                     <a
                       href={activeAssignmentModal.attachment}
                       download={activeAssignmentModal.attachmentName || "attachment"}
-                      className="px-3 py-1 rounded-lg bg-primary text-black font-extrabold hover:bg-primary/90"
+                      className="px-3 py-1 rounded-lg bg-primary text-black font-extrabold hover:bg-primary/90 text-xs shrink-0"
                     >
                       Download
                     </a>
@@ -1189,15 +1189,15 @@ function AdminDashboardContent() {
 
             {/* Actions inside modal */}
             {activeAssignmentModal.status === "approved" && (
-              <div className="flex items-center justify-between pt-2 border-t border-zinc-800">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-800">
                 <div className="text-xs">
                   {activeAssignmentModal.resultFile ? (
                     <span className="text-green-400 font-bold flex items-center gap-1">
-                      <CheckCircle className="h-3.5 w-3.5" /> Turnitin Report Uploaded ({activeAssignmentModal.resultFileName || "Report.pdf"})
+                      <CheckCircle className="h-3.5 w-3.5 shrink-0" /> Report Uploaded ({activeAssignmentModal.resultFileName || "Report.pdf"})
                     </span>
                   ) : (
                     <span className="text-amber-400 font-bold flex items-center gap-1">
-                      <AlertCircle className="h-3.5 w-3.5" /> Pending Report Upload
+                      <AlertCircle className="h-3.5 w-3.5 shrink-0" /> Pending Report Upload
                     </span>
                   )}
                 </div>
@@ -1207,19 +1207,19 @@ function AdminDashboardContent() {
                     setActiveAssignmentModal(null);
                     handleOpenApproveModal(target);
                   }}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-xs font-black text-white hover:bg-blue-500 cursor-pointer shadow-lg flex items-center gap-1.5"
+                  className="w-full sm:w-auto rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-black text-white hover:bg-blue-500 cursor-pointer shadow-lg flex items-center justify-center gap-1.5"
                 >
                   <Paperclip className="h-4 w-4" />
-                  {activeAssignmentModal.resultFile ? "Update / Replace Turnitin Report" : "Upload Turnitin Report"}
+                  {activeAssignmentModal.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
                 </button>
               </div>
             )}
 
             {activeAssignmentModal.status === "pending" && (
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
                 <button
                   onClick={() => handleOpenRejectAssignmentModal(activeAssignmentModal)}
-                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer"
+                  className="w-full sm:w-auto rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer text-center"
                 >
                   Reject & Refund 1 Coin
                 </button>
@@ -1229,10 +1229,10 @@ function AdminDashboardContent() {
                     setActiveAssignmentModal(null);
                     handleOpenApproveModal(target);
                   }}
-                  className="rounded-xl bg-green-600 px-5 py-2 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg flex items-center gap-1.5"
+                  className="w-full sm:w-auto rounded-xl bg-green-600 px-5 py-2.5 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg flex items-center justify-center gap-1.5"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  Approve & Upload Turnitin Report
+                  Approve & Upload Report
                 </button>
               </div>
             )}
@@ -1242,41 +1242,41 @@ function AdminDashboardContent() {
 
       {/* ─── Slip Lightbox Modal ────────────────────────────────────────────── */}
       {activeSlipModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-5 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3.5 sm:p-6 overflow-y-auto">
+          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => setActiveSlipModal(null)}
-              className="absolute top-4 right-4 p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+              className="absolute top-4 right-4 p-1.5 sm:p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
 
             <div className="space-y-1">
               <h3 className="text-base font-black text-white flex items-center gap-2">
-                <Building2 className="h-5 w-5 text-primary" />
-                Payment Slip Verification
+                <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0" />
+                <span>Payment Slip Verification</span>
               </h3>
-              <p className="text-xs text-zinc-400 font-semibold">
+              <p className="text-xs text-zinc-400 font-semibold truncate">
                 Customer: <span className="text-white font-bold">{activeSlipModal.userName}</span> ({activeSlipModal.userEmail})
               </p>
             </div>
 
-            <div className="grid grid-cols-3 gap-3 p-3 bg-zinc-800/60 border border-zinc-700/60 rounded-2xl text-xs">
+            <div className="grid grid-cols-3 gap-2 sm:gap-3 p-3 bg-zinc-800/60 border border-zinc-700/60 rounded-2xl text-xs">
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase">Selected Plan</p>
-                <p className="font-extrabold text-white">{activeSlipModal.packageName}</p>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Plan</p>
+                <p className="font-extrabold text-white text-xs truncate">{activeSlipModal.packageName}</p>
               </div>
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase">Coins to Credit</p>
-                <p className="font-black text-primary">+{activeSlipModal.credits} Coins</p>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Coins</p>
+                <p className="font-black text-primary text-xs truncate">+{activeSlipModal.credits} Coins</p>
               </div>
               <div>
-                <p className="text-[10px] text-zinc-500 font-bold uppercase">Amount</p>
-                <p className="font-bold text-white">LKR {activeSlipModal.amount.toLocaleString("en-LK")}</p>
+                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Amount</p>
+                <p className="font-bold text-white text-xs truncate">LKR {activeSlipModal.amount.toLocaleString("en-LK")}</p>
               </div>
             </div>
 
-            <div className="max-h-[60vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-2">
+            <div className="max-h-[55vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-2">
               <img
                 src={activeSlipModal.slipImage}
                 alt="Full Slip Receipt"
@@ -1285,17 +1285,17 @@ function AdminDashboardContent() {
             </div>
 
             {activeSlipModal.status === "pending" && (
-              <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
                 <button
                   onClick={() => handleOpenRejectSlipModal(activeSlipModal)}
-                  className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer"
+                  className="w-full sm:w-auto rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer text-center"
                 >
                   Reject Slip
                 </button>
                 <button
                   onClick={() => handleApproveSlip(activeSlipModal)}
                   disabled={actionLoadingId === (activeSlipModal._id || activeSlipModal.id)}
-                  className="rounded-xl bg-green-600 px-5 py-2 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg disabled:opacity-50 flex items-center gap-1.5"
+                  className="w-full sm:w-auto rounded-xl bg-green-600 px-5 py-2.5 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-1.5"
                 >
                   {actionLoadingId === (activeSlipModal._id || activeSlipModal.id) && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
                   Approve & Credit Coins
@@ -1308,8 +1308,8 @@ function AdminDashboardContent() {
 
       {/* ─── Reject Reason Modal ────────────────────────────────────────────── */}
       {isRejectModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6">
-          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-6 space-y-4 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3.5 sm:p-6">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-4 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => {
                 setIsRejectModalOpen(false);
@@ -1322,12 +1322,12 @@ function AdminDashboardContent() {
             </button>
 
             <h4 className="text-sm font-black text-white flex items-center gap-2">
-              <AlertCircle className="h-4 w-4 text-red-400" />
-              {rejectTargetType === "assignment" ? "Reject Assignment & Refund 1 Coin" : "Reject Payment Slip"}
+              <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
+              <span>{rejectTargetType === "assignment" ? "Reject Assignment & Refund 1 Coin" : "Reject Payment Slip"}</span>
             </h4>
 
-            <p className="text-xs text-zinc-400 font-semibold">
-              Enter an optional rejection note for{" "}
+            <p className="text-xs text-zinc-400 font-semibold truncate">
+              Enter rejection note for{" "}
               <span className="text-white font-bold">
                 {rejectTargetType === "assignment" ? targetRejectAssignment?.userName : targetRejectSlip?.userName}
               </span>:
@@ -1339,7 +1339,7 @@ function AdminDashboardContent() {
               onChange={(e) => setRejectNote(e.target.value)}
               placeholder={
                 rejectTargetType === "assignment"
-                  ? "e.g. Scope unclear, missing required source code..."
+                  ? "e.g. Scope unclear, missing required file..."
                   : "e.g. Reference number not matching..."
               }
               className="w-full rounded-xl border border-zinc-700 bg-zinc-800 p-3 text-xs text-white font-semibold placeholder:text-zinc-500 focus:outline-none focus:ring-2 focus:ring-red-500/50"
@@ -1352,13 +1352,13 @@ function AdminDashboardContent() {
                   setTargetRejectSlip(null);
                   setTargetRejectAssignment(null);
                 }}
-                className="rounded-xl border border-zinc-700 px-4 py-2 text-xs font-bold text-zinc-300 hover:bg-zinc-800 cursor-pointer"
+                className="w-full sm:w-auto rounded-xl border border-zinc-700 px-4 py-2.5 text-xs font-bold text-zinc-300 hover:bg-zinc-800 cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleConfirmReject}
-                className="rounded-xl bg-red-600 px-4 py-2 text-xs font-black text-white hover:bg-red-500 cursor-pointer flex items-center gap-1.5"
+                className="w-full sm:w-auto rounded-xl bg-red-600 px-4 py-2.5 text-xs font-black text-white hover:bg-red-500 cursor-pointer flex items-center justify-center gap-1.5"
               >
                 Confirm Rejection
               </button>
@@ -1369,8 +1369,8 @@ function AdminDashboardContent() {
 
       {/* ─── Upload Checked Turnitin Report Modal ────────────────────────────── */}
       {isApproveModalOpen && targetApproveDocument && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-6 overflow-y-auto">
-          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 sm:p-8 space-y-5 relative shadow-2xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3.5 sm:p-6 overflow-y-auto">
+          <div className="w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-8 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
             <button
               onClick={() => {
                 setIsApproveModalOpen(false);
@@ -1386,15 +1386,15 @@ function AdminDashboardContent() {
                 <CheckCircle className="h-3 w-3" /> Approve Document & Upload Turnitin Report
               </span>
               <h3 className="text-base font-black text-white">{targetApproveDocument.title}</h3>
-              <p className="text-xs text-zinc-400 font-medium">
+              <p className="text-xs text-zinc-400 font-medium truncate">
                 Customer: <strong className="text-white">{targetApproveDocument.userName}</strong> ({targetApproveDocument.userEmail})
               </p>
             </div>
 
             {/* Original Uploaded File Download */}
             {targetApproveDocument.attachment && (
-              <div className="p-3 bg-zinc-800/80 border border-zinc-700/80 rounded-xl flex items-center justify-between text-xs">
-                <span className="font-bold text-zinc-300 truncate max-w-xs">
+              <div className="p-3 bg-zinc-800/80 border border-zinc-700/80 rounded-xl flex items-center justify-between gap-2 text-xs">
+                <span className="font-bold text-zinc-300 truncate max-w-[180px] sm:max-w-xs">
                   📁 Customer File: {targetApproveDocument.attachmentName || "Uploaded_Document"}
                 </span>
                 <a
@@ -1402,7 +1402,7 @@ function AdminDashboardContent() {
                   download={targetApproveDocument.attachmentName || "customer_document"}
                   className="px-3 py-1 rounded-lg bg-amber-500 text-black font-extrabold hover:bg-amber-400 text-xs shrink-0"
                 >
-                  Download Customer File
+                  Download File
                 </a>
               </div>
             )}

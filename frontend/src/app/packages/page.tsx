@@ -272,33 +272,33 @@ export default function PackagesPage() {
     <div className="flex flex-col min-h-screen">
       <Navbar />
 
-      <main className="flex-1 bg-muted/15 py-12">
-        <div className="mx-auto max-w-6xl px-6 space-y-10">
+      <main className="flex-1 bg-muted/15 py-8 sm:py-12">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 space-y-8 sm:space-y-10">
           {/* Back link */}
           <Link
             href="/dashboard"
             className="inline-flex items-center gap-1.5 text-xs font-bold text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            <span>Back to Dashboard</span>
           </Link>
 
           {/* Hero header */}
           <div className="text-center space-y-3">
-            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-4 py-1.5 text-xs font-extrabold text-primary uppercase tracking-widest">
+            <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/5 px-3.5 py-1 text-[11px] sm:text-xs font-extrabold text-primary uppercase tracking-widest">
               <ShieldCheck className="h-3.5 w-3.5" />
               No-Repository Turnitin Scans
             </div>
-            <h1 className="text-4xl font-black text-foreground tracking-tight">
+            <h1 className="text-2xl sm:text-4xl font-black text-foreground tracking-tight">
               Choose Your Credit Package
             </h1>
-            <p className="text-sm text-muted-foreground font-semibold max-w-xl mx-auto">
+            <p className="text-xs sm:text-sm text-muted-foreground font-semibold max-w-xl mx-auto leading-relaxed">
               Each credit unlocks one full Turnitin Similarity + AI Detection scan.
               Credits are valid for 30 days and are securely processed.
             </p>
 
             {/* Trust badges */}
-            <div className="flex flex-wrap justify-center gap-4 pt-2">
+            <div className="flex flex-wrap justify-center gap-3 sm:gap-4 pt-2">
               {[
                 { icon: ShieldCheck, text: "100% No-Repository" },
                 { icon: Clock, text: "24h Auto-Deletion" },
@@ -307,7 +307,7 @@ export default function PackagesPage() {
               ].map(({ icon: Icon, text }) => (
                 <div
                   key={text}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground"
+                  className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold text-muted-foreground"
                 >
                   <Icon className="h-3.5 w-3.5 text-primary" />
                   {text}
@@ -318,11 +318,11 @@ export default function PackagesPage() {
 
           {/* Tab switcher */}
           <div className="flex justify-center">
-            <div className="inline-flex rounded-xl border border-border bg-card p-1 gap-1">
+            <div className="inline-flex rounded-xl border border-border bg-card p-1 gap-1 shadow-sm">
               <button
                 id="tab-standard"
                 onClick={() => setActiveTab("standard")}
-                className={`px-5 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`px-4 sm:px-5 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer ${
                   activeTab === "standard"
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
@@ -333,7 +333,7 @@ export default function PackagesPage() {
               <button
                 id="tab-api"
                 onClick={() => setActiveTab("api")}
-                className={`px-5 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer ${
+                className={`px-4 sm:px-5 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer ${
                   activeTab === "api"
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
@@ -358,18 +358,18 @@ export default function PackagesPage() {
           </div>
 
           {/* Package grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {packages.map((pkg) => (
               <PackageCard key={`${activeTab}-${pkg.credits}`} pkg={pkg} onBuy={handleBuy} />
             ))}
           </div>
 
           {/* Bottom trust note */}
-          <div className="rounded-2xl border border-border bg-card p-6 text-center space-y-1">
+          <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 text-center space-y-1">
             <p className="text-xs font-extrabold text-foreground">
               🔒 Secure & Private
             </p>
-            <p className="text-xs text-muted-foreground font-semibold max-w-lg mx-auto">
+            <p className="text-xs text-muted-foreground font-semibold max-w-lg mx-auto leading-relaxed">
               All documents are auto-deleted within 24 hours after scanning. Your files never
               enter any repository database. Payments are processed securely.
             </p>

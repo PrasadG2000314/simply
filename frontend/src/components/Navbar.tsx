@@ -154,19 +154,52 @@ export default function Navbar() {
           )}
         </div>
 
-        {/* Mobile Toggle */}
-        <div className="flex md:hidden items-center gap-2">
+        {/* Mobile Toggle & Quick Actions */}
+        <div className="flex md:hidden items-center gap-1.5 sm:gap-2">
+          {/* Mobile Language Selector */}
+          <div className="relative">
+            <button
+              onClick={() => setLangDropdownOpen(!langDropdownOpen)}
+              className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-xl transition-all cursor-pointer"
+              aria-label="Change Language"
+            >
+              <Globe className="h-3.5 w-3.5" />
+              <span className="text-[11px] font-bold uppercase">{language.slice(0, 3)}</span>
+            </button>
+
+            {langDropdownOpen && (
+              <div className="absolute right-0 mt-2 w-32 rounded-xl border border-border bg-card p-1 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                {(["English", "Sinhala", "Tamil"] as const).map((lang) => (
+                  <button
+                    key={lang}
+                    onClick={() => {
+                      setLanguage(lang);
+                      setLangDropdownOpen(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs font-semibold rounded-lg hover:bg-muted transition-colors ${
+                      language === lang ? "text-primary bg-primary/10 font-bold" : "text-foreground"
+                    }`}
+                  >
+                    {lang}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
           {/* Theme Toggle */}
           <button
             onClick={toggleTheme}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-xl"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-xl transition-all cursor-pointer"
+            aria-label="Toggle Theme"
           >
             {theme === "light" ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
           </button>
 
+          {/* Hamburger Menu Toggle */}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-xl"
+            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-xl transition-all cursor-pointer"
             aria-label="Toggle Menu"
           >
             {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
@@ -174,94 +207,125 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile Menu */}
+      {/* Mobile Menu Overlay */}
       {mobileMenuOpen && (
-        <div className="md:hidden border-t border-border/40 bg-background px-6 py-6 space-y-4 animate-in slide-in-from-top duration-250">
-          <nav className="flex flex-col gap-3 font-semibold text-sm">
+        <div className="md:hidden border-t border-border/40 bg-background/95 backdrop-blur-lg px-5 py-6 space-y-4 animate-in slide-in-from-top duration-200 max-h-[calc(100vh-4rem)] overflow-y-auto">
+          <nav className="flex flex-col gap-1 font-semibold text-sm">
             <Link
               href="/#samples-section"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="px-3.5 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
               Samples
             </Link>
             <Link
               href="/how-it-works"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="px-3.5 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
               How It Works
             </Link>
             <Link
               href="/#pricing"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="px-3.5 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
-              Pricing
+              Pricing Plans
+            </Link>
+            <Link
+              href="/packages"
+              onClick={() => setMobileMenuOpen(false)}
+              className="px-3.5 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+            >
+              All Packages
             </Link>
             <Link
               href="/about"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="px-3.5 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
-              About
+              About Us
             </Link>
             <Link
               href="/blog"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="px-3.5 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
-              Blog
+              Blog & Guides
             </Link>
             <Link
               href="/contact"
               onClick={() => setMobileMenuOpen(false)}
-              className="px-3 py-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
+              className="px-3.5 py-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors"
             >
-              Contact
+              Contact Support
             </Link>
           </nav>
 
           <hr className="border-border/40" />
 
+          {/* Language Selector in Drawer */}
+          <div className="space-y-2 px-1">
+            <span className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Select Language</span>
+            <div className="grid grid-cols-3 gap-2">
+              {(["English", "Sinhala", "Tamil"] as const).map((lang) => (
+                <button
+                  key={lang}
+                  onClick={() => setLanguage(lang)}
+                  className={`py-2 px-2 text-xs font-bold rounded-xl border text-center transition-all ${
+                    language === lang
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border bg-card text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {lang}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <hr className="border-border/40" />
+
           {/* Mobile Auth Options */}
           {user ? (
-            <div className="space-y-3">
-              <div className="text-xs font-semibold text-muted-foreground px-3">
-                Logged in as: <span className="text-foreground">{user.email}</span>
+            <div className="space-y-3 pt-1">
+              <div className="text-xs font-semibold text-muted-foreground px-1 truncate">
+                Signed in as: <span className="text-foreground font-bold">{user.email}</span>
               </div>
-              <Link
-                href="/dashboard"
-                onClick={() => setMobileMenuOpen(false)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10"
-              >
-                <LayoutDashboard className="h-4 w-4" />
-                <span>Dashboard</span>
-              </Link>
-              <button
-                onClick={() => {
-                  handleLogout();
-                  setMobileMenuOpen(false);
-                }}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 px-4 py-2.5 text-sm font-bold hover:bg-red-500/15 transition-all"
-              >
-                <LogOut className="h-4 w-4" />
-                <span>Sign Out</span>
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <Link
+                  href="/dashboard"
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-95 transition-all"
+                >
+                  <LayoutDashboard className="h-4 w-4" />
+                  <span>Go to Dashboard</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    handleLogout();
+                    setMobileMenuOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-2 rounded-xl border border-red-500/20 bg-red-500/10 text-red-500 px-4 py-3 text-sm font-bold hover:bg-red-500/15 transition-all"
+                >
+                  <LogOut className="h-4 w-4" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-3 pt-1">
               <Link
                 href="/auth/login"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-foreground hover:bg-secondary transition-all"
+                className="flex items-center justify-center rounded-xl border border-border bg-card px-4 py-3 text-sm font-bold text-foreground hover:bg-secondary transition-all"
               >
                 Sign In
               </Link>
               <Link
                 href="/auth/register"
                 onClick={() => setMobileMenuOpen(false)}
-                className="flex items-center justify-center rounded-xl bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10"
+                className="flex items-center justify-center rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] px-4 py-3 text-sm font-bold text-white shadow-lg shadow-primary/20 hover:opacity-95 transition-all"
               >
                 Get Started
               </Link>
