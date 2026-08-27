@@ -18,7 +18,7 @@ export default function About() {
               Who We Are
             </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-none">
-              About Similarfy
+              About TurniPass
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground font-semibold max-w-2xl leading-relaxed">
               Empowering academic excellence and research integrity in Sri Lanka.
@@ -35,7 +35,7 @@ export default function About() {
                 Our Mission
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed font-semibold">
-                Similarfy was founded to bridge the gap between students and high-grade plagiarism detection systems. We believe every student, researcher, and academic writer deserves private, secure, and affordable access to pre-submission evaluations to protect their hard work.
+                TurniPass was founded to bridge the gap between students and high-grade plagiarism detection systems. We believe every student, researcher, and academic writer deserves private, secure, and affordable access to pre-submission evaluations to protect their hard work.
               </p>
             </div>
             <div className="space-y-4">

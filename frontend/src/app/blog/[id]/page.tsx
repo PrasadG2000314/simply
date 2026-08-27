@@ -44,7 +44,7 @@ const BLOG_DATA: Record<string, { title: string; desc: string; date: string; rea
       "Many students check drafts on their university's Turnitin portal before submitting the final version. If the assignment is set to store documents in Turnitin's global database, the draft becomes permanently indexed.",
       "When you edit the draft and submit the final version, Turnitin compares it against its entire index. It will highlight the matches against your own previous draft, triggering a similarity score of nearly 100%.",
       "Resolving this requires the university administrator to delete the indexed draft manually, which is a slow and complex process.",
-      "To prevent this, pre-submit checks should always be conducted strictly on assignment portals or external services configured in 'No-Repository' mode. Similarfy ensures this by using instructor licenses that never save files to the database."
+      "To prevent this, pre-submit checks should always be conducted strictly on assignment portals or external services configured in 'No-Repository' mode. TurniPass ensures this by using instructor licenses that never save files to the database."
     ]
   }
 };

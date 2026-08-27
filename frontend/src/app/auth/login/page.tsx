@@ -74,13 +74,17 @@ function LoginContent() {
       <div className="w-full max-w-md space-y-8 rounded-3xl border border-border bg-card p-8 shadow-xl">
         {/* Header logo */}
         <div className="flex flex-col items-center space-y-2 text-center">
-          <Link href="/" className="flex items-center gap-2 font-black text-2xl tracking-tight text-foreground group">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-all shadow-md shadow-primary/20">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <span className="font-extrabold tracking-tight">
-              Similar<span className="text-primary">fy</span>
-            </span>
+          <Link href="/" className="flex items-center gap-2 group">
+            <img
+              src="/logo.png"
+              alt="TurniPass Logo"
+              className="h-12 w-auto object-contain dark:hidden transition-transform group-hover:scale-105"
+            />
+            <img
+              src="/logo-white.png"
+              alt="TurniPass Logo"
+              className="h-12 w-auto object-contain hidden dark:block transition-transform group-hover:scale-105"
+            />
           </Link>
           <h2 className="text-xl font-extrabold text-foreground tracking-tight pt-2">
             Welcome back
@@ -95,7 +99,7 @@ function LoginContent() {
             <ShieldCheck className="h-4 w-4 shrink-0" />
             <span>Developer Premium Credentials</span>
           </p>
-          <p>Email: <strong className="text-foreground">premium@similarfy.com</strong></p>
+          <p>Email: <strong className="text-foreground">rnassignmentsolution@gmail.com</strong></p>
           <p>Password: <strong className="text-foreground">premium123</strong></p>
           <p className="text-[10px] text-muted-foreground/80 mt-1">Pre-loaded with 150 credits and mock historical scans.</p>
         </div>

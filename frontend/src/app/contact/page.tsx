@@ -41,7 +41,7 @@ export default function Contact() {
               Support Desk
             </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-none">
-              Contact Similarfy
+              Contact TurniPass
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground font-semibold max-w-2xl leading-relaxed">
               Have questions about billing, reports, or data privacy? Send us a ticket and our support team will respond within 2-4 hours.
@@ -149,14 +149,14 @@ export default function Contact() {
                     <Mail className="h-4.5 w-4.5 text-primary shrink-0" />
                     <div>
                       <p className="text-foreground font-bold">Email Support</p>
-                      <a href="mailto:hello@similarfy.com" className="hover:underline text-[11px]">hello@similarfy.com</a>
+                      <a href="mailto:rnassignmentsolution@gmail.com" className="hover:underline text-[11px]">rnassignmentsolution@gmail.com</a>
                     </div>
                   </div>
                   <div className="flex items-center gap-2.5">
                     <MessageSquare className="h-4.5 w-4.5 text-primary shrink-0" />
                     <div>
                       <p className="text-foreground font-bold">WhatsApp Hotline</p>
-                      <a href="https://wa.me/94769041856" target="_blank" rel="noopener noreferrer" className="hover:underline text-[11px]">+94 76 904 1856</a>
+                      <a href="https://wa.me/94717376450" target="_blank" rel="noopener noreferrer" className="hover:underline text-[11px]">+94 71 737 6450</a>
                     </div>
                   </div>
                 </div>

@@ -103,7 +103,7 @@ Score Percentage: ${score}%
 Verification ID: SF-${Math.floor(Math.random() * 900000) + 100000}
 Instructor Node: LK-CMB-NODE-03
 ==================================
-This is a simulated PDF file downloaded from your Similarfy workspace.`;
+This is a simulated PDF file downloaded from your TurniPass workspace.`;
 
   const blob = new Blob([content], { type: "text/plain" });
   const url = URL.createObjectURL(blob);
@@ -1600,7 +1600,7 @@ function DashboardContent() {
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Account Name</p>
-                      <p className="font-extrabold text-foreground">Simply Academic Solutions</p>
+                      <p className="font-extrabold text-foreground">TurniPass Academic Solutions</p>
                     </div>
                     <div>
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">Account Number</p>

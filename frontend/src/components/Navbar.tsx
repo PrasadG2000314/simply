@@ -41,13 +41,17 @@ export default function Navbar() {
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl h-16 items-center justify-between px-6">
         {/* Logo */}
-        <Link href="/" className="flex items-center gap-2 font-black text-xl tracking-tight text-foreground group">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-all duration-300 group-hover:scale-105 shadow-md shadow-primary/20">
-            <ShieldCheck className="h-5 w-5" />
-          </div>
-          <span className="font-extrabold tracking-tight">
-            Similar<span className="text-primary">fy</span>
-          </span>
+        <Link href="/" className="flex items-center gap-2 group">
+          <img
+            src="/logo.png"
+            alt="TurniPass Logo"
+            className="h-10 md:h-12 w-auto object-contain dark:hidden transition-transform group-hover:scale-105"
+          />
+          <img
+            src="/logo-white.png"
+            alt="TurniPass Logo"
+            className="h-10 md:h-12 w-auto object-contain hidden dark:block transition-transform group-hover:scale-105"
+          />
         </Link>
 
         {/* Desktop Nav */}
@@ -119,7 +123,7 @@ export default function Navbar() {
             <div className="flex items-center gap-3">
               <Link
                 href="/dashboard"
-                className="inline-flex items-center gap-1.5 justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/95 transition-all duration-200 shadow-md shadow-primary/10 hover:scale-[1.02]"
+                className="inline-flex items-center gap-1.5 justify-center rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] px-4 py-2 text-sm font-bold text-white transition-all duration-300 shadow-[0_4px_20px_-3px_rgba(254,154,0,0.4)] hover:shadow-[0_6px_25px_-2px_rgba(254,154,0,0.55)] hover:scale-[1.03]"
               >
                 <LayoutDashboard className="h-4 w-4" />
                 <span>Dashboard</span>
@@ -142,7 +146,7 @@ export default function Navbar() {
               </Link>
               <Link
                 href="/auth/register"
-                className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:bg-primary/95 transition-all duration-200 shadow-md shadow-primary/10 hover:scale-[1.02]"
+                className="inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] px-5 py-2.5 text-sm font-bold text-white transition-all duration-300 shadow-[0_4px_20px_-3px_rgba(254,154,0,0.4)] hover:shadow-[0_6px_25px_-2px_rgba(254,154,0,0.55)] hover:scale-[1.03] active:scale-[0.98]"
               >
                 Get Started
               </Link>

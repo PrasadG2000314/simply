@@ -10,6 +10,7 @@ import {
   CheckCircle,
   Clock,
   Shield,
+  ShieldCheck,
   FileCheck,
   Brain,
   Zap,
@@ -135,16 +136,16 @@ export default function Home() {
     const interval = setInterval(() => {
       const names = ["Amesh M.", "Nipuni F.", "Roshan T.", "Shenali P.", "Vinu K.", "John D.", "Saman H."];
       const institutions = [
-        "University of Colombo", 
-        "University of Kelaniya", 
-        "SLIIT", 
-        "University of Moratuwa", 
-        "University of Peradeniya", 
+        "University of Colombo",
+        "University of Kelaniya",
+        "SLIIT",
+        "University of Moratuwa",
+        "University of Peradeniya",
         "Sabaragamuwa University",
         "Eastern University"
       ];
       const types = ["Thesis Chapter 3", "Final Dissertation", "Math Document", "Economics Essay", "Proposal Draft"];
-      
+
       const newActivity: ScanActivity = {
         id: Date.now().toString(),
         name: names[Math.floor(Math.random() * names.length)],
@@ -226,21 +227,21 @@ export default function Home() {
           <div className="mx-auto max-w-6xl px-6 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
             {/* Left Content */}
             <div className="lg:col-span-7 space-y-6 text-left">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-primary">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-[#fe9a00]/10 border border-[#fe9a00]/25 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-[#fe9a00] shadow-[0_2px_15px_rgba(254,154,0,0.15)]">
                 <Check className="h-3.5 w-3.5" /> 100% No-Repository Guarantee
               </span>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight leading-[1.08] text-foreground">
                 Turnitin Checker <br />
-                <span className="text-primary bg-clip-text">Sri Lanka</span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#fe9a00] via-[#ff7700] to-[#e11d48]">Sri Lanka</span>
               </h1>
               <p className="text-base sm:text-lg text-muted-foreground leading-relaxed max-w-xl font-medium">
-                Official Turnitin® Similarity + AI report generator. Designed strictly in No-Repository mode. Pre-submit drafts privately without ever indexing your work in university databases.
+                Get your AI & Similarity Report with no repository mode.Your draft will not be added to the university repositories.
               </p>
 
               {/* Stats badges */}
               <div className="grid grid-cols-3 gap-4 pt-2">
                 <div className="flex flex-col border-l-2 border-primary/30 pl-3">
-                  <span className="text-2xl font-black text-foreground tracking-tight">8,000+</span>
+                  <span className="text-2xl font-black text-foreground tracking-tight">3,000+</span>
                   <span className="text-xs text-muted-foreground font-semibold">Sri Lankan Students</span>
                 </div>
                 <div className="flex flex-col border-l-2 border-primary/30 pl-3">
@@ -261,11 +262,10 @@ export default function Home() {
                 onDragLeave={handleDragLeave}
                 onDrop={handleDrop}
                 onClick={() => fileInputRef.current?.click()}
-                className={`relative flex flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-300 ${
-                  isDragging
-                    ? "border-primary bg-primary/5 scale-[1.02]"
-                    : "border-border hover:border-primary/40 bg-card hover:shadow-xl hover:shadow-primary/5"
-                }`}
+                className={`relative flex flex-col items-center justify-center rounded-3xl border-2 border-dashed p-8 text-center cursor-pointer transition-all duration-300 ${isDragging
+                  ? "border-[#fe9a00] bg-[#fe9a00]/10 scale-[1.02] shadow-[0_0_30px_rgba(254,154,0,0.3)]"
+                  : "border-border hover:border-[#fe9a00]/60 bg-card hover:shadow-2xl hover:shadow-[#fe9a00]/15"
+                  }`}
               >
                 <input
                   type="file"
@@ -277,13 +277,13 @@ export default function Home() {
 
                 {loadingRedirect ? (
                   <div className="py-12 space-y-4">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#fe9a00] mx-auto"></div>
                     <p className="text-sm font-bold text-foreground">Preparing workspace for {selectedFile}...</p>
                   </div>
                 ) : (
                   <div className="space-y-4 py-8">
-                    <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Upload className="h-7 w-7" />
+                    <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-[#fe9a00]/20 to-[#ff7700]/10 text-[#fe9a00] border border-[#fe9a00]/30 shadow-[0_0_20px_rgba(254,154,0,0.2)]">
+                      <Upload className="h-8 w-8 animate-bounce" />
                     </div>
                     <div className="space-y-1">
                       <p className="text-base font-extrabold text-foreground">
@@ -305,63 +305,18 @@ export default function Home() {
           </div>
         </section>
 
-        {/* Warning Index Section */}
-        <section className="border-y border-border/40 bg-muted/20 py-16">
-          <div className="mx-auto max-w-6xl px-6 text-center space-y-8">
-            <div className="max-w-2xl mx-auto space-y-3">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-red-500/10 border border-red-500/20 px-3 py-1 text-xs font-bold text-red-500">
-                <AlertTriangle className="h-3.5 w-3.5" /> DANGER: UNIVERSITIES PERMANENTLY INDEX PAPERS
-              </span>
-              <h2 className="text-3xl font-black text-foreground tracking-tight">
-                Submit Drafts Directly? Big Mistake.
-              </h2>
-              <p className="text-sm text-muted-foreground font-medium leading-relaxed">
-                If you submit a draft directly on standard university Turnitin document portals, the document might be saved into Turnitin&apos;s repository database. When you re-check or submit your final revision, it flags against your own draft as **100% Plagiarized**.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto text-left">
-              <div className="bg-card border border-border p-6 rounded-2xl space-y-3">
-                <div className="text-xs font-bold text-red-500 font-mono">STEP 01</div>
-                <h3 className="font-extrabold text-base text-foreground leading-snug">Draft upload on standard setup</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Your university portal processes the draft but permanently indexes the text structure inside Turnitin.</p>
-              </div>
-              <div className="bg-card border border-border p-6 rounded-2xl space-y-3">
-                <div className="text-xs font-bold text-red-500 font-mono">STEP 02</div>
-                <h3 className="font-extrabold text-base text-foreground leading-snug">Review and revise locally</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">You spend hours rewriting paragraphs and improving sentences based on draft notes.</p>
-              </div>
-              <div className="bg-card border border-border p-6 rounded-2xl space-y-3">
-                <div className="text-xs font-bold text-red-500 font-mono">STEP 03</div>
-                <h3 className="font-extrabold text-base text-foreground leading-snug">Final draft scan displays 100%</h3>
-                <p className="text-xs text-muted-foreground leading-relaxed font-medium">Your updated copy matches sentence-by-sentence against the draft Turnitin indexed.</p>
-              </div>
-            </div>
-
-            <div>
-              <button
-                onClick={() => router.push("/#pricing")}
-                className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-bold text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10"
-              >
-                <Shield className="h-4.5 w-4.5" />
-                <span>Scan Safely Without Saving</span>
-              </button>
-            </div>
-          </div>
-        </section>
-
         {/* Benefits Grid */}
         <section id="features" className="py-20 border-b border-border/40 bg-background">
           <div className="mx-auto max-w-6xl px-6">
             <div className="text-center max-w-3xl mx-auto mb-16 space-y-3">
               <span className="inline-block rounded-xl bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
-                THE SIMILARFY DIFFERENCE
+                THE TURNIPASS DIFFERENCE
               </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                Official Instructor Account. Zero Indexing.
+                Official Instructor Account. Based Checking.
               </h2>
               <p className="text-sm text-muted-foreground font-medium max-w-xl mx-auto">
-                We route all scans through official Instructor licenses. That is why your drafts are revision-safe and never saved database-wide.
+                Your documents are checked through authorised instructor-level access, helping keep your drafts separate from institutional repositories and suitable for pre-submission review.
               </p>
             </div>
 
@@ -370,32 +325,37 @@ export default function Home() {
                 {
                   icon: <FileCheck className="h-6 w-6" />,
                   title: "Official Originality Reports",
-                  desc: "Get identical similarity match index PDF charts, just like the ones university lecturers download.",
+                  desc: "Receive professional similarity reports showing matching sources, highlighted sections, and similarity scores in a format designed for academic review.",
                 },
                 {
                   icon: <Shield className="h-6 w-6" />,
                   title: "100% No-Repository Mode",
-                  desc: "Strictly set checks in read-only mode. Your draft is processed, verified, and completely discarded.",
+                  desc: "Drafts can be checked without adding them to a repository, helping you review and revise your work before the final university submission.",
                 },
                 {
                   icon: <Brain className="h-6 w-6" />,
                   title: "Advanced AI Detection",
-                  desc: "Analyzes text against major language models (GPT-4, Claude, Gemini) with exact highlighted sentences.",
+                  desc: "Get AI-writing analysis with highlighted areas to help identify sections that may require further review or rewriting.",
                 },
                 {
                   icon: <Clock className="h-6 w-6" />,
                   title: "Revision-Safe Checking",
-                  desc: "Check draft 1, write edits, check draft 2. No duplicate flags against your own prior scans.",
+                  desc: "Check your first draft, make improvements, and submit an updated version for another review without unnecessarily creating repository copies of your drafts.",
                 },
                 {
                   icon: <Globe className="h-6 w-6" />,
                   title: "Multi-Language Scans",
-                  desc: "Fully processes documents written in English, Sinhala, Tamil, and other global languages.",
+                  desc: "Submit academic documents in English, Sinhala, Tamil, and other supported languages for similarity and writing-analysis checks.",
                 },
                 {
                   icon: <CheckCircle className="h-6 w-6" />,
                   title: "24-Hour Auto-Delete",
                   desc: "Strict privacy. All uploads and reports are permanently scrubbed from our servers after 24 hours.",
+                },
+                {
+                  icon: <ShieldCheck className="h-6 w-6" />,
+                  title: "Privacy-Focused Processing",
+                  desc: "Your documents are handled with a privacy-focused approach, with files retained only for the period necessary to process and deliver your report.",
                 },
               ].map((benefit, i) => (
                 <div key={i} className="flex flex-col bg-card border border-border/80 rounded-2xl p-8 hover:border-primary/30 hover:shadow-xl hover:shadow-primary/5 transition-all">
@@ -434,21 +394,19 @@ export default function Home() {
             <div className="flex items-center justify-center gap-2 mb-8">
               <button
                 onClick={() => setActiveReportTab("similarity")}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
-                  activeReportTab === "similarity"
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                    : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
-                }`}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "similarity"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
+                  }`}
               >
                 Similarity Report
               </button>
               <button
                 onClick={() => setActiveReportTab("ai")}
-                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${
-                  activeReportTab === "ai"
-                    ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
-                    : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
-                }`}
+                className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "ai"
+                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                  : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
+                  }`}
               >
                 AI Detection Report
               </button>
@@ -465,17 +423,17 @@ export default function Home() {
                       <span className="text-xs font-bold text-muted-foreground font-mono">Page 1 of 1</span>
                     </div>
                     <p className="text-sm leading-relaxed text-foreground">
-                      This research examines the role of neural network architecture in optimization algorithms. 
+                      This research examines the role of neural network architecture in optimization algorithms.
                       <span className="bg-red-500/20 border-b-2 border-red-500 text-foreground px-1 py-0.5" title="Match 1: Internet Source">
                         The primary goal of optimization is to locate the global minimum of the loss function, preventing local minimum traps.
-                      </span> 
+                      </span>
                       Through our initial benchmarks at the Colombo institute, we observed that network width scales convergence rates non-linearly.
                     </p>
                     <p className="text-sm leading-relaxed text-foreground">
-                      Moreover, researchers at the SLIIT laboratory suggest that 
+                      Moreover, researchers at the SLIIT laboratory suggest that
                       <span className="bg-purple-500/20 border-b-2 border-purple-500 text-foreground px-1 py-0.5" title="Match 2: Student Paper">
                         learning rate decay is a crucial hyperparameter that dictates model generalization.
-                      </span> 
+                      </span>
                       This aligns with empirical curves that indicate optimization step counts are heavily dependent on adaptive moment estimation coefficients.
                     </p>
                   </div>
@@ -521,13 +479,13 @@ export default function Home() {
                     <p className="text-sm leading-relaxed text-foreground">
                       <span className="bg-cyan-500/20 border-b-2 border-cyan-500 text-foreground px-1 py-0.5" title="98% AI Probability">
                         Artificial intelligence has experienced significant growth over the past decade, revolutionizing various sectors of modern society. In the field of healthcare, machines diagnose patterns with higher accuracy.
-                      </span> 
+                      </span>
                       In contrast, the human element of clinical assessment retains key contextual parameters that standard transformers cannot duplicate.
                     </p>
                     <p className="text-sm leading-relaxed text-foreground">
                       <span className="bg-cyan-500/20 border-b-2 border-cyan-500 text-foreground px-1 py-0.5" title="94% AI Probability">
                         The integration of neural layers in computer vision algorithms enables automatic classification. This technique parses matrices in parallel pipelines to expedite the inference cycle.
-                      </span> 
+                      </span>
                       However, high power consumption and hardware limits remain optimization challenges.
                     </p>
                   </div>
@@ -627,11 +585,10 @@ export default function Home() {
               ].map((pkg, i) => (
                 <div
                   key={i}
-                  className={`bg-card border rounded-3xl p-7 flex flex-col justify-between transition-all duration-200 relative ${
-                    pkg.popular
-                      ? "border-primary shadow-xl shadow-primary/5 ring-1 ring-primary"
-                      : "border-border hover:border-primary/20"
-                  }`}
+                  className={`bg-card border rounded-3xl p-7 flex flex-col justify-between transition-all duration-200 relative ${pkg.popular
+                    ? "border-primary shadow-xl shadow-primary/5 ring-1 ring-primary"
+                    : "border-border hover:border-primary/20"
+                    }`}
                 >
                   {pkg.popular && (
                     <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground text-[10px] font-black tracking-wider uppercase px-3 py-1 rounded-full">
@@ -688,11 +645,10 @@ export default function Home() {
                           router.push(`/auth/register?buy=${pkg.slots}&price=${pkg.price.replace(",", "")}`);
                         }
                       }}
-                      className={`w-full justify-center py-3 rounded-xl text-sm font-extrabold transition-all duration-200 cursor-pointer ${
-                        pkg.popular
-                          ? "bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/25"
-                          : "bg-secondary text-foreground hover:bg-muted"
-                      }`}
+                      className={`w-full justify-center py-3 rounded-xl text-sm font-extrabold transition-all duration-200 cursor-pointer ${pkg.popular
+                        ? "bg-primary text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/25"
+                        : "bg-secondary text-foreground hover:bg-muted"
+                        }`}
                     >
                       Buy Credits
                     </button>
@@ -723,7 +679,7 @@ export default function Home() {
             <div className="relative border border-border rounded-2xl bg-card p-4 h-[350px] overflow-hidden">
               <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-card to-transparent z-10 pointer-events-none"></div>
               <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-card to-transparent z-10 pointer-events-none"></div>
-              
+
               <div className="flex flex-col gap-3 h-full overflow-y-auto">
                 {activities.map((act) => (
                   <div
@@ -861,9 +817,8 @@ export default function Home() {
                     </button>
 
                     <div
-                      className={`transition-all duration-300 ease-in-out overflow-hidden ${
-                        isOpen ? "max-h-[300px] border-t border-border/30" : "max-h-0"
-                      }`}
+                      className={`transition-all duration-300 ease-in-out overflow-hidden ${isOpen ? "max-h-[300px] border-t border-border/30" : "max-h-0"
+                        }`}
                     >
                       <div className="px-5 py-4 text-sm text-muted-foreground/90 leading-relaxed font-medium">
                         {faq.a}

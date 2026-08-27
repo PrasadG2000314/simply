@@ -19,7 +19,7 @@ export default function HowItWorks() {
               System Guide
             </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-foreground tracking-tight leading-none">
-              How Similarfy Works
+              How TurniPass Works
             </h1>
             <p className="text-sm sm:text-base text-muted-foreground font-semibold max-w-2xl leading-relaxed">
               Learn how we route your documents through verified Turnitin® instructor accounts to provide genuine reports without leaving any database traces.
@@ -74,7 +74,7 @@ export default function HowItWorks() {
               Strict No-Repository Mode Explained
             </h3>
             <p className="text-sm text-muted-foreground leading-relaxed font-medium">
-              Turnitin provides multiple setup profiles for document submissions. Standard student submissions are set to &quot;Standard Repository,&quot; meaning Turnitin indexes the draft to match future uploads. Similarfy routes your uploads strictly through verified Instructor licenses set to **&quot;No-Repository&quot;**.
+              Turnitin provides multiple setup profiles for document submissions. Standard student submissions are set to &quot;Standard Repository,&quot; meaning Turnitin indexes the draft to match future uploads. TurniPass routes your uploads strictly through verified Instructor licenses set to **&quot;No-Repository&quot;**.
             </p>
             
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs font-semibold">

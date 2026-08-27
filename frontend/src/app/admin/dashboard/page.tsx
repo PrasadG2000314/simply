@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import {
   ShieldCheck,
   Users,
@@ -540,9 +541,13 @@ function AdminDashboardContent() {
       <header className="border-b border-zinc-800 bg-zinc-900 px-6 py-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
-              <ShieldCheck className="h-5 w-5 text-primary-foreground" />
-            </div>
+            <Link href="/" className="group">
+              <img
+                src="/logo-white.png"
+                alt="TurniPass Logo"
+                className="h-10 w-auto object-contain transition-transform group-hover:scale-105"
+              />
+            </Link>
             <div>
               <p className="text-sm font-black text-white tracking-tight">
                 Simply Admin Panel

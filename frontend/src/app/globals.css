@@ -1,40 +1,40 @@
 @import "tailwindcss";
 
 :root {
-  --background: 40 8% 97%;
-  --foreground: 20 10% 10%;
+  --background: 36 25% 98%;
+  --foreground: 222 47% 11%;
   --card: 0 0% 100%;
-  --card-foreground: 20 10% 10%;
+  --card-foreground: 222 47% 11%;
   --popover: 0 0% 100%;
-  --popover-foreground: 20 10% 10%;
-  --primary: 36 100% 50%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 36 100% 50%; /* #fe9a00 */
   --primary-foreground: 0 0% 100%;
-  --secondary: 40 6% 92%;
-  --secondary-foreground: 20 10% 10%;
-  --muted: 40 6% 92%;
-  --muted-foreground: 20 5% 46%;
-  --accent: 36 90% 94%;
+  --secondary: 235 85% 96%;
+  --secondary-foreground: 238 84% 54%; /* Electric Indigo */
+  --muted: 36 15% 94%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 36 100% 95%;
   --accent-foreground: 36 100% 40%;
-  --border: 40 5% 85%;
+  --border: 36 20% 88%;
   --ring: 36 100% 50%;
 }
 
 .dark {
-  --background: 24 5% 10%;
-  --foreground: 40 8% 90%;
-  --card: 24 5% 13%;
-  --card-foreground: 40 8% 90%;
-  --popover: 24 5% 13%;
-  --popover-foreground: 40 8% 90%;
-  --primary: 36 100% 50%;
-  --primary-foreground: 24 5% 10%;
-  --secondary: 24 5% 18%;
-  --secondary-foreground: 40 8% 90%;
-  --muted: 24 5% 18%;
-  --muted-foreground: 40 4% 65%;
-  --accent: 36 80% 15%;
-  --accent-foreground: 36 100% 50%;
-  --border: 24 5% 18%;
+  --background: 224 40% 7%; /* Deep Midnight #0b0f17 */
+  --foreground: 210 40% 98%;
+  --card: 224 35% 10%; /* Dark Glass Card #101726 */
+  --card-foreground: 210 40% 98%;
+  --popover: 224 35% 10%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 36 100% 50%; /* #fe9a00 */
+  --primary-foreground: 224 40% 7%;
+  --secondary: 238 60% 18%;
+  --secondary-foreground: 235 100% 75%;
+  --muted: 224 25% 16%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 36 100% 12%;
+  --accent-foreground: 36 100% 55%;
+  --border: 224 25% 16%;
   --ring: 36 100% 50%;
 }
 
@@ -60,6 +60,25 @@
 body {
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
+}
+
+/* Custom Eye-Catching Utility Classes */
+.bg-gradient-amber {
+  background: linear-gradient(135deg, #fe9a00 0%, #ff5500 100%);
+}
+
+.text-gradient-amber {
+  background: linear-gradient(135deg, #fe9a00 0%, #ff7700 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.amber-glow-sm {
+  box-shadow: 0 4px 20px -2px rgba(254, 154, 0, 0.35);
+}
+
+.amber-glow-lg {
+  box-shadow: 0 10px 40px -5px rgba(254, 154, 0, 0.45);
 }
 
 /* Animations for live scan scroll */

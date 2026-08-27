@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { ShieldCheck, User, Lock, Loader2, AlertTriangle } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -62,9 +63,13 @@ export default function AdminLogin() {
       <div className="relative w-full max-w-sm space-y-8">
         {/* Logo / header */}
         <div className="text-center space-y-3">
-          <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-primary shadow-lg shadow-primary/30 mx-auto">
-            <ShieldCheck className="h-7 w-7 text-primary-foreground" />
-          </div>
+          <Link href="/" className="inline-block group">
+            <img
+              src="/logo-white.png"
+              alt="TurniPass Logo"
+              className="h-16 w-auto mx-auto object-contain transition-transform group-hover:scale-105"
+            />
+          </Link>
           <div>
             <h1 className="text-2xl font-black text-white tracking-tight">
               Admin Portal

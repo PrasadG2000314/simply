@@ -15,14 +15,14 @@ const LEGAL_DATA: Record<string, { title: string; lastUpdated: string; sections:
       {
         heading: "1. Acceptance of Terms",
         paragraphs: [
-          "By accessing similarfy.com ('the Service'), you agree to be bound by these Terms of Service. If you do not agree, you are prohibited from utilizing any services or downloading files from the platform.",
-          "We reserve the right to edit or update these terms at any time without notice. Your continued use of Similarfy constitutes acceptance of modified guidelines."
+          "By accessing turnipass.com ('the Service'), you agree to be bound by these Terms of Service. If you do not agree, you are prohibited from utilizing any services or downloading files from the platform.",
+          "We reserve the right to edit or update these terms at any time without notice. Your continued use of TurniPass constitutes acceptance of modified guidelines."
         ]
       },
       {
         heading: "2. Description of Service",
         paragraphs: [
-          "Similarfy provides an automated routing gateway to check documents for matching text (Similarity Index) and AI writing probability using Turnitin® Backends in strict No-Repository mode.",
+          "TurniPass provides an automated routing gateway to check documents for matching text (Similarity Index) and AI writing probability using Turnitin® Backends in strict No-Repository mode.",
           "We sell 'scan credits' (slots) on a pay-as-you-go basis. One credit allows a single document upload and returns one similarity and one AI report sheet."
         ]
       },
@@ -97,8 +97,8 @@ const LEGAL_DATA: Record<string, { title: string; lastUpdated: string; sections:
       {
         heading: "1. Scope and Subject Matter",
         paragraphs: [
-          "This addendum defines data processing standards for students, academic departments, and organizations uploading content to Similarfy.",
-          "Similarfy acts as a data processor, routing content through secure API channels to Turnitin node points without local persistence."
+          "This addendum defines data processing standards for students, academic departments, and organizations uploading content to TurniPass.",
+          "TurniPass acts as a data processor, routing content through secure API channels to Turnitin node points without local persistence."
         ]
       }
     ]

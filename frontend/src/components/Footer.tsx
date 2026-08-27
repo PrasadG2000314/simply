@@ -11,27 +11,31 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10">
           {/* Brand Col */}
           <div className="space-y-4">
-            <Link href="/" className="flex items-center gap-2 font-black text-xl tracking-tight text-foreground group w-fit">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground transition-all duration-300 group-hover:scale-105 shadow-md shadow-primary/20">
-                <ShieldCheck className="h-5 w-5" />
-              </div>
-              <span className="font-extrabold tracking-tight">
-                Similar<span className="text-primary">fy</span>
-              </span>
+            <Link href="/" className="flex items-center gap-2 group w-fit">
+              <img
+                src="/logo.png"
+                alt="TurniPass Logo"
+                className="h-10 md:h-12 w-auto object-contain dark:hidden transition-transform group-hover:scale-105"
+              />
+              <img
+                src="/logo-white.png"
+                alt="TurniPass Logo"
+                className="h-10 md:h-12 w-auto object-contain hidden dark:block transition-transform group-hover:scale-105"
+              />
             </Link>
             <p className="text-sm leading-relaxed font-medium">
               Official Turnitin Similarity and AI reports for students and researchers in Sri Lanka. 100% private, pre-submission checks strictly in No-Repository mode.
             </p>
             <div className="flex flex-col gap-2 pt-2 text-sm font-semibold">
-              <a href="mailto:hello@similarfy.com" className="flex items-center gap-2 hover:text-foreground transition-colors">
+              <a href="mailto:rnassignmentsolution@gmail.com" className="flex items-center gap-2 hover:text-foreground transition-colors">
                 <Mail className="h-4 w-4 text-primary" />
-                <span>hello@similarfy.com</span>
+                <span>rnassignmentsolution@gmail.com</span>
               </a>
             </div>
             {/* Socials */}
             <div className="flex items-center gap-3 pt-2">
               <a
-                href="https://www.facebook.com/Similarfy/"
+                href="https://www.facebook.com/TurniPass/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-border/70 hover:border-foreground hover:bg-foreground hover:text-background text-muted-foreground transition-all"
@@ -42,7 +46,7 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="https://wa.me/94769041856"
+                href="https://wa.me/94717376450"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-9 w-9 items-center justify-center rounded-full border border-border/70 hover:border-foreground hover:bg-foreground hover:text-background text-muted-foreground transition-all"
@@ -154,7 +158,7 @@ export default function Footer() {
         <hr className="border-border/40 my-10" />
 
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 text-xs font-semibold">
-          <p>© {new Date().getFullYear()} Similarfy.com. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} TurniPass.com. All rights reserved.</p>
           <p className="flex items-center gap-1.5">
             Designed for researchers & students across Sri Lanka
           </p>
