@@ -130,11 +130,20 @@ router.put("/slips/:id/approve", adminProtect, async (req, res) => {
     await slip.save();
 
     // Increment customer coins/credits in database
-    const user = await User.findByIdAndUpdate(
-      slip.userId,
-      { $inc: { credits: slip.credits } },
-      { new: true }
-    );
+    let user = null;
+    if (slip.userId) {
+      user = await User.findByIdAndUpdate(
+        slip.userId,
+        { $inc: { credits: slip.credits } },
+        { new: true }
+      );
+    } else if (slip.userEmail) {
+      user = await User.findOneAndUpdate(
+        { email: slip.userEmail.toLowerCase() },
+        { $inc: { credits: slip.credits } },
+        { new: true }
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -229,9 +238,11 @@ const handleApproveDocument = async (req, res) => {
     await document.save();
 
     // Held coin disappears (decrement holdCredits by 1)
-    await User.findByIdAndUpdate(document.userId, {
-      $inc: { holdCredits: -1 },
-    });
+    if (document.userId) {
+      await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1 } });
+    } else if (document.userEmail) {
+      await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1 } });
+    }
 
     res.status(200).json({
       success: true,
@@ -269,9 +280,11 @@ const handleRejectDocument = async (req, res) => {
     await document.save();
 
     // Refund 1 coin back to customer (decrement holdCredits by 1, increment credits by 1)
-    await User.findByIdAndUpdate(document.userId, {
-      $inc: { holdCredits: -1, credits: 1 },
-    });
+    if (document.userId) {
+      await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1, credits: 1 } });
+    } else if (document.userEmail) {
+      await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1, credits: 1 } });
+    }
 
     res.status(200).json({
       success: true,

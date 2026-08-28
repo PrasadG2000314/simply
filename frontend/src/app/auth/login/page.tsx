@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Mail, Lock, Check, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, Check, ArrowRight, Loader2 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -94,16 +94,6 @@ function LoginContent() {
           </p>
         </div>
 
-        <div className="p-3.5 rounded-xl border border-primary/20 bg-primary/5 text-xs text-muted-foreground font-semibold text-left space-y-1">
-          <p className="font-bold text-primary flex items-center gap-1.5">
-            <ShieldCheck className="h-4 w-4 shrink-0" />
-            <span>Developer Premium Credentials</span>
-          </p>
-          <p>Email: <strong className="text-foreground">rnassignmentsolution@gmail.com</strong></p>
-          <p>Password: <strong className="text-foreground">premium123</strong></p>
-          <p className="text-[10px] text-muted-foreground/80 mt-1">Pre-loaded with 150 credits and mock historical scans.</p>
-        </div>
-
         {pendingFile && (
           <div className="p-3 rounded-xl border border-primary/20 bg-primary/5 text-xs text-primary font-bold flex items-center gap-2 leading-relaxed">
             <Check className="h-4 w-4 shrink-0" />
@@ -180,9 +170,8 @@ function LoginContent() {
           <p className="text-xs text-muted-foreground font-semibold">
             Don&apos;t have an account?{" "}
             <Link
-              href={`/auth/register${
-                searchParams.toString() ? "?" + searchParams.toString() : ""
-              }`}
+              href={`/auth/register${searchParams.toString() ? "?" + searchParams.toString() : ""
+                }`}
               className="text-primary hover:underline font-bold"
             >
               Get Started

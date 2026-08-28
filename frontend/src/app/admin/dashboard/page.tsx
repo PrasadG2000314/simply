@@ -120,6 +120,68 @@ function AdminDashboardContent() {
   const [approveAdminNote, setApproveAdminNote] = useState("");
   const resultFileInputRef = useRef<HTMLInputElement>(null);
 
+  // ─── Theme-Styled Confirmation & Alert Dialog Popup State ──────────────────
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+    isAlertOnly?: boolean;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+
+  const showConfirm = ({
+    title,
+    message,
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    variant = "primary",
+    onConfirm,
+  }: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+    onConfirm: () => void;
+  }) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      variant,
+      isAlertOnly: false,
+      onConfirm,
+    });
+  };
+
+  const showAlert = ({
+    title,
+    message,
+    variant = "primary",
+  }: {
+    title: string;
+    message: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+  }) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText: "OK",
+      variant,
+      isAlertOnly: true,
+    });
+  };
+
   const getToken = () => localStorage.getItem("adminToken");
 
   const fetchData = async (isRefresh = false) => {
@@ -231,55 +293,65 @@ function AdminDashboardContent() {
   };
 
   // ─── Approve Payment Slip Handler ───────────────────────────────────────────
-  const handleApproveSlip = async (slip: PaymentSlipRecord) => {
-    const token = getToken();
-    const targetId = slip._id || slip.id;
+  const handleApproveSlip = (slip: PaymentSlipRecord) => {
+    showConfirm({
+      title: "Approve payment slip?",
+      message: `This will credit ${slip.credits} coins to ${slip.userName || slip.userEmail}.`,
+      confirmText: "Approve & Credit",
+      cancelText: "Cancel",
+      variant: "success",
+      onConfirm: async () => {
+        const token = getToken();
+        const targetId = slip._id || slip.id;
 
-    if (!confirm(`Approve payment slip? This will credit ${slip.credits} coins to ${slip.userName}.`)) {
-      return;
-    }
+        if (targetId) setActionLoadingId(targetId);
 
-    if (targetId) setActionLoadingId(targetId);
-
-    // Sync local storage state
-    const localSlips: PaymentSlipRecord[] = JSON.parse(localStorage.getItem("paymentSlips") || "[]");
-    const updatedLocalSlips = localSlips.map((s) => {
-      if ((s._id || s.id) === targetId) {
-        return { ...s, status: "approved" as const };
-      }
-      return s;
-    });
-    localStorage.setItem("paymentSlips", JSON.stringify(updatedLocalSlips));
-
-    if (slip.userEmail) {
-      const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-      if (allUsers[slip.userEmail]) {
-        allUsers[slip.userEmail].credits = (allUsers[slip.userEmail].credits || 0) + slip.credits;
-        localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
-      }
-    }
-
-    if (token && slip._id) {
-      try {
-        const res = await fetch(`${API_URL}/admin/slips/${slip._id}/approve`, {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+        // Sync local storage state
+        const localSlips: PaymentSlipRecord[] = JSON.parse(localStorage.getItem("paymentSlips") || "[]");
+        const updatedLocalSlips = localSlips.map((s) => {
+          if ((s._id || s.id) === targetId) {
+            return { ...s, status: "approved" as const };
+          }
+          return s;
         });
-        await res.json();
-      } catch (err) {
-        console.error("API approve slip error:", err);
-      }
-    }
+        localStorage.setItem("paymentSlips", JSON.stringify(updatedLocalSlips));
 
-    alert(`Approved! ${slip.credits} coins credited to ${slip.userName}.`);
-    if (activeSlipModal && (activeSlipModal._id === targetId || activeSlipModal.id === targetId)) {
-      setActiveSlipModal(null);
-    }
-    setActionLoadingId(null);
-    fetchData(true);
+        if (slip.userEmail) {
+          const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
+          if (allUsers[slip.userEmail]) {
+            allUsers[slip.userEmail].credits = (allUsers[slip.userEmail].credits || 0) + slip.credits;
+            localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
+          }
+        }
+
+        if (token && slip._id) {
+          try {
+            const res = await fetch(`${API_URL}/admin/slips/${slip._id}/approve`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            await res.json();
+          } catch (err) {
+            console.error("API approve slip error:", err);
+          }
+        }
+
+        showAlert({
+          title: "Payment Slip Approved!",
+          message: `${slip.credits} coins credited to ${slip.userName || slip.userEmail}.`,
+          variant: "success",
+        });
+
+        if (activeSlipModal && (activeSlipModal._id === targetId || activeSlipModal.id === targetId)) {
+          setActiveSlipModal(null);
+        }
+        setActionLoadingId(null);
+        fetchData(true);
+      },
+    });
   };
 
   // ─── Approve Assignment Handler (Consumes 1 Held Coin) ──────────────────────
@@ -311,7 +383,11 @@ function AdminDashboardContent() {
     if (!targetApproveDocument) return;
 
     if (!approveResultFile && !approveResultFileName) {
-      alert("Please select and upload the checked Turnitin result document.");
+      showAlert({
+        title: "Turnitin Report Required",
+        message: "Please select and upload the checked Turnitin result document.",
+        variant: "warning",
+      });
       return;
     }
 
@@ -371,7 +447,11 @@ function AdminDashboardContent() {
       }
     }
 
-    alert(`Document approved & Turnitin report uploaded for ${targetApproveDocument.userName}!`);
+    showAlert({
+      title: "Document Approved!",
+      message: `Document approved & Turnitin report uploaded for ${targetApproveDocument.userName}!`,
+      variant: "success",
+    });
     setIsApproveModalOpen(false);
     setTargetApproveDocument(null);
     if (activeAssignmentModal && (activeAssignmentModal._id === targetId || activeAssignmentModal.id === targetId)) {
@@ -428,7 +508,11 @@ function AdminDashboardContent() {
         }
       }
 
-      alert("Payment slip rejected.");
+      showAlert({
+        title: "Payment Slip Rejected",
+        message: "Payment slip has been marked as rejected.",
+        variant: "danger",
+      });
       setIsRejectModalOpen(false);
       setTargetRejectSlip(null);
       if (activeSlipModal && (activeSlipModal._id === targetId || activeSlipModal.id === targetId)) {
@@ -475,7 +559,11 @@ function AdminDashboardContent() {
         }
       }
 
-      alert(`Assignment rejected. 1 coin refunded to ${targetRejectAssignment.userName}'s available balance.`);
+      showAlert({
+        title: "Assignment Rejected",
+        message: `Assignment rejected. 1 coin refunded to ${targetRejectAssignment.userName}'s available balance.`,
+        variant: "danger",
+      });
       setIsRejectModalOpen(false);
       setTargetRejectAssignment(null);
       if (activeAssignmentModal && (activeAssignmentModal._id === targetId || activeAssignmentModal.id === targetId)) {
@@ -539,49 +627,49 @@ function AdminDashboardContent() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Topbar */}
-      <header className="border-b border-zinc-800 bg-zinc-900 px-4 sm:px-6 py-3.5 sm:py-4">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
+      <header className="border-b border-zinc-800 bg-zinc-900 px-3.5 sm:px-6 py-3.5 sm:py-4">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
             <Link href="/" className="group shrink-0">
               <img
                 src="/logo-white.png"
                 alt="TurniPass Logo"
-                className="h-8 sm:h-10 w-auto object-contain transition-transform group-hover:scale-105"
+                className="h-7 sm:h-10 w-auto object-contain transition-transform group-hover:scale-105"
               />
             </Link>
             <div className="min-w-0">
-              <p className="text-xs sm:text-sm font-black text-white tracking-tight">
+              <p className="text-xs sm:text-sm font-black text-white tracking-tight truncate">
                 Simply Admin Panel
               </p>
-              <p className="text-[10px] text-zinc-500 font-semibold truncate">
+              <p className="text-[10px] text-zinc-500 font-semibold truncate hidden sm:block">
                 Control Center · {adminUser?.username}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-end sm:self-auto">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               id="admin-refresh"
               onClick={() => fetchData(true)}
               disabled={refreshing}
-              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-3 py-1.5 sm:py-2 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all cursor-pointer disabled:opacity-50"
+              className="flex items-center gap-1.5 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
-              <span>Refresh</span>
+              <span className="hidden sm:inline">Refresh</span>
             </button>
             <button
               id="admin-logout"
               onClick={handleLogout}
-              className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-3 py-1.5 sm:py-2 text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
+              className="flex items-center gap-1.5 rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 sm:px-3 py-1.5 sm:py-2 text-[11px] sm:text-xs font-bold text-red-400 hover:bg-red-500/20 transition-all cursor-pointer"
             >
               <LogOut className="h-3.5 w-3.5" />
-              <span>Logout</span>
+              <span className="hidden sm:inline">Logout</span>
             </button>
           </div>
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3.5 sm:px-6 py-6 sm:py-8 space-y-6 sm:space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-8">
         {error && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400">
             {error}
@@ -589,26 +677,26 @@ function AdminDashboardContent() {
         )}
 
         {/* Stats Row */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
           <div
             onClick={() => {
               setActiveTab("assignments");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-4 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
+            className={`rounded-2xl border p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
               pendingAssnsCount > 0
                 ? "border-amber-500/40 bg-amber-500/10 shadow-lg shadow-amber-500/5 hover:border-amber-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
             }`}
           >
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
-              <BookOpen className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
+              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-extrabold text-amber-500 uppercase tracking-widest truncate">
                 Pending Docs
               </p>
-              <p className="text-xl sm:text-2xl font-black text-amber-400">{pendingAssnsCount}</p>
+              <p className="text-lg sm:text-2xl font-black text-amber-400">{pendingAssnsCount}</p>
             </div>
           </div>
 
@@ -617,54 +705,54 @@ function AdminDashboardContent() {
               setActiveTab("slips");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-4 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
+            className={`rounded-2xl border p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
               pendingSlipsCount > 0
                 ? "border-blue-500/40 bg-blue-500/10 shadow-lg shadow-blue-500/5 hover:border-blue-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
             }`}
           >
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
-              <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
+              <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-extrabold text-blue-400 uppercase tracking-widest truncate">
                 Pending Slips
               </p>
-              <p className="text-xl sm:text-2xl font-black text-blue-400">{pendingSlipsCount}</p>
+              <p className="text-lg sm:text-2xl font-black text-blue-400">{pendingSlipsCount}</p>
             </div>
           </div>
 
           <div
             onClick={() => setActiveTab("users")}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer hover:border-zinc-700 transition-all"
+            className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer hover:border-zinc-700 transition-all"
           >
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Users className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest truncate">
                 Customers
               </p>
-              <p className="text-xl sm:text-2xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
+              <p className="text-lg sm:text-2xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 flex items-center gap-3 sm:gap-4">
-            <div className="flex h-10 w-10 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
-              <Activity className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4">
+            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
+              <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
             </div>
             <div className="min-w-0">
               <p className="text-[9px] sm:text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest truncate">
                 This Week
               </p>
-              <p className="text-xl sm:text-2xl font-black text-white">{stats?.newThisWeek ?? 0}</p>
+              <p className="text-lg sm:text-2xl font-black text-white">{stats?.newThisWeek ?? 0}</p>
             </div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-zinc-800 pb-4">
-          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full -mx-1 px-1">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 border-b border-zinc-800 pb-4">
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full -mx-1 px-1 scrollbar-none">
             <button
               onClick={() => setActiveTab("assignments")}
               className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
@@ -728,16 +816,16 @@ function AdminDashboardContent() {
 
         {/* ─── TAB 1: Assignment Queue ─────────────────────────────────────────── */}
         {activeTab === "assignments" && (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden space-y-4">
-            <div className="flex items-center justify-between px-6 pt-4">
-              <div className="flex items-center gap-1.5">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
                 {(["pending", "approved", "rejected", "all"] as const).map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer shrink-0 ${
                       statusFilter === st
-                        ? "bg-zinc-800 text-white border border-zinc-700"
+                        ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm"
                         : "text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
@@ -745,169 +833,155 @@ function AdminDashboardContent() {
                   </button>
                 ))}
               </div>
-              <span className="text-xs text-zinc-500 font-semibold">
+              <span className="text-[11px] sm:text-xs text-zinc-500 font-semibold self-end sm:self-auto">
                 Showing {filteredAssignments.length} documents
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Customer
-                    </th>
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Document Title
-                    </th>
-                    <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Document
-                    </th>
-                    <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-right text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Action
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/60">
-                  {filteredAssignments.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center">
-                        <BookOpen className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
-                        <p className="text-xs text-zinc-600 font-semibold">
-                          No documents found matching this filter.
-                        </p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredAssignments.map((assn) => (
-                      <tr key={assn._id || assn.id} className="hover:bg-zinc-800/40 transition-colors">
-                        {/* 1. Customer */}
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="text-xs font-bold text-white">{assn.userName}</p>
-                            <p className="text-[11px] text-zinc-400 font-medium">{assn.userEmail}</p>
+            {filteredAssignments.length === 0 ? (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 py-16 text-center">
+                <BookOpen className="h-9 w-9 text-zinc-700 mx-auto mb-2" />
+                <p className="text-xs text-zinc-500 font-semibold">
+                  No documents found matching this filter.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {filteredAssignments.map((assn) => (
+                  <div
+                    key={assn._id || assn.id}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 hover:border-zinc-700 transition-all shadow-lg"
+                  >
+                    {/* Header: Customer & Status */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-500/10 text-amber-400 font-black text-xs border border-amber-500/20">
+                          {assn.userName ? assn.userName.charAt(0).toUpperCase() : "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-xs font-black text-white truncate">{assn.userName}</p>
+                            <span className="text-[11px] text-zinc-400 font-medium truncate">({assn.userEmail})</span>
                           </div>
-                        </td>
+                          <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">
+                            Submitted: {assn.createdAt ? new Date(assn.createdAt).toLocaleDateString("en-LK") : "N/A"}
+                          </p>
+                        </div>
+                      </div>
 
-                        {/* 2. Document Title */}
-                        <td className="px-6 py-4 max-w-xs">
-                          <div>
-                            <p className="text-xs font-bold text-white truncate">{assn.title}</p>
-                            <p className="text-[10px] text-zinc-500 font-normal">
-                              Submitted: {assn.createdAt ? new Date(assn.createdAt).toLocaleDateString("en-LK") : "N/A"}
-                            </p>
-                          </div>
-                        </td>
-
-                        {/* 3. Document (Original Customer File) */}
-                        <td className="px-6 py-4 text-center">
-                          {assn.attachment ? (
-                            <a
-                              href={assn.attachment}
-                              download={assn.attachmentName || "Customer_Document"}
-                              className="inline-flex items-center gap-1.5 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-extrabold text-amber-400 hover:bg-amber-500/20 cursor-pointer shadow-sm"
-                            >
-                              <Paperclip className="h-3.5 w-3.5" />
-                              <span className="truncate max-w-[130px]">{assn.attachmentName || "Download File"}</span>
-                            </a>
-                          ) : (
-                            <span className="text-xs text-zinc-600 italic">No File</span>
-                          )}
-                        </td>
-
-                        {/* 4. Status */}
-                        <td className="px-6 py-4 text-center">
-                          {assn.status === "pending" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/20 px-2.5 py-1 text-[10px] font-black text-amber-400">
-                              <Lock className="h-3 w-3" />
-                              Pending Check (1 Coin Held)
-                            </span>
-                          )}
-                          {assn.status === "approved" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/20 px-2.5 py-1 text-[10px] font-black text-green-400">
-                              <CheckCircle className="h-3 w-3" />
-                              Approved & Delivered
-                            </span>
-                          )}
-                          {assn.status === "rejected" && (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/20 px-2.5 py-1 text-[10px] font-black text-red-400"
-                              title={assn.adminNote}
-                            >
-                              <XCircle className="h-3 w-3" />
-                              Rejected (Refunded)
-                            </span>
-                          )}
-                        </td>
-
-                        {/* 5. Action */}
-                        <td className="px-6 py-4 text-right space-x-2">
-                          <button
-                            onClick={() => setActiveAssignmentModal(assn)}
-                            className="inline-flex items-center gap-1 rounded-lg border border-zinc-700 bg-zinc-800 px-2.5 py-1 text-xs font-bold text-zinc-300 hover:bg-zinc-700 cursor-pointer"
+                      <div className="shrink-0">
+                        {assn.status === "pending" && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-[10px] font-black text-amber-400">
+                            <Lock className="h-3 w-3" /> Pending Check (1 Coin Held)
+                          </span>
+                        )}
+                        {assn.status === "approved" && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/30 px-3 py-1 text-[10px] font-black text-green-400">
+                            <CheckCircle className="h-3 w-3" /> Approved & Delivered
+                          </span>
+                        )}
+                        {assn.status === "rejected" && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 text-[10px] font-black text-red-400"
+                            title={assn.adminNote}
                           >
-                            <Eye className="h-3.5 w-3.5" />
-                            Details
+                            <XCircle className="h-3 w-3" /> Rejected (Refunded)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Middle: Document Title & File Download */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 items-center">
+                      <div>
+                        <p className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest mb-1">Document Title</p>
+                        <h4 className="text-xs sm:text-sm font-bold text-white break-words">{assn.title}</h4>
+                      </div>
+
+                      <div className="md:text-right">
+                        <p className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest mb-1">Original Customer File</p>
+                        {assn.attachment ? (
+                          <a
+                            href={assn.attachment}
+                            download={assn.attachmentName || "Customer_Document"}
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-extrabold text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer shadow-sm max-w-full"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 shrink-0" />
+                            <span className="truncate max-w-[200px] sm:max-w-[240px]">{assn.attachmentName || "Download File"}</span>
+                          </a>
+                        ) : (
+                          <span className="text-xs text-zinc-600 italic">No File Uploaded</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Footer: Action Buttons */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pt-3 border-t border-zinc-800/80">
+                      <button
+                        onClick={() => setActiveAssignmentModal(assn)}
+                        className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-zinc-700 bg-zinc-800 px-3.5 py-2 text-xs font-bold text-zinc-300 hover:bg-zinc-700 cursor-pointer transition-all w-full sm:w-auto"
+                      >
+                        <Eye className="h-3.5 w-3.5 text-zinc-400" />
+                        View Document Details
+                      </button>
+
+                      <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
+                        {assn.status === "approved" && (
+                          <button
+                            onClick={() => handleOpenApproveModal(assn)}
+                            disabled={actionLoadingId === (assn._id || assn.id)}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600/20 border border-blue-500/40 px-4 py-2 text-xs font-black text-blue-400 hover:bg-blue-600/30 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 text-blue-400" />
+                            {assn.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
                           </button>
-                          {assn.status === "approved" && (
+                        )}
+
+                        {assn.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => handleOpenRejectAssignmentModal(assn)}
+                              disabled={actionLoadingId === (assn._id || assn.id)}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              Reject & Refund
+                            </button>
                             <button
                               onClick={() => handleOpenApproveModal(assn)}
                               disabled={actionLoadingId === (assn._id || assn.id)}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-blue-600/20 border border-blue-500/40 px-3 py-1 text-xs font-black text-blue-400 hover:bg-blue-600/30 cursor-pointer shadow-md disabled:opacity-50"
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#fe9a00] px-4 py-2 text-xs font-black text-black hover:bg-[#e08800] cursor-pointer shadow-md disabled:opacity-50 transition-all w-full sm:w-auto"
                             >
-                              <Paperclip className="h-3.5 w-3.5 text-blue-400" />
-                              {assn.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
+                              {actionLoadingId === (assn._id || assn.id) ? (
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                              ) : (
+                                <Check className="h-3.5 w-3.5" />
+                              )}
+                              Approve & Upload Report
                             </button>
-                          )}
-                          {assn.status === "pending" && (
-                            <>
-                              <button
-                                onClick={() => handleOpenApproveModal(assn)}
-                                disabled={actionLoadingId === (assn._id || assn.id)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-[#fe9a00] px-3 py-1 text-xs font-black text-black hover:bg-[#e08800] cursor-pointer shadow-md disabled:opacity-50"
-                              >
-                                {actionLoadingId === (assn._id || assn.id) ? (
-                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Check className="h-3.5 w-3.5" />
-                                )}
-                                Approve & Upload Report
-                              </button>
-                              <button
-                                onClick={() => handleOpenRejectAssignmentModal(assn)}
-                                disabled={actionLoadingId === (assn._id || assn.id)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer disabled:opacity-50"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                                Reject & Refund
-                              </button>
-                            </>
-                          )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* ─── TAB 2: Bank Slip Approvals ─────────────────────────────────────── */}
         {activeTab === "slips" && (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden space-y-4">
-            <div className="flex items-center justify-between px-6 pt-4">
-              <div className="flex items-center gap-1.5">
+          <div className="space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
                 {(["pending", "approved", "rejected", "all"] as const).map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer shrink-0 ${
                       statusFilter === st
-                        ? "bg-zinc-800 text-white border border-zinc-700"
+                        ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm"
                         : "text-zinc-500 hover:text-zinc-300"
                     }`}
                   >
@@ -915,202 +989,186 @@ function AdminDashboardContent() {
                   </button>
                 ))}
               </div>
-              <span className="text-xs text-zinc-500 font-semibold">
+              <span className="text-[11px] sm:text-xs text-zinc-500 font-semibold self-end sm:self-auto">
                 Showing {filteredSlips.length} payment slips
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Customer Details
-                    </th>
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Package & Price
-                    </th>
-                    <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Coins
-                    </th>
-                    <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Payment Slip Image
-                    </th>
-                    <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Submitted Date
-                    </th>
-                    <th className="px-6 py-3 text-right text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">
-                      Action / Approval
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/60">
-                  {filteredSlips.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-6 py-12 text-center">
-                        <Building2 className="h-8 w-8 text-zinc-700 mx-auto mb-2" />
-                        <p className="text-xs text-zinc-600 font-semibold">
-                          No payment slips found matching this filter.
-                        </p>
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredSlips.map((slip) => (
-                      <tr key={slip._id || slip.id} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="text-xs font-bold text-white">{slip.userName}</p>
-                            <p className="text-[11px] text-zinc-400 font-medium">{slip.userEmail}</p>
+            {filteredSlips.length === 0 ? (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 py-16 text-center">
+                <Building2 className="h-9 w-9 text-zinc-700 mx-auto mb-2" />
+                <p className="text-xs text-zinc-500 font-semibold">
+                  No payment slips found matching this filter.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {filteredSlips.map((slip) => (
+                  <div
+                    key={slip._id || slip.id}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 hover:border-zinc-700 transition-all shadow-lg"
+                  >
+                    {/* Header */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3.5">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 font-black text-xs border border-blue-500/20">
+                          {slip.userName ? slip.userName.charAt(0).toUpperCase() : "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="text-xs font-black text-white truncate">{slip.userName}</p>
+                            <span className="text-[11px] text-zinc-400 font-medium truncate">({slip.userEmail})</span>
                           </div>
-                        </td>
-                        <td className="px-6 py-4">
-                          <div>
-                            <p className="text-xs font-bold text-white">{slip.packageName}</p>
-                            <p className="text-[11px] font-extrabold text-primary">
-                              LKR {slip.amount.toLocaleString("en-LK")}
-                            </p>
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-1 text-xs font-black text-primary">
-                            <Coins className="h-3.5 w-3.5" />
-                            +{slip.credits} Coins
+                          <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">
+                            Submitted: {formatDate(slip.createdAt)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="shrink-0">
+                        {slip.status === "pending" && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-[10px] font-black text-blue-400">
+                            <Clock className="h-3 w-3" /> Pending Verification
                           </span>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <div
-                            onClick={() => setActiveSlipModal(slip)}
-                            className="inline-flex flex-col items-center gap-1 cursor-pointer group"
+                        )}
+                        {slip.status === "approved" && (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/30 px-3 py-1 text-[10px] font-black text-green-400">
+                            <CheckCircle className="h-3 w-3" /> Approved
+                          </span>
+                        )}
+                        {slip.status === "rejected" && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 text-[10px] font-black text-red-400"
+                            title={slip.adminNote}
                           >
-                            <img
-                              src={slip.slipImage}
-                              alt="Slip thumbnail"
-                              className="h-10 w-10 object-cover rounded-lg border border-zinc-700 group-hover:border-primary transition-all"
-                            />
-                            <span className="text-[10px] font-bold text-primary group-hover:underline flex items-center gap-0.5">
-                              <Eye className="h-3 w-3" /> View Slip
-                            </span>
+                            <XCircle className="h-3 w-3" /> Rejected
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Middle: Package & Slip Thumbnail */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-800/40 p-3.5 rounded-xl border border-zinc-800">
+                      <div className="space-y-1">
+                        <p className="text-xs font-bold text-white">{slip.packageName}</p>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs font-black text-primary">LKR {slip.amount.toLocaleString("en-LK")}</span>
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-black text-primary">
+                            <Coins className="h-3.5 w-3.5" /> +{slip.credits} Coins
+                          </span>
+                        </div>
+                      </div>
+
+                      <div
+                        onClick={() => setActiveSlipModal(slip)}
+                        className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 hover:border-primary px-3 py-1.5 rounded-xl cursor-pointer transition-all self-start sm:self-auto"
+                      >
+                        {slip.slipImage?.startsWith("data:application/pdf") || slip.slipImage?.endsWith(".pdf") ? (
+                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-400 font-extrabold text-[10px] border border-red-500/20">
+                            PDF
                           </div>
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          {slip.status === "pending" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/20 px-2.5 py-1 text-[10px] font-black text-blue-400">
-                              <Clock className="h-3 w-3" />
-                              Pending Verification
-                            </span>
-                          )}
-                          {slip.status === "approved" && (
-                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/20 px-2.5 py-1 text-[10px] font-black text-green-400">
-                              <CheckCircle className="h-3 w-3" />
-                              Approved
-                            </span>
-                          )}
-                          {slip.status === "rejected" && (
-                            <span
-                              className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/20 px-2.5 py-1 text-[10px] font-black text-red-400"
-                              title={slip.adminNote}
-                            >
-                              <XCircle className="h-3 w-3" />
-                              Rejected
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-6 py-4 text-xs text-zinc-500 font-semibold">
-                          {formatDate(slip.createdAt)}
-                        </td>
-                        <td className="px-6 py-4 text-right">
-                          {slip.status === "pending" ? (
-                            <div className="flex items-center justify-end gap-2">
-                              <button
-                                onClick={() => handleApproveSlip(slip)}
-                                disabled={actionLoadingId === (slip._id || slip.id)}
-                                className="inline-flex items-center gap-1 rounded-lg bg-green-600 px-3 py-1.5 text-xs font-black text-white hover:bg-green-500 transition-all cursor-pointer shadow-md disabled:opacity-50"
-                              >
-                                {actionLoadingId === (slip._id || slip.id) ? (
-                                  <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                                ) : (
-                                  <Check className="h-3.5 w-3.5" />
-                                )}
-                                Approve
-                              </button>
-                              <button
-                                onClick={() => handleOpenRejectSlipModal(slip)}
-                                disabled={actionLoadingId === (slip._id || slip.id)}
-                                className="inline-flex items-center gap-1 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-xs font-black text-red-400 hover:bg-red-500/20 transition-all cursor-pointer disabled:opacity-50"
-                              >
-                                <X className="h-3.5 w-3.5" />
-                                Reject
-                              </button>
-                            </div>
+                        ) : (
+                          <img
+                            src={slip.slipImage}
+                            alt="Slip thumbnail"
+                            className="h-8 w-8 object-cover rounded-lg"
+                          />
+                        )}
+                        <span className="text-xs font-bold text-primary flex items-center gap-1">
+                          <Eye className="h-3.5 w-3.5" /> View Slip Receipt
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    {slip.status === "pending" && (
+                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
+                        <button
+                          onClick={() => handleOpenRejectSlipModal(slip)}
+                          disabled={actionLoadingId === (slip._id || slip.id)}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                          Reject Slip
+                        </button>
+                        <button
+                          onClick={() => handleApproveSlip(slip)}
+                          disabled={actionLoadingId === (slip._id || slip.id)}
+                          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 py-2 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-md disabled:opacity-50 transition-all w-full sm:w-auto"
+                        >
+                          {actionLoadingId === (slip._id || slip.id) ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
                           ) : (
-                            <span className="text-[11px] font-bold text-zinc-600 italic">
-                              Completed
-                            </span>
+                            <Check className="h-3.5 w-3.5" />
                           )}
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                          Approve & Credit Coins
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {/* ─── TAB 3: Registered Users ────────────────────────────────────────── */}
         {activeTab === "users" && (
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between bg-zinc-900 border border-zinc-800 rounded-2xl px-5 py-4">
               <div className="flex items-center gap-2">
                 <Users className="h-4 w-4 text-primary" />
-                <h2 className="text-sm font-black text-white">Registered Customer Accounts</h2>
-                <span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-black text-primary">
-                  {filteredUsers.length}
-                </span>
+                <h2 className="text-xs sm:text-sm font-black text-white">Registered Customer Accounts</h2>
               </div>
+              <span className="rounded-full bg-primary/15 border border-primary/20 px-2.5 py-0.5 text-xs font-black text-primary">
+                {filteredUsers.length} Customers
+              </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b border-zinc-800">
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">#</th>
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Full Name</th>
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Email Address</th>
-                    <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Available Coins</th>
-                    <th className="px-6 py-3 text-center text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Hold Coins</th>
-                    <th className="px-6 py-3 text-left text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest">Joined Date</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/60">
-                  {filteredUsers.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="px-6 py-12 text-center text-xs text-zinc-600">
-                        No users match your search.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredUsers.map((user, index) => (
-                      <tr key={user.id} className="hover:bg-zinc-800/40 transition-colors">
-                        <td className="px-6 py-4 text-xs text-zinc-600 font-bold">{index + 1}</td>
-                        <td className="px-6 py-4 font-bold text-white">{user.fullName}</td>
-                        <td className="px-6 py-4 text-xs text-zinc-400">{user.email}</td>
-                        <td className="px-6 py-4 text-center font-bold text-primary">
+            {filteredUsers.length === 0 ? (
+              <div className="rounded-2xl border border-zinc-800 bg-zinc-900 py-16 text-center">
+                <Users className="h-9 w-9 text-zinc-700 mx-auto mb-2" />
+                <p className="text-xs text-zinc-500 font-semibold">
+                  No registered users match your search.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {filteredUsers.map((user, index) => (
+                  <div
+                    key={user.id}
+                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 hover:border-zinc-700 transition-all shadow-lg"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-black text-sm border border-primary/20">
+                          {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-black text-white truncate">{user.fullName}</p>
+                          <p className="text-[11px] text-zinc-400 font-medium truncate">{user.email}</p>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-bold text-zinc-600 shrink-0">#{index + 1}</span>
+                    </div>
+
+                    <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-xs">
+                      <p className="text-[10px] text-zinc-500 font-semibold">Joined: {formatDate(user.createdAt)}</p>
+                      <div className="flex items-center gap-2">
+                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-xl">
+                          <Coins className="h-3 w-3" />
                           {user.credits || 0} Coins
-                        </td>
-                        <td className="px-6 py-4 text-center font-bold text-amber-400">
-                          {user.holdCredits || 0} Coins
-                        </td>
-                        <td className="px-6 py-4 text-xs text-zinc-500">{formatDate(user.createdAt)}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl">
+                          <Lock className="h-3 w-3" />
+                          {user.holdCredits || 0} Hold
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </main>
@@ -1278,11 +1336,28 @@ function AdminDashboardContent() {
             </div>
 
             <div className="max-h-[55vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-2">
-              <img
-                src={activeSlipModal.slipImage}
-                alt="Full Slip Receipt"
-                className="max-w-full h-auto mx-auto rounded-lg"
-              />
+              {activeSlipModal.slipImage?.startsWith("data:application/pdf") || activeSlipModal.slipImage?.endsWith(".pdf") ? (
+                <div className="space-y-3 p-4 text-center">
+                  <iframe
+                    src={activeSlipModal.slipImage}
+                    title="PDF Bank Slip Receipt"
+                    className="w-full h-[45vh] rounded-lg border border-zinc-800"
+                  />
+                  <a
+                    href={activeSlipModal.slipImage}
+                    download={`bank_slip_${activeSlipModal.userName}.pdf`}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-black font-extrabold text-xs"
+                  >
+                    Download PDF Slip Receipt 📥
+                  </a>
+                </div>
+              ) : (
+                <img
+                  src={activeSlipModal.slipImage}
+                  alt="Full Slip Receipt"
+                  className="max-w-full h-auto mx-auto rounded-lg"
+                />
+              )}
             </div>
 
             {activeSlipModal.status === "pending" && (
@@ -1492,6 +1567,80 @@ function AdminDashboardContent() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Theme-Styled Confirmation & Alert Popup Modal ───────────────── */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-700/80 rounded-3xl p-6 space-y-5 relative shadow-2xl scale-100 transition-all">
+            <button
+              onClick={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+              className="absolute top-4 right-4 p-1.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
+                  confirmDialog.variant === "danger"
+                    ? "bg-red-500/10 border-red-500/20 text-red-400"
+                    : confirmDialog.variant === "success"
+                    ? "bg-green-500/10 border-green-500/20 text-green-400"
+                    : confirmDialog.variant === "warning"
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                    : "bg-[#fe9a00]/10 border-[#fe9a00]/20 text-[#fe9a00]"
+                }`}
+              >
+                {confirmDialog.variant === "danger" ? (
+                  <AlertCircle className="h-6 w-6" />
+                ) : confirmDialog.variant === "success" ? (
+                  <CheckCircle className="h-6 w-6" />
+                ) : confirmDialog.variant === "warning" ? (
+                  <AlertCircle className="h-6 w-6" />
+                ) : (
+                  <Coins className="h-6 w-6" />
+                )}
+              </div>
+
+              <div className="space-y-1 pr-6 min-w-0">
+                <h3 className="text-base sm:text-lg font-black text-white tracking-tight capitalize">
+                  {confirmDialog.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-400 font-medium leading-relaxed">
+                  {confirmDialog.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-800">
+              {!confirmDialog.isAlertOnly && (
+                <button
+                  onClick={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+                  className="w-full sm:w-auto rounded-xl border border-zinc-700 bg-zinc-800/80 px-4.5 py-2.5 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all cursor-pointer"
+                >
+                  {confirmDialog.cancelText || "Cancel"}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const cb = confirmDialog.onConfirm;
+                  setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                  if (cb) cb();
+                }}
+                className={`w-full sm:w-auto rounded-xl px-5 py-2.5 text-xs font-black transition-all shadow-lg cursor-pointer ${
+                  confirmDialog.variant === "danger"
+                    ? "bg-red-600 text-white hover:bg-red-500 shadow-red-600/20"
+                    : confirmDialog.variant === "success"
+                    ? "bg-green-600 text-white hover:bg-green-500 shadow-green-600/20"
+                    : "bg-[#fe9a00] text-black hover:bg-[#e08800] shadow-[#fe9a00]/20"
+                }`}
+              >
+                {confirmDialog.confirmText || "Confirm"}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MessageSquare, Mail, HelpCircle, Send, Check } from "lucide-react";
+import { MessageSquare, Mail, HelpCircle, Send, Check, AlertCircle, X } from "lucide-react";
 
 export default function Contact() {
   const [name, setName] = useState("");
@@ -13,10 +13,24 @@ export default function Contact() {
   const [message, setMessage] = useState("");
   const [success, setSuccess] = useState(false);
 
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) {
-      alert("Please fill in all required fields.");
+      setAlertDialog({
+        isOpen: true,
+        title: "Required Fields Missing",
+        message: "Please fill in all required fields (Name, Email, and Message).",
+      });
       return;
     }
     setSuccess(true);
@@ -165,6 +179,44 @@ export default function Contact() {
           </div>
         </div>
       </main>
+
+      {/* ─── Theme-Styled Alert Popup Modal ───────────────── */}
+      {alertDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-700/80 rounded-3xl p-6 space-y-5 relative shadow-2xl scale-100 transition-all">
+            <button
+              onClick={() => setAlertDialog((prev) => ({ ...prev, isOpen: false }))}
+              className="absolute top-4 right-4 p-1.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border bg-amber-500/10 border-amber-500/20 text-amber-400">
+                <AlertCircle className="h-6 w-6" />
+              </div>
+
+              <div className="space-y-1 pr-6 min-w-0">
+                <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                  {alertDialog.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-400 font-medium leading-relaxed">
+                  {alertDialog.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-3 border-t border-zinc-800">
+              <button
+                onClick={() => setAlertDialog((prev) => ({ ...prev, isOpen: false }))}
+                className="w-full sm:w-auto rounded-xl px-5 py-2.5 text-xs font-black bg-[#fe9a00] text-black hover:bg-[#e08800] transition-all shadow-lg shadow-[#fe9a00]/20 cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

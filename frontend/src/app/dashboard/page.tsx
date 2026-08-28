@@ -156,6 +156,68 @@ function DashboardContent() {
   const [viewSlipUrl, setViewSlipUrl] = useState<string | null>(null);
   const [activeAssignmentModal, setActiveAssignmentModal] = useState<AssignmentRecord | null>(null);
 
+  // ─── Theme-Styled Confirmation & Alert Dialog Popup State ──────────────────
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+    isAlertOnly?: boolean;
+    onConfirm?: () => void;
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+
+  const showConfirm = ({
+    title,
+    message,
+    confirmText = "Confirm",
+    cancelText = "Cancel",
+    variant = "primary",
+    onConfirm,
+  }: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    cancelText?: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+    onConfirm: () => void;
+  }) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText,
+      cancelText,
+      variant,
+      isAlertOnly: false,
+      onConfirm,
+    });
+  };
+
+  const showAlert = ({
+    title,
+    message,
+    variant = "primary",
+  }: {
+    title: string;
+    message: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+  }) => {
+    setConfirmDialog({
+      isOpen: true,
+      title,
+      message,
+      confirmText: "OK",
+      variant,
+      isAlertOnly: true,
+    });
+  };
+
   // Scan Upload State
   const [isDragging, setIsDragging] = useState(false);
   const [scanFile, setScanFile] = useState<string | null>(null);
@@ -168,38 +230,137 @@ function DashboardContent() {
 
   const fetchMySlips = async () => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-    if (!token) return;
+    const userSession = localStorage.getItem("currentUser");
+    let userEmail = "";
+    let userName = "Customer";
+    if (userSession) {
+      try {
+        const parsed = JSON.parse(userSession);
+        userEmail = parsed?.email || "";
+        userName = parsed?.name || userName;
+      } catch (e) {}
+    }
+
+    let fetched: PaymentSlipRecord[] = [];
 
     try {
-      const res = await fetch(`${API_URL}/payments/my-slips`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/payments/my-slips?email=${encodeURIComponent(userEmail)}`, {
+        headers,
       });
       const data = await res.json();
-      if (data.success) {
-        setMySlips(data.slips);
-        setPendingCoins(data.pendingCredits);
+      if (data.success && Array.isArray(data.slips)) {
+        fetched = data.slips;
       }
     } catch (e) {
       console.error("Error fetching my slips:", e);
+    }
+
+    // Load local storage slips and sync any un-uploaded slips to database
+    const localSlips: PaymentSlipRecord[] = JSON.parse(
+      localStorage.getItem("paymentSlips") || "[]"
+    );
+
+    for (let i = 0; i < localSlips.length; i++) {
+      const ls = localSlips[i];
+      if (!ls._id && ls.slipImage && ls.packageName) {
+        try {
+          const headers: Record<string, string> = { "Content-Type": "application/json" };
+          if (token) headers["Authorization"] = `Bearer ${token}`;
+
+          const syncRes = await fetch(`${API_URL}/payments/upload-slip`, {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              packageName: ls.packageName,
+              credits: ls.credits,
+              amount: ls.amount,
+              slipImage: ls.slipImage,
+              userName: ls.userName || userName,
+              userEmail: ls.userEmail || userEmail,
+            }),
+          });
+          const syncData = await syncRes.json();
+          if (syncData.success && syncData.slip) {
+            localSlips[i]._id = syncData.slip._id;
+            if (!fetched.some((s) => (s._id || s.id) === syncData.slip._id)) {
+              fetched.unshift(syncData.slip);
+            }
+          }
+        } catch (syncErr) {
+          console.error("Error auto-syncing slip to DB:", syncErr);
+        }
+      }
+    }
+
+    const combined: PaymentSlipRecord[] = [...fetched];
+
+    localSlips.forEach((ls) => {
+      if (userEmail && ls.userEmail && ls.userEmail.toLowerCase() !== userEmail.toLowerCase()) {
+        return;
+      }
+      const id = ls._id || ls.id;
+      const matchIndex = combined.findIndex((s) => (s._id || s.id) === id);
+      if (matchIndex === -1) {
+        combined.push(ls);
+      } else {
+        if (combined[matchIndex].status && ls.status !== combined[matchIndex].status) {
+          ls.status = combined[matchIndex].status;
+        }
+      }
+    });
+
+    localStorage.setItem("paymentSlips", JSON.stringify(localSlips));
+    setMySlips(combined);
+
+    const totalPending = combined
+      .filter((s) => s.status === "pending")
+      .reduce((sum, s) => sum + (Number(s.credits) || 0), 0);
+
+    setPendingCoins(totalPending);
+
+    if (userEmail) {
+      const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
+      if (allUsers[userEmail]) {
+        const approvedSlipsCredits = combined
+          .filter((s) => s.status === "approved")
+          .reduce((sum, s) => sum + (Number(s.credits) || 0), 0);
+        
+        if ((allUsers[userEmail].credits || 0) < approvedSlipsCredits) {
+          allUsers[userEmail].credits = approvedSlipsCredits;
+          localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
+        }
+      }
     }
   };
 
   const fetchMyAssignments = async () => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+    const userSession = localStorage.getItem("currentUser");
+    let userEmail = "";
+    if (userSession) {
+      try {
+        userEmail = JSON.parse(userSession)?.email || "";
+      } catch (e) {}
+    }
+
     let fetched: DocumentRecord[] = [];
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/documents/my-documents`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data = await res.json();
-        if (data.success) {
-          fetched = data.documents || data.assignments || [];
-        }
-      } catch (e) {
-        console.error("Error fetching my documents:", e);
+    try {
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/documents/my-documents?email=${encodeURIComponent(userEmail)}`, {
+        headers,
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.documents || data.assignments)) {
+        fetched = data.documents || data.assignments;
       }
+    } catch (e) {
+      console.error("Error fetching my documents:", e);
     }
 
     // Merge with local storage documents
@@ -208,9 +369,17 @@ function DashboardContent() {
     );
     const combined = [...fetched];
     localAssns.forEach((la) => {
+      if (userEmail && la.userEmail && la.userEmail.toLowerCase() !== userEmail.toLowerCase()) {
+        return;
+      }
       const id = la._id || la.id;
-      if (!combined.some((a) => (a._id || a.id) === id)) {
+      const matchIndex = combined.findIndex((a) => (a._id || a.id) === id);
+      if (matchIndex === -1) {
         combined.push(la);
+      } else {
+        if (combined[matchIndex].status && la.status !== combined[matchIndex].status) {
+          la.status = combined[matchIndex].status;
+        }
       }
     });
 
@@ -219,32 +388,81 @@ function DashboardContent() {
 
   const fetchMe = async () => {
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-    if (!token) return;
 
-    try {
-      const res = await fetch(`${API_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      const data = await res.json();
-      if (data.success && userData) {
-        const updated = {
-          ...userData,
-          credits: data.user.credits !== undefined ? data.user.credits : userData.credits,
-          holdCredits: data.user.holdCredits !== undefined ? data.user.holdCredits : userData.holdCredits,
-        };
-        setUserData(updated);
+    // Read current user email & registeredUsers from local storage
+    const userSession = localStorage.getItem("currentUser");
+    let userEmail = "";
+    let localCredits = 0;
+    let localHoldCredits = 0;
 
-        // Sync local storage
+    if (userSession) {
+      try {
+        const cur = JSON.parse(userSession);
+        userEmail = cur.email || "";
         const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-        if (allUsers[updated.email]) {
-          allUsers[updated.email].credits = updated.credits;
-          allUsers[updated.email].holdCredits = updated.holdCredits;
+        if (allUsers[userEmail]) {
+          localCredits = allUsers[userEmail].credits || 0;
+          localHoldCredits = allUsers[userEmail].holdCredits || 0;
+        }
+      } catch (e) {
+        console.error("Error parsing userSession:", e);
+      }
+    }
+
+    let backendCredits = 0;
+    let backendHoldCredits = 0;
+
+    if (token) {
+      try {
+        const res = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+        if (data.success && data.user) {
+          backendCredits = typeof data.user.credits === "number" ? data.user.credits : 0;
+          backendHoldCredits = typeof data.user.holdCredits === "number" ? data.user.holdCredits : 0;
+        }
+      } catch (e) {
+        console.error("Error fetching user details:", e);
+      }
+    }
+
+    setUserData((prev) => {
+      if (!prev && !userEmail) return prev;
+
+      const prevCredits = prev?.credits || 0;
+      const prevHoldCredits = prev?.holdCredits || 0;
+
+      // Select the maximum credit value across state, local storage, and backend
+      const updatedCredits = Math.max(prevCredits, localCredits, backendCredits);
+      const updatedHoldCredits = Math.max(prevHoldCredits, localHoldCredits, backendHoldCredits);
+
+      const base = prev || {
+        name: userEmail ? userEmail.split("@")[0] : "User",
+        email: userEmail,
+        credits: updatedCredits,
+        holdCredits: updatedHoldCredits,
+        scans: [],
+      };
+
+      const updated: UserData = {
+        ...base,
+        credits: updatedCredits,
+        holdCredits: updatedHoldCredits,
+      };
+
+      // Sync updated credits to local storage
+      if (userEmail) {
+        const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
+        if (allUsers[userEmail]) {
+          allUsers[userEmail].credits = updated.credits;
+          allUsers[userEmail].holdCredits = updated.holdCredits;
           localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
         }
       }
-    } catch (e) {
-      console.error("Error fetching user details:", e);
-    }
+
+      return updated;
+    });
   };
 
   useEffect(() => {
@@ -382,55 +600,63 @@ function DashboardContent() {
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
     let apiSuccess = false;
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/payments/upload-slip`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            packageName: selectedPack.name,
-            credits: selectedPack.slots,
-            amount: parseFloat(selectedPack.price),
-            slipImage: slipPreview,
-          }),
-        });
-
-        const data = await res.json();
-
-        if (data.success) {
-          apiSuccess = true;
-          const localSlips: PaymentSlipRecord[] = JSON.parse(localStorage.getItem("paymentSlips") || "[]");
-          const newLocalSlip: PaymentSlipRecord = {
-            _id: data.slip?._id,
-            id: data.slip?._id || Date.now().toString(),
-            userName: userData?.name || "Customer",
-            userEmail: userData?.email || "user@example.com",
-            packageName: selectedPack.name,
-            credits: selectedPack.slots,
-            amount: parseFloat(selectedPack.price),
-            slipImage: slipPreview,
-            status: "pending",
-            createdAt: new Date().toISOString(),
-          };
-          localStorage.setItem("paymentSlips", JSON.stringify([newLocalSlip, ...localSlips]));
-
-          alert(`Payment slip uploaded successfully! ${selectedPack.slots} coins are now pending admin approval.`);
-          setIsCheckoutOpen(false);
-          setSlipFile(null);
-          setSlipPreview(null);
-          setPaymentLoading(false);
-          fetchMySlips();
-          router.replace("/dashboard");
-          return;
-        } else {
-          setCheckoutError(data.message || "Failed to submit payment slip.");
-        }
-      } catch (err) {
-        console.error("Payment slip upload error:", err);
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
       }
+
+      const res = await fetch(`${API_URL}/payments/upload-slip`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          packageName: selectedPack.name,
+          credits: selectedPack.slots,
+          amount: parseFloat(selectedPack.price),
+          slipImage: slipPreview,
+          userName: userData?.name || "Customer",
+          userEmail: userData?.email || "",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        apiSuccess = true;
+        const localSlips: PaymentSlipRecord[] = JSON.parse(localStorage.getItem("paymentSlips") || "[]");
+        const newLocalSlip: PaymentSlipRecord = {
+          _id: data.slip?._id,
+          id: data.slip?._id || Date.now().toString(),
+          userName: userData?.name || "Customer",
+          userEmail: userData?.email || "user@example.com",
+          packageName: selectedPack.name,
+          credits: selectedPack.slots,
+          amount: parseFloat(selectedPack.price),
+          slipImage: slipPreview,
+          status: "pending",
+          createdAt: new Date().toISOString(),
+        };
+        localStorage.setItem("paymentSlips", JSON.stringify([newLocalSlip, ...localSlips]));
+
+        showAlert({
+          title: "Payment Slip Submitted!",
+          message: `Payment slip uploaded successfully! ${selectedPack.slots} coins are now pending admin approval.`,
+          variant: "success",
+        });
+        setIsCheckoutOpen(false);
+        setSlipFile(null);
+        setSlipPreview(null);
+        setPaymentLoading(false);
+        fetchMySlips();
+        router.replace("/dashboard");
+        return;
+      } else {
+        setCheckoutError(data.message || "Failed to submit payment slip.");
+      }
+    } catch (err) {
+      console.error("Payment slip upload error:", err);
     }
 
     if (!apiSuccess) {
@@ -462,7 +688,11 @@ function DashboardContent() {
       setIsCheckoutOpen(false);
       setSlipFile(null);
       setSlipPreview(null);
-      alert(`Payment slip uploaded successfully! ${selectedPack.slots} coins are now pending admin approval.`);
+      showAlert({
+        title: "Payment Slip Submitted!",
+        message: `Payment slip uploaded successfully! ${selectedPack.slots} coins are now pending admin approval.`,
+        variant: "success",
+      });
       router.replace("/dashboard");
     }
   };
@@ -519,26 +749,29 @@ function DashboardContent() {
     // eslint-disable-next-line react-hooks/purity
     const effectiveDeadline = assignDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/documents/submit`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            title: assignTitle,
-            description: effectiveDesc,
-            requirements: assignReqs,
-            deliverables: assignDeliverables,
-            deadline: effectiveDeadline,
-            attachment: assignAttachment || "",
-            attachmentName: assignAttachmentName || "",
-          }),
-        });
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
 
-        const data = await res.json();
+      const res = await fetch(`${API_URL}/documents/submit`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          title: assignTitle,
+          description: effectiveDesc,
+          requirements: assignReqs,
+          deliverables: assignDeliverables,
+          deadline: effectiveDeadline,
+          attachment: assignAttachment || "",
+          attachmentName: assignAttachmentName || "",
+          userName: userData.name,
+          userEmail: userData.email,
+        }),
+      });
+
+      const data = await res.json();
 
         if (data.success) {
           apiSuccess = true;
@@ -572,7 +805,11 @@ function DashboardContent() {
           localStorage.setItem("myDocuments", JSON.stringify([newLocalAssn, ...localAssns]));
           localStorage.setItem("myAssignments", JSON.stringify([newLocalAssn, ...localAssns]));
 
-          alert("Document submitted successfully! 1 coin placed on hold awaiting admin approval.");
+          showAlert({
+            title: "Document Submitted!",
+            message: "Document submitted successfully! 1 coin placed on hold awaiting admin approval.",
+            variant: "success",
+          });
           setIsAssignmentModalOpen(false);
           resetAssignmentForm();
           fetchMyAssignments();
@@ -584,7 +821,6 @@ function DashboardContent() {
       } catch (err) {
         console.error("Document submit error:", err);
       }
-    }
 
     if (!apiSuccess) {
       // Fallback local storage simulation
@@ -614,7 +850,11 @@ function DashboardContent() {
       setAssignLoading(false);
       setIsAssignmentModalOpen(false);
       resetAssignmentForm();
-      alert("Document submitted successfully! 1 coin placed on hold awaiting admin approval.");
+      showAlert({
+        title: "Document Submitted!",
+        message: "Document submitted successfully! 1 coin placed on hold awaiting admin approval.",
+        variant: "success",
+      });
     }
   };
 
@@ -659,7 +899,11 @@ function DashboardContent() {
     const ext = fileName.split(".").pop()?.toLowerCase();
     const allowed = ["pdf", "docx", "doc", "zip", "png", "jpg", "jpeg"];
     if (!ext || !allowed.includes(ext)) {
-      alert("Unsupported file format. Please upload PDF, DOCX, ZIP, or Image files.");
+      showAlert({
+        title: "Unsupported File Format",
+        message: "Please upload a valid PDF, DOCX, ZIP, or Image file.",
+        variant: "warning",
+      });
       return;
     }
     setScanFile(fileName);
@@ -670,7 +914,11 @@ function DashboardContent() {
     if (!userData || !scanFile) return;
 
     if ((userData.credits || 0) < 1) {
-      alert("Insufficient available coins! You need at least 1 coin to scan a document.");
+      showAlert({
+        title: "Insufficient Coins",
+        message: "You need at least 1 coin to scan a document.",
+        variant: "warning",
+      });
       setIsCheckoutOpen(true);
       return;
     }
@@ -689,36 +937,38 @@ function DashboardContent() {
       holdCredits: (userData.holdCredits || 0) + 1,
     };
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/documents/submit`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            title: scanFile, // Use filename as title directly!
-            description: `Turnitin No-Repository Scan for ${scanFile}`,
-            attachmentName: scanFile,
-            deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-          }),
+    try {
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${API_URL}/documents/submit`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          title: scanFile, // Use filename as title directly!
+          description: `Turnitin No-Repository Scan for ${scanFile}`,
+          attachmentName: scanFile,
+          userName: userData.name,
+          userEmail: userData.email,
+          deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        apiSuccess = true;
+        syncUserData({
+          ...userData,
+          credits: data.availableCredits !== undefined ? data.availableCredits : updatedUser.credits,
+          holdCredits: data.holdCredits !== undefined ? data.holdCredits : updatedUser.holdCredits,
         });
-
-        const data = await res.json();
-
-        if (data.success) {
-          apiSuccess = true;
-          syncUserData({
-            ...userData,
-            credits: data.availableCredits !== undefined ? data.availableCredits : updatedUser.credits,
-            holdCredits: data.holdCredits !== undefined ? data.holdCredits : updatedUser.holdCredits,
-          });
-          fetchMyAssignments();
-        }
-      } catch (e) {
-        console.error("Backend submit document error:", e);
+        fetchMyAssignments();
       }
+    } catch (e) {
+      console.error("Backend submit document error:", e);
     }
 
     if (!apiSuccess) {
@@ -786,82 +1036,104 @@ function DashboardContent() {
             syncUserData(finalizedUser);
             setIsScanning(false);
             setScanFile(null);
-            alert(`Document "${scanFile}" submitted successfully! 1 coin placed on hold.`);
+            showAlert({
+              title: "Document Submitted!",
+              message: `Document "${scanFile}" submitted successfully! 1 coin placed on hold.`,
+              variant: "success",
+            });
           }, 600);
         }
       }, step.delay);
     });
   };
 
-  // Cancel Document Case (Refunds 1 coin back to total available coins)
-  const handleCancelDocument = async (docId: string) => {
+  const cancelAssignment = (docId: string) => {
     if (!userData) return;
-    if (!confirm("Are you sure you want to cancel this submission? 1 held coin will be returned to your total available coins.")) {
-      return;
-    }
+    showConfirm({
+      title: "Cancel Document Case?",
+      message: "Are you sure you want to cancel this document submission? 1 coin will be returned to your available balance.",
+      confirmText: "Yes, Cancel Case",
+      cancelText: "Keep Case",
+      variant: "danger",
+      onConfirm: async () => {
+        const token = localStorage.getItem("authToken") || localStorage.getItem("token");
+        let apiSuccess = false;
 
-    const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-    let apiSuccess = false;
+        try {
+          const headers: Record<string, string> = {};
+          if (token) headers["Authorization"] = `Bearer ${token}`;
 
-    if (token) {
-      try {
-        const res = await fetch(`${API_URL}/documents/${docId}/cancel`, {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        const data = await res.json();
-        if (data.success) {
-          apiSuccess = true;
-          syncUserData({
-            ...userData,
-            credits: data.availableCredits !== undefined ? data.availableCredits : (userData.credits || 0) + 1,
-            holdCredits: data.holdCredits !== undefined ? data.holdCredits : Math.max(0, (userData.holdCredits || 0) - 1),
+          const res = await fetch(`${API_URL}/documents/${docId}/cancel`, {
+            method: "POST",
+            headers,
           });
-          fetchMyAssignments();
-          fetchMe();
-          alert("Document case cancelled! 1 coin returned to your total available coins.");
-          return;
+          const data = await res.json();
+          if (data.success) {
+            apiSuccess = true;
+            syncUserData({
+              ...userData,
+              credits: data.availableCredits !== undefined ? data.availableCredits : (userData.credits || 0) + 1,
+              holdCredits: data.holdCredits !== undefined ? data.holdCredits : Math.max(0, (userData.holdCredits || 0) - 1),
+            });
+            fetchMyAssignments();
+            fetchMe();
+            showAlert({
+              title: "Case Cancelled",
+              message: "Document case cancelled! 1 coin returned to your available balance.",
+              variant: "success",
+            });
+            return;
+          }
+        } catch (err) {
+          console.error("Cancel document error:", err);
         }
-      } catch (err) {
-        console.error("Error cancelling document:", err);
-      }
-    }
 
-    if (!apiSuccess) {
-      const localAssns: DocumentRecord[] = JSON.parse(
-        localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
-      );
-      const updatedLocal: DocumentRecord[] = localAssns.map((d) => {
-        if ((d._id || d.id) === docId) {
-          return { ...d, status: "cancelled" };
+        if (!apiSuccess) {
+          const localAssns: DocumentRecord[] = JSON.parse(
+            localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
+          );
+          const updatedLocal: DocumentRecord[] = localAssns.map((d) => {
+            if ((d._id || d.id) === docId) {
+              return { ...d, status: "cancelled" };
+            }
+            return d;
+          });
+          localStorage.setItem("myDocuments", JSON.stringify(updatedLocal));
+          localStorage.setItem("myAssignments", JSON.stringify(updatedLocal));
+          setMyAssignments(updatedLocal);
+
+          const updatedUser = {
+            ...userData,
+            credits: (userData.credits || 0) + 1,
+            holdCredits: Math.max(0, (userData.holdCredits || 0) - 1),
+          };
+          syncUserData(updatedUser);
+          showAlert({
+            title: "Case Cancelled",
+            message: "Document case cancelled! 1 coin returned to your available balance.",
+            variant: "success",
+          });
         }
-        return d;
-      });
-      localStorage.setItem("myDocuments", JSON.stringify(updatedLocal));
-      localStorage.setItem("myAssignments", JSON.stringify(updatedLocal));
-      setMyAssignments(updatedLocal);
-
-      const updatedUser = {
-        ...userData,
-        credits: (userData.credits || 0) + 1,
-        holdCredits: Math.max(0, (userData.holdCredits || 0) - 1),
-      };
-      syncUserData(updatedUser);
-      alert("Document case cancelled! 1 coin returned to your total available coins.");
-    }
+      },
+    });
   };
 
   const deleteScan = (scanId: string) => {
     if (!userData) return;
-    if (!confirm("Are you sure you want to permanently delete this report scan record?")) return;
-
-    const updated = {
-      ...userData,
-      scans: userData.scans.filter((s) => s.id !== scanId),
-    };
-    syncUserData(updated);
+    showConfirm({
+      title: "Delete Scan Record?",
+      message: "Are you sure you want to permanently delete this report scan record?",
+      confirmText: "Delete Record",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: () => {
+        const updated = {
+          ...userData,
+          scans: userData.scans.filter((s) => s.id !== scanId),
+        };
+        syncUserData(updated);
+      },
+    });
   };
 
   if (!isMounted || !userData) {
@@ -1120,24 +1392,6 @@ function DashboardContent() {
                 <BookOpen className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
                 <span>Scan Turnitin Document</span>
               </h2>
-              <div className="flex items-center gap-2">
-                {/* <button
-                  onClick={() => setIsAssignmentModalOpen(true)}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500/15 border border-amber-500/30 px-3 py-1.5 text-xs font-extrabold text-amber-600 hover:bg-amber-500/25 transition-all cursor-pointer"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  <span>New Document</span>
-                </button> */}
-                <button
-                  onClick={() => {
-                    fetchMyAssignments();
-                    fetchMe();
-                  }}
-                  className="text-xs font-extrabold text-primary hover:underline flex items-center gap-1 p-1"
-                >
-                  <RefreshCw className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Refresh</span>
-                </button>
-              </div>
             </div>
 
             {myAssignments.length === 0 ? (
@@ -1248,7 +1502,7 @@ function DashboardContent() {
                           ) : (
                             <div className="flex items-center justify-center gap-2">
                               <button
-                                onClick={() => handleCancelDocument(assn._id || assn.id || "")}
+                                onClick={() => cancelAssignment(assn._id || assn.id || "")}
                                 className="inline-flex items-center gap-1 rounded-xl bg-red-500/10 border border-red-500/30 px-3 py-1.5 text-xs font-extrabold text-red-500 hover:bg-red-500/20 transition-all cursor-pointer"
                               >
                                 <XCircle className="h-3.5 w-3.5" />
@@ -1266,24 +1520,32 @@ function DashboardContent() {
           </div>
 
           {/* Payment Slips History Section */}
-          {mySlips.length > 0 && (
-            <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
-                  <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0" />
-                  <span>Bank Slip Top-up Requests</span>
-                </h2>
+          <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 shadow-sm">
+            <div className="flex items-center justify-between">
+              <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0" />
+                <span>Bank Slip Top-up Requests</span>
+              </h2>
+            </div>
+
+            {mySlips.length === 0 ? (
+              <div className="text-center py-8 sm:py-10 px-4 space-y-3 border border-dashed border-border rounded-2xl bg-muted/5">
+                <Building2 className="h-8 w-8 text-muted-foreground/60 mx-auto" />
+                <div>
+                  <p className="text-sm font-bold text-foreground">No bank slip top-up requests yet</p>
+                  <p className="text-xs text-muted-foreground font-semibold max-w-sm mx-auto mt-1">
+                    Upload your bank transfer receipt when purchasing scan coins. Your request history will appear here.
+                  </p>
+                </div>
                 <button
-                  onClick={() => {
-                    fetchMySlips();
-                    fetchMe();
-                  }}
-                  className="text-xs font-extrabold text-primary hover:underline flex items-center gap-1"
+                  onClick={() => router.push("/packages")}
+                  className="inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-xs font-black text-primary-foreground hover:bg-primary/90 cursor-pointer shadow-md"
                 >
-                  <RefreshCw className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Refresh</span>
+                  <Plus className="h-3.5 w-3.5" />
+                  Top Up Scan Coins
                 </button>
               </div>
-
+            ) : (
               <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
                 <table className="w-full text-sm min-w-[540px]">
                   <thead>
@@ -1345,8 +1607,8 @@ function DashboardContent() {
                   </tbody>
                 </table>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </main>
 
@@ -1665,12 +1927,12 @@ function DashboardContent() {
                 <div className="p-4 bg-muted/40 border border-border rounded-2xl space-y-2.5">
                   <p className="font-extrabold text-foreground text-xs flex items-center gap-1.5">
                     <Building2 className="h-4 w-4 text-primary" />
-                    Commercial Bank of Ceylon
+                    Sampath bank
                   </p>
                   <div className="space-y-1 text-muted-foreground text-[11px]">
-                    <p>Account Name: <strong className="text-foreground">TurniPass Lanka (Pvt) Ltd</strong></p>
-                    <p>Account Number: <strong className="text-foreground font-mono text-xs">8012 3456 7890</strong></p>
-                    <p>Branch: <strong className="text-foreground">Kollupitiya Branch (Code: 045)</strong></p>
+                    <p>Account Name: <strong className="text-foreground">Tharindu HAGDR</strong></p>
+                    <p>Account Number: <strong className="text-foreground font-mono text-xs">104357742653</strong></p>
+                    <p>Branch: <strong className="text-foreground">Embilipitiya Branch (Code: 7278)</strong></p>
                     <p>Reference: <strong className="text-primary font-mono">{userData.email.split("@")[0]}</strong></p>
                   </div>
                 </div>
@@ -1757,7 +2019,24 @@ function DashboardContent() {
             </button>
             <h4 className="text-sm font-black text-foreground">Uploaded Slip / Attachment Document</h4>
             <div className="max-h-[65vh] overflow-auto rounded-xl border border-border bg-black/20 p-2">
-              <img src={viewSlipUrl} alt="Slip / Attachment" className="max-w-full h-auto mx-auto rounded-lg" />
+              {viewSlipUrl.startsWith("data:application/pdf") || viewSlipUrl.endsWith(".pdf") ? (
+                <div className="space-y-3 p-4">
+                  <iframe
+                    src={viewSlipUrl}
+                    title="PDF Bank Slip Receipt"
+                    className="w-full h-[45vh] rounded-lg border border-border"
+                  />
+                  <a
+                    href={viewSlipUrl}
+                    download="bank_slip_receipt.pdf"
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-primary-foreground font-extrabold text-xs"
+                  >
+                    Download PDF Slip File 📥
+                  </a>
+                </div>
+              ) : (
+                <img src={viewSlipUrl} alt="Slip / Attachment" className="max-w-full h-auto mx-auto rounded-lg" />
+              )}
             </div>
             <button
               onClick={() => setViewSlipUrl(null)}
@@ -1765,6 +2044,80 @@ function DashboardContent() {
             >
               Close
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Theme-Styled Confirmation & Alert Popup Modal ───────────────── */}
+      {confirmDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-700/80 rounded-3xl p-6 space-y-5 relative shadow-2xl scale-100 transition-all">
+            <button
+              onClick={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+              className="absolute top-4 right-4 p-1.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
+                  confirmDialog.variant === "danger"
+                    ? "bg-red-500/10 border-red-500/20 text-red-400"
+                    : confirmDialog.variant === "success"
+                    ? "bg-green-500/10 border-green-500/20 text-green-400"
+                    : confirmDialog.variant === "warning"
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                    : "bg-[#fe9a00]/10 border-[#fe9a00]/20 text-[#fe9a00]"
+                }`}
+              >
+                {confirmDialog.variant === "danger" ? (
+                  <AlertCircle className="h-6 w-6" />
+                ) : confirmDialog.variant === "success" ? (
+                  <CheckCircle className="h-6 w-6" />
+                ) : confirmDialog.variant === "warning" ? (
+                  <AlertCircle className="h-6 w-6" />
+                ) : (
+                  <Coins className="h-6 w-6" />
+                )}
+              </div>
+
+              <div className="space-y-1 pr-6 min-w-0">
+                <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                  {confirmDialog.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-400 font-medium leading-relaxed">
+                  {confirmDialog.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-zinc-800">
+              {!confirmDialog.isAlertOnly && (
+                <button
+                  onClick={() => setConfirmDialog((prev) => ({ ...prev, isOpen: false }))}
+                  className="w-full sm:w-auto rounded-xl border border-zinc-700 bg-zinc-800/80 px-4.5 py-2.5 text-xs font-bold text-zinc-300 hover:bg-zinc-700 transition-all cursor-pointer"
+                >
+                  {confirmDialog.cancelText || "Cancel"}
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  const cb = confirmDialog.onConfirm;
+                  setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
+                  if (cb) cb();
+                }}
+                className={`w-full sm:w-auto rounded-xl px-5 py-2.5 text-xs font-black transition-all shadow-lg cursor-pointer ${
+                  confirmDialog.variant === "danger"
+                    ? "bg-red-600 text-white hover:bg-red-500 shadow-red-600/20"
+                    : confirmDialog.variant === "success"
+                    ? "bg-green-600 text-white hover:bg-green-500 shadow-green-600/20"
+                    : "bg-[#fe9a00] text-black hover:bg-[#e08800] shadow-[#fe9a00]/20"
+                }`}
+              >
+                {confirmDialog.confirmText || "Confirm"}
+              </button>
+            </div>
           </div>
         </div>
       )}

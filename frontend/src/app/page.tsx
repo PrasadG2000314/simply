@@ -22,6 +22,8 @@ import {
   Globe,
   Sparkles,
   CreditCard,
+  AlertCircle,
+  X,
 } from "lucide-react";
 
 // Types for live activity stream
@@ -134,6 +136,35 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
 
+  // ─── Theme-Styled Alert Dialog Popup State ──────────────────
+  const [alertDialog, setAlertDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+  }>({
+    isOpen: false,
+    title: "",
+    message: "",
+  });
+
+  const showAlert = ({
+    title,
+    message,
+    variant = "warning",
+  }: {
+    title: string;
+    message: string;
+    variant?: "primary" | "success" | "danger" | "warning";
+  }) => {
+    setAlertDialog({
+      isOpen: true,
+      title,
+      message,
+      variant,
+    });
+  };
+
   // Simulate scrolling live activity logs
   useEffect(() => {
     const interval = setInterval(() => {
@@ -202,7 +233,11 @@ export default function Home() {
   const processSelectedFile = (fileName: string) => {
     const ext = fileName.split(".").pop()?.toLowerCase();
     if (ext !== "pdf" && ext !== "docx" && ext !== "doc") {
-      alert("Invalid file format. Please upload PDF, DOCX, or DOC.");
+      showAlert({
+        title: "Invalid File Format",
+        message: "Please upload a valid PDF, DOCX, or DOC document.",
+        variant: "warning",
+      });
       return;
     }
     setSelectedFile(fileName);
@@ -523,10 +558,10 @@ export default function Home() {
                 HOW IT WORKS
               </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
-                Get Reports in 3 Simple Steps
+                Get Reports in 4 Simple Steps
               </h2>
               <p className="text-sm text-muted-foreground font-medium max-w-xl mx-auto">
-                Fast, automated, and secure. Scans complete within minutes.
+                Fast, simple, and secure. Select your checking standard, purchase your scan, upload your document, and receive your reports.
               </p>
             </div>
 
@@ -534,18 +569,23 @@ export default function Home() {
               {[
                 {
                   step: "01",
-                  title: "Purchase Scan Credits",
-                  desc: "Select a scan slot package that fits your requirements. Credits load immediately on confirmation.",
+                  title: "Select Your Checking Standard",
+                  desc: "Choose the required standard for your AI + Similarity check. Select either Standard Checking or API-Based Reports based on your requirements.",
                 },
                 {
                   step: "02",
-                  title: "Upload Document",
-                  desc: "Drop your PDF, DOCX, or DOC file in the dashboard panel. Your file is processed in No-Repository mode.",
+                  title: "Purchase Scan Credits",
+                  desc: "Select the scan package that suits your requirements. Your credits will be added to your account once the payment is confirmed.",
                 },
                 {
                   step: "03",
-                  title: "Download PDFs",
-                  desc: "Get both Similarity index reports and AI detection breakdowns from the dashboard as official files.",
+                  title: "Upload Your Document",
+                  desc: "Upload your PDF, DOCX, or DOC file through the dashboard. Your document will be processed according to your selected checking standard.",
+                },
+                {
+                  step: "04",
+                  title: "Download Your Reports",
+                  desc: "Once the checking is completed, download your AI analysis and Similarity reports directly from the dashboard as PDF files.",
                 },
               ].map((stepItem, i) => (
                 <div key={i} className="bg-card border border-border rounded-2xl p-8 space-y-4 hover:border-primary/20 transition-all text-left">
@@ -602,22 +642,20 @@ export default function Home() {
                   <button
                     id="home-pricing-standard"
                     onClick={() => setPricingTab("standard")}
-                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${
-                      pricingTab === "standard"
-                        ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-primary/25"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    }`}
+                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${pricingTab === "standard"
+                      ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-primary/25"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      }`}
                   >
                     Standard / Discounted
                   </button>
                   <button
                     id="home-pricing-api"
                     onClick={() => setPricingTab("api")}
-                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${
-                      pricingTab === "api"
-                        ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-primary/25"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    }`}
+                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${pricingTab === "api"
+                      ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-primary/25"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      }`}
                   >
                     API Tool
                   </button>
@@ -634,127 +672,126 @@ export default function Home() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
               {(pricingTab === "standard"
                 ? [
-                    {
-                      name: "1 Credits",
-                      credits: 1,
-                      originalPrice: 1000,
-                      discountedPrice: 500,
-                      perCreditPrice: 500,
-                      discount: "20% OFF",
-                      savings: 500,
-                    },
-                    {
-                      name: "5 Credits",
-                      credits: 5,
-                      originalPrice: 4750,
-                      discountedPrice: 2500,
-                      perCreditPrice: 500,
-                      discount: "21% OFF",
-                      savings: 2250,
-                    },
-                    {
-                      name: "10 Credits",
-                      credits: 10,
-                      originalPrice: 9000,
-                      discountedPrice: 4500,
-                      perCreditPrice: 450,
-                      discount: "22% OFF",
-                      savings: 4500,
-                      popular: true,
-                    },
-                    {
-                      name: "Editor Elite",
-                      credits: 25,
-                      originalPrice: 21250,
-                      discountedPrice: 10000,
-                      perCreditPrice: 400,
-                      discount: "24% OFF",
-                      savings: 11250,
-                    },
-                    {
-                      name: "Department",
-                      credits: 50,
-                      originalPrice: 40000,
-                      discountedPrice: 17500,
-                      perCreditPrice: 350,
-                      discount: "25% OFF",
-                      savings: 22500,
-                    },
-                    {
-                      name: "Institution",
-                      credits: 100,
-                      originalPrice: 75000,
-                      discountedPrice: 30000,
-                      perCreditPrice: 300,
-                      discount: "27% OFF",
-                      savings: 45000,
-                    },
-                  ]
+                  {
+                    name: "1 Credits",
+                    credits: 1,
+                    originalPrice: 1000,
+                    discountedPrice: 500,
+                    perCreditPrice: 500,
+                    discount: "20% OFF",
+                    savings: 500,
+                  },
+                  {
+                    name: "5 Credits",
+                    credits: 5,
+                    originalPrice: 4750,
+                    discountedPrice: 2500,
+                    perCreditPrice: 500,
+                    discount: "21% OFF",
+                    savings: 2250,
+                  },
+                  {
+                    name: "10 Credits",
+                    credits: 10,
+                    originalPrice: 9000,
+                    discountedPrice: 4500,
+                    perCreditPrice: 450,
+                    discount: "22% OFF",
+                    savings: 4500,
+                    popular: true,
+                  },
+                  {
+                    name: "Editor Elite",
+                    credits: 25,
+                    originalPrice: 21250,
+                    discountedPrice: 10000,
+                    perCreditPrice: 400,
+                    discount: "24% OFF",
+                    savings: 11250,
+                  },
+                  {
+                    name: "Department",
+                    credits: 50,
+                    originalPrice: 40000,
+                    discountedPrice: 17500,
+                    perCreditPrice: 350,
+                    discount: "25% OFF",
+                    savings: 22500,
+                  },
+                  {
+                    name: "Institution",
+                    credits: 100,
+                    originalPrice: 75000,
+                    discountedPrice: 30000,
+                    perCreditPrice: 300,
+                    discount: "27% OFF",
+                    savings: 45000,
+                  },
+                ]
                 : [
-                    {
-                      name: "1 Credits",
-                      credits: 1,
-                      originalPrice: 1000,
-                      discountedPrice: 700,
-                      perCreditPrice: 700,
-                      discount: "20% OFF",
-                      savings: 300,
-                    },
-                    {
-                      name: "5 Credits",
-                      credits: 5,
-                      originalPrice: 4750,
-                      discountedPrice: 3500,
-                      perCreditPrice: 700,
-                      discount: "21% OFF",
-                      savings: 1250,
-                    },
-                    {
-                      name: "10 Credits",
-                      credits: 10,
-                      originalPrice: 9000,
-                      discountedPrice: 6500,
-                      perCreditPrice: 650,
-                      discount: "22% OFF",
-                      savings: 2500,
-                      popular: true,
-                    },
-                    {
-                      name: "Editor Elite",
-                      credits: 25,
-                      originalPrice: 21250,
-                      discountedPrice: 15000,
-                      perCreditPrice: 600,
-                      discount: "24% OFF",
-                      savings: 6250,
-                    },
-                    {
-                      name: "Department",
-                      credits: 50,
-                      originalPrice: 40000,
-                      discountedPrice: 27500,
-                      perCreditPrice: 550,
-                      discount: "25% OFF",
-                      savings: 12500,
-                    },
-                    {
-                      name: "Institution",
-                      credits: 100,
-                      originalPrice: 75000,
-                      discountedPrice: 50000,
-                      perCreditPrice: 500,
-                      discount: "27% OFF",
-                      savings: 25000,
-                    },
-                  ]
+                  {
+                    name: "1 Credits",
+                    credits: 1,
+                    originalPrice: 1000,
+                    discountedPrice: 700,
+                    perCreditPrice: 700,
+                    discount: "20% OFF",
+                    savings: 300,
+                  },
+                  {
+                    name: "5 Credits",
+                    credits: 5,
+                    originalPrice: 4750,
+                    discountedPrice: 3500,
+                    perCreditPrice: 700,
+                    discount: "21% OFF",
+                    savings: 1250,
+                  },
+                  {
+                    name: "10 Credits",
+                    credits: 10,
+                    originalPrice: 9000,
+                    discountedPrice: 6500,
+                    perCreditPrice: 650,
+                    discount: "22% OFF",
+                    savings: 2500,
+                    popular: true,
+                  },
+                  {
+                    name: "Editor Elite",
+                    credits: 25,
+                    originalPrice: 21250,
+                    discountedPrice: 15000,
+                    perCreditPrice: 600,
+                    discount: "24% OFF",
+                    savings: 6250,
+                  },
+                  {
+                    name: "Department",
+                    credits: 50,
+                    originalPrice: 40000,
+                    discountedPrice: 27500,
+                    perCreditPrice: 550,
+                    discount: "25% OFF",
+                    savings: 12500,
+                  },
+                  {
+                    name: "Institution",
+                    credits: 100,
+                    originalPrice: 75000,
+                    discountedPrice: 50000,
+                    perCreditPrice: 500,
+                    discount: "27% OFF",
+                    savings: 25000,
+                  },
+                ]
               ).map((pkg) => (
                 <div
                   key={pkg.name}
-                  className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${
-                    pkg.popular
-                      ? "border-primary bg-card shadow-xl shadow-primary/10 ring-2 ring-primary/40"
-                      : "border-border bg-card hover:border-primary/40"
-                  }`}
+                  className={`relative flex flex-col rounded-3xl border p-7 transition-all duration-300 hover:shadow-2xl hover:-translate-y-1 ${pkg.popular
+                    ? "border-primary bg-card shadow-xl shadow-primary/10 ring-2 ring-primary/40"
+                    : "border-border bg-card hover:border-primary/40"
+                    }`}
                 >
                   {pkg.popular && (
                     <div className="absolute -top-3.5 left-1/2 -translate-x-1/2">
@@ -845,11 +882,10 @@ export default function Home() {
                         router.push(`/auth/register?buy=${pkg.credits}&price=${pkg.discountedPrice}`);
                       }
                     }}
-                    className={`w-full rounded-xl py-3 text-sm font-extrabold transition-all duration-300 hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 ${
-                      pkg.popular
-                        ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35"
-                        : "border border-border bg-secondary text-foreground hover:bg-muted/80"
-                    }`}
+                    className={`w-full rounded-xl py-3 text-sm font-extrabold transition-all duration-300 hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 ${pkg.popular
+                      ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35"
+                      : "border border-border bg-secondary text-foreground hover:bg-muted/80"
+                      }`}
                   >
                     <CreditCard className="h-4 w-4" />
                     <span>Buy Credits</span>
@@ -1073,6 +1109,54 @@ export default function Home() {
           </div>
         </section>
       </main>
+
+      {/* ─── Theme-Styled Alert Popup Modal ───────────────── */}
+      {alertDialog.isOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/85 backdrop-blur-md p-4 animate-in fade-in duration-200">
+          <div className="w-full max-w-md bg-zinc-900 border border-zinc-700/80 rounded-3xl p-6 space-y-5 relative shadow-2xl scale-100 transition-all">
+            <button
+              onClick={() => setAlertDialog((prev) => ({ ...prev, isOpen: false }))}
+              className="absolute top-4 right-4 p-1.5 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white transition-colors cursor-pointer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+
+            <div className="flex items-start gap-4">
+              <div
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
+                  alertDialog.variant === "danger"
+                    ? "bg-red-500/10 border-red-500/20 text-red-400"
+                    : alertDialog.variant === "success"
+                    ? "bg-green-500/10 border-green-500/20 text-green-400"
+                    : alertDialog.variant === "warning"
+                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                    : "bg-[#fe9a00]/10 border-[#fe9a00]/20 text-[#fe9a00]"
+                }`}
+              >
+                <AlertCircle className="h-6 w-6" />
+              </div>
+
+              <div className="space-y-1 pr-6 min-w-0">
+                <h3 className="text-base sm:text-lg font-black text-white tracking-tight">
+                  {alertDialog.title}
+                </h3>
+                <p className="text-xs sm:text-sm text-zinc-400 font-medium leading-relaxed">
+                  {alertDialog.message}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end pt-3 border-t border-zinc-800">
+              <button
+                onClick={() => setAlertDialog((prev) => ({ ...prev, isOpen: false }))}
+                className="w-full sm:w-auto rounded-xl px-5 py-2.5 text-xs font-black bg-[#fe9a00] text-black hover:bg-[#e08800] transition-all shadow-lg shadow-[#fe9a00]/20 cursor-pointer"
+              >
+                OK
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>
