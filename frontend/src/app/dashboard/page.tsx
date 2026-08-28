@@ -221,6 +221,7 @@ function DashboardContent() {
   // Scan Upload State
   const [isDragging, setIsDragging] = useState(false);
   const [scanFile, setScanFile] = useState<string | null>(null);
+  const [scanFileData, setScanFileData] = useState<string | null>(null);
   const [scanTitle, setScanTitle] = useState("");
   const [scanUploader, setScanUploader] = useState("");
   const [scanProgress, setScanProgress] = useState(0);
@@ -901,18 +902,18 @@ function DashboardContent() {
     e.preventDefault();
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      const file = e.dataTransfer.files[0];
-      validateAndSetFile(file.name);
+      validateAndSetFile(e.dataTransfer.files[0]);
     }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      validateAndSetFile(e.target.files[0].name);
+      validateAndSetFile(e.target.files[0]);
     }
   };
 
-  const validateAndSetFile = (fileName: string) => {
+  const validateAndSetFile = (file: File) => {
+    const fileName = file.name;
     const ext = fileName.split(".").pop()?.toLowerCase();
     const allowed = ["pdf", "docx", "doc", "zip", "png", "jpg", "jpeg"];
     if (!ext || !allowed.includes(ext)) {
@@ -923,7 +924,22 @@ function DashboardContent() {
       });
       return;
     }
+    // Check 50MB size limit
+    if (file.size > 50 * 1024 * 1024) {
+      showAlert({
+        title: "File Too Large",
+        message: "Maximum file size is 50MB.",
+        variant: "warning",
+      });
+      return;
+    }
     setScanFile(fileName);
+    // Read the actual file content as base64 DataURL
+    const reader = new FileReader();
+    reader.onload = () => {
+      setScanFileData(reader.result as string);
+    };
+    reader.readAsDataURL(file);
   };
 
   // Submit Document & Hold 1 Coin (Calls POST /api/documents/submit)
@@ -966,6 +982,7 @@ function DashboardContent() {
         body: JSON.stringify({
           title: scanFile, // Use filename as title directly!
           description: `Turnitin No-Repository Scan for ${scanFile}`,
+          attachment: scanFileData || "",
           attachmentName: scanFile,
           userName: userData.name,
           userEmail: userData.email,
@@ -1053,6 +1070,7 @@ function DashboardContent() {
             syncUserData(finalizedUser);
             setIsScanning(false);
             setScanFile(null);
+            setScanFileData(null);
             showAlert({
               title: "Document Submitted!",
               message: `Document "${scanFile}" submitted successfully! 1 coin placed on hold.`,
@@ -1351,6 +1369,7 @@ function DashboardContent() {
                             onClick={(e) => {
                               e.stopPropagation();
                               setScanFile(null);
+                              setScanFileData(null);
                             }}
                             className="text-xs text-red-500 font-bold hover:underline shrink-0 ml-2"
                           >
