@@ -48,8 +48,8 @@ router.post("/upload-slip", async (req, res) => {
       }
     }
 
-    // Save uploaded slip file to server disk
-    const savedSlipPath = saveFileToDisk(slipImage, `slip_${finalUserName}`);
+    // Save uploaded slip file to server disk in user folder
+    const savedSlipPath = saveFileToDisk(slipImage, `slip_${finalUserName}`, finalUserName || finalUserEmail);
 
     // Create payment slip in MongoDB Database
     const newSlip = await PaymentSlip.create({

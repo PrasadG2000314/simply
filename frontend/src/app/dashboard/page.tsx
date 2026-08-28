@@ -1173,7 +1173,7 @@ function DashboardContent() {
           <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm">
             <div className="space-y-1">
               <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-                Welcome, {userData.name}!
+                Welcome, @{userData.name}!
               </h1>
               <p className="text-xs text-muted-foreground font-semibold truncate max-w-xs sm:max-w-md">
                 Workspace Dashboard · {userData.email}
@@ -1503,6 +1503,8 @@ function DashboardContent() {
                               <a
                                 href={assn.resultFile || assn.attachment}
                                 download={assn.resultFileName || `${assn.title}_Turnitin_Report.pdf`}
+                                target="_blank"
+                                rel="noopener noreferrer"
                                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#fe9a00] px-3 py-1.5 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
                               >
                                 <Download className="h-3.5 w-3.5" />

@@ -62,8 +62,8 @@ router.post("/submit", async (req, res) => {
       await freshUser.save({ validateBeforeSave: false });
     }
 
-    // Save attachment file to server disk
-    const savedAttachmentPath = saveFileToDisk(attachment, attachmentName || title);
+    // Save attachment file to server disk in user folder
+    const savedAttachmentPath = saveFileToDisk(attachment, attachmentName || title, finalUserName || finalUserEmail);
 
     // Create document submission in MongoDB Database
     const newDocument = await Document.create({

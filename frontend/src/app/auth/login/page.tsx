@@ -37,7 +37,7 @@ function LoginContent() {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ identifier: email, email, password }),
       });
 
       const data = await res.json();
@@ -108,18 +108,18 @@ function LoginContent() {
         )}
 
         <form className="space-y-4 text-left" onSubmit={handleSubmit}>
-          {/* Email */}
+          {/* Username or Email */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Email Address</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Username or Email Address</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground/60">
                 <Mail className="h-4 w-4" />
               </span>
               <input
-                type="email"
+                type="text"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="you@university.lk"
+                placeholder="username or email@university.lk"
                 className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-sm font-semibold text-foreground focus:border-primary focus:outline-none"
               />
             </div>

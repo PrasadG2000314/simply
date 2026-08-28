@@ -1,22 +1,33 @@
 const fs = require("fs");
 const path = require("path");
 
-// Ensure uploads directory exists
+// Ensure base uploads directory exists
 const UPLOADS_DIR = path.join(__dirname, "../../uploads");
 if (!fs.existsSync(UPLOADS_DIR)) {
   fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 }
 
 /**
- * Saves base64 string or data URL to server disk in ./uploads/
- * Returns relative public URL path e.g. "/uploads/1724859000_receipt.png"
+ * Saves base64 string or data URL to server disk in ./uploads/{userFolder}/
+ * Returns relative public URL path e.g. "/uploads/john_doe/1724859000_receipt.png"
  */
-function saveFileToDisk(dataUrl, originalName = "uploaded_file") {
+function saveFileToDisk(dataUrl, originalName = "uploaded_file", userFolder = "common") {
   if (!dataUrl || typeof dataUrl !== "string") return dataUrl || "";
 
   // If it's already a URL path (e.g. starting with /uploads/ or http), return as is
   if (dataUrl.startsWith("/uploads/") || dataUrl.startsWith("http://") || dataUrl.startsWith("https://")) {
     return dataUrl;
+  }
+
+  // Sanitize user folder name to be safe for filenames/directories
+  const cleanFolder = (userFolder || "common")
+    .split("@")[0] // If email passed, take username part before @
+    .replace(/[^a-zA-Z0-9_-]/g, "_")
+    .toLowerCase();
+
+  const targetDir = path.join(UPLOADS_DIR, cleanFolder);
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
   }
 
   // Check if string is base64 Data URL format (data:mime/type;base64,...)
@@ -44,13 +55,13 @@ function saveFileToDisk(dataUrl, originalName = "uploaded_file") {
   // Create safe unique filename
   const cleanName = (originalName || "file").replace(/[^a-zA-Z0-9_\.-]/g, "_");
   const fileName = `${Date.now()}_${cleanName.endsWith(`.${ext}`) ? cleanName : `${cleanName}.${ext}`}`;
-  const filePath = path.join(UPLOADS_DIR, fileName);
+  const filePath = path.join(targetDir, fileName);
 
   // Write file bytes directly to server disk
   fs.writeFileSync(filePath, buffer);
 
-  // Return public URL path
-  return `/uploads/${fileName}`;
+  // Return public URL path e.g. /uploads/john_doe/1724859000_receipt.jpg
+  return `/uploads/${cleanFolder}/${fileName}`;
 }
 
 module.exports = { saveFileToDisk, UPLOADS_DIR };

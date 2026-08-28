@@ -54,7 +54,7 @@ function RegisterContent() {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fullName: name, email, password }),
+        body: JSON.stringify({ username: name, fullName: name, email, password }),
       });
 
       const data = await res.json();
@@ -125,9 +125,9 @@ function RegisterContent() {
         )}
 
         <form className="space-y-4 text-left" onSubmit={handleSubmit}>
-          {/* Name */}
+          {/* Username */}
           <div className="space-y-1">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Full Name</label>
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Username</label>
             <div className="relative">
               <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground/60">
                 <User className="h-4 w-4" />
@@ -135,8 +135,8 @@ function RegisterContent() {
               <input
                 type="text"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Kasun Perera"
+                onChange={(e) => setName(e.target.value.toLowerCase().replace(/[^a-z0-9_.-]/g, ""))}
+                placeholder="john_doe"
                 className="w-full rounded-xl border border-border bg-background py-2.5 pl-10 pr-4 text-sm font-semibold text-foreground focus:border-primary focus:outline-none"
               />
             </div>
@@ -219,9 +219,8 @@ function RegisterContent() {
           <p className="text-xs text-muted-foreground font-semibold">
             Already have an account?{" "}
             <Link
-              href={`/auth/login${
-                searchParams.toString() ? "?" + searchParams.toString() : ""
-              }`}
+              href={`/auth/login${searchParams.toString() ? "?" + searchParams.toString() : ""
+                }`}
               className="text-primary hover:underline font-bold"
             >
               Sign In

@@ -27,6 +27,7 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 interface UserRecord {
   id: string;
+  username?: string;
   fullName: string;
   email: string;
   credits: number;
@@ -904,6 +905,8 @@ function AdminDashboardContent() {
                           <a
                             href={assn.attachment}
                             download={assn.attachmentName || "Customer_Document"}
+                            target="_blank"
+                            rel="noopener noreferrer"
                             className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-extrabold text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer shadow-sm max-w-full"
                           >
                             <Paperclip className="h-3.5 w-3.5 shrink-0" />
@@ -1145,7 +1148,7 @@ function AdminDashboardContent() {
                           {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
                         </div>
                         <div className="min-w-0">
-                          <p className="text-xs font-black text-white truncate">{user.fullName}</p>
+                          <p className="text-xs font-black text-white truncate">@{user.username || user.fullName}</p>
                           <p className="text-[11px] text-zinc-400 font-medium truncate">{user.email}</p>
                         </div>
                       </div>
@@ -1476,6 +1479,8 @@ function AdminDashboardContent() {
                 <a
                   href={targetApproveDocument.attachment}
                   download={targetApproveDocument.attachmentName || "customer_document"}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="px-3 py-1 rounded-lg bg-amber-500 text-black font-extrabold hover:bg-amber-400 text-xs shrink-0"
                 >
                   Download File

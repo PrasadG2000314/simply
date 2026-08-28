@@ -15,19 +15,29 @@ const signToken = (id) => {
 // ─── POST /api/auth/register ──────────────────────────────────────────────────
 router.post("/register", async (req, res) => {
   try {
-    const { fullName, email, password } = req.body;
+    const { username, fullName, email, password } = req.body;
+    const finalUsername = (username || fullName || "").toLowerCase().trim();
 
     // Validate required fields
-    if (!fullName || !email || !password) {
+    if (!finalUsername || !email || !password) {
       return res.status(400).json({
         success: false,
-        message: "Full name, email, and password are required.",
+        message: "Username, email, and password are required.",
+      });
+    }
+
+    // Check if username already exists
+    const existingUsername = await User.findOne({ username: finalUsername });
+    if (existingUsername) {
+      return res.status(409).json({
+        success: false,
+        message: "Username is already taken. Please choose a different username.",
       });
     }
 
     // Check if email already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
+    const existingEmail = await User.findOne({ email: email.toLowerCase() });
+    if (existingEmail) {
       return res.status(409).json({
         success: false,
         message: "An account with this email already exists.",
@@ -35,7 +45,12 @@ router.post("/register", async (req, res) => {
     }
 
     // Create new user (password auto-hashed via pre-save hook)
-    const user = await User.create({ fullName, email, password });
+    const user = await User.create({
+      username: finalUsername,
+      fullName: finalUsername,
+      email: email.toLowerCase(),
+      password,
+    });
 
     // Generate JWT token
     const token = signToken(user._id);
@@ -50,7 +65,8 @@ router.post("/register", async (req, res) => {
       token,
       user: {
         id: user._id,
-        fullName: user.fullName,
+        username: user.username,
+        fullName: user.username,
         email: user.email,
         credits: user.credits || 0,
         holdCredits: user.holdCredits || 0,
@@ -60,7 +76,15 @@ router.post("/register", async (req, res) => {
   } catch (error) {
     console.error("Register error:", error);
 
-    // Handle Mongoose validation errors
+    // Handle Mongoose validation / duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || "field";
+      return res.status(409).json({
+        success: false,
+        message: `This ${field} is already taken. Please choose another one.`,
+      });
+    }
+
     if (error.name === "ValidationError") {
       const messages = Object.values(error.errors).map((e) => e.message);
       return res.status(400).json({ success: false, message: messages[0] });
@@ -73,22 +97,25 @@ router.post("/register", async (req, res) => {
 // ─── POST /api/auth/login ─────────────────────────────────────────────────────
 router.post("/login", async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { identifier, email, username, password } = req.body;
+    const loginKey = (identifier || email || username || "").toLowerCase().trim();
 
-    if (!email || !password) {
+    if (!loginKey || !password) {
       return res.status(400).json({
         success: false,
-        message: "Email and password are required.",
+        message: "Username or Email and password are required.",
       });
     }
 
-    // Find user and include password field for comparison
-    const user = await User.findOne({ email: email.toLowerCase() }).select("+password");
+    // Find user by either email OR username
+    const user = await User.findOne({
+      $or: [{ email: loginKey }, { username: loginKey }],
+    }).select("+password");
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email address or password.",
+        message: "Invalid username/email or password.",
       });
     }
 
@@ -97,7 +124,7 @@ router.post("/login", async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email address or password.",
+        message: "Invalid username/email or password.",
       });
     }
 
@@ -114,7 +141,8 @@ router.post("/login", async (req, res) => {
       token,
       user: {
         id: user._id,
-        fullName: user.fullName,
+        username: user.username || user.fullName,
+        fullName: user.username || user.fullName,
         email: user.email,
         credits: user.credits || 0,
         holdCredits: user.holdCredits || 0,
@@ -134,7 +162,8 @@ router.get("/me", protect, async (req, res) => {
       success: true,
       user: {
         id: req.user._id,
-        fullName: req.user.fullName,
+        username: req.user.username || req.user.fullName,
+        fullName: req.user.username || req.user.fullName,
         email: req.user.email,
         credits: req.user.credits || 0,
         holdCredits: req.user.holdCredits || 0,
