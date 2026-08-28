@@ -13,7 +13,6 @@ import {
   AlertCircle,
   XCircle,
   Download,
-  Trash2,
   Lock,
   CreditCard,
   Building2,
@@ -23,9 +22,7 @@ import {
   FileCheck,
   Eye,
   Sparkles,
-  Info,
   BookOpen,
-  Calendar,
   Send,
   Paperclip,
   Check,
@@ -311,6 +308,7 @@ function DashboardContent() {
         setScanUploader(activeUser.name);
       }
     }, 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router, searchParams]);
 
   // Sync state back to local storage
@@ -518,6 +516,7 @@ function DashboardContent() {
     };
 
     const effectiveDesc = assignDesc || assignTitle || "Uploaded document";
+    // eslint-disable-next-line react-hooks/purity
     const effectiveDeadline = assignDeadline || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
     if (token) {
@@ -556,6 +555,7 @@ function DashboardContent() {
           const docObj = data.document || data.assignment;
           const newLocalAssn: DocumentRecord = {
             _id: docObj?._id,
+            // eslint-disable-next-line react-hooks/purity
             id: docObj?._id || Date.now().toString(),
             userName: userData.name,
             userEmail: userData.email,
@@ -591,6 +591,7 @@ function DashboardContent() {
       syncUserData(updatedUser);
 
       const newAssn: AssignmentRecord = {
+        // eslint-disable-next-line react-hooks/purity
         id: Date.now().toString(),
         userName: userData.name,
         userEmail: userData.email,
@@ -1175,7 +1176,7 @@ function DashboardContent() {
                           <div>
                             <p className="truncate text-xs font-extrabold">{assn.title || assn.attachmentName}</p>
                             <p className="text-[10px] text-muted-foreground font-semibold">
-                              Submitted: {new Date(assn.createdAt || Date.now()).toLocaleDateString("en-LK")}
+                              Submitted: {assn.createdAt ? new Date(assn.createdAt).toLocaleDateString("en-LK") : "N/A"}
                             </p>
                           </div>
                         </td>
@@ -1481,13 +1482,13 @@ function DashboardContent() {
               <div>
                 <p className="text-[10px] font-bold text-muted-foreground uppercase">Deadline</p>
                 <p className="font-extrabold text-foreground">
-                  {new Date(activeAssignmentModal.deadline || Date.now()).toLocaleString("en-LK", {
+                  {activeAssignmentModal.deadline ? new Date(activeAssignmentModal.deadline).toLocaleString("en-LK", {
                     year: "numeric",
                     month: "short",
                     day: "numeric",
                     hour: "2-digit",
                     minute: "2-digit",
-                  })}
+                  }) : "N/A"}
                 </p>
               </div>
 

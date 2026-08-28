@@ -3,7 +3,7 @@
 import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ShieldCheck, Mail, Lock, User, Check, ArrowRight, Loader2 } from "lucide-react";
+import { Mail, Lock, User, Check, ArrowRight, Loader2 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 

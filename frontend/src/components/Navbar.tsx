@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTheme, useLanguage } from "../app/providers";
-import { Globe, Sun, Moon, Menu, X, ShieldCheck, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { Globe, Sun, Moon, Menu, X, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
 
 export default function Navbar() {
   const { theme, toggleTheme } = useTheme();

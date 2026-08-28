@@ -4,15 +4,11 @@ import React, { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
-  ShieldCheck,
   Users,
   LogOut,
   RefreshCw,
   Search,
-  UserCheck,
-  UserPlus,
   Activity,
-  Calendar,
   Building2,
   CheckCircle,
   XCircle,
@@ -95,7 +91,13 @@ function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState<"assignments" | "slips" | "users">("assignments");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
-  const [adminUser, setAdminUser] = useState<{ username: string } | null>(null);
+  const [adminUser] = useState<{ username: string } | null>(() => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("adminUser");
+      return stored ? JSON.parse(stored) : null;
+    }
+    return null;
+  });
   const [error, setError] = useState("");
 
   // Modals state
@@ -217,8 +219,7 @@ function AdminDashboardContent() {
       router.push("/admin/login");
       return;
     }
-    const stored = localStorage.getItem("adminUser");
-    if (stored) setAdminUser(JSON.parse(stored));
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -796,7 +797,7 @@ function AdminDashboardContent() {
                           <div>
                             <p className="text-xs font-bold text-white truncate">{assn.title}</p>
                             <p className="text-[10px] text-zinc-500 font-normal">
-                              Submitted: {new Date(assn.createdAt || Date.now()).toLocaleDateString("en-LK")}
+                              Submitted: {assn.createdAt ? new Date(assn.createdAt).toLocaleDateString("en-LK") : "N/A"}
                             </p>
                           </div>
                         </td>
