@@ -903,10 +903,7 @@ function AdminDashboardContent() {
                         <p className="text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest mb-1">Original Customer File</p>
                         {assn.attachment ? (
                           <a
-                            href={assn.attachment}
-                            download={assn.attachmentName || "Customer_Document"}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                            href={`/api/download?file=${encodeURIComponent(assn.attachment)}&name=${encodeURIComponent(assn.attachmentName || "Customer_Document")}`}
                             className="inline-flex items-center gap-1.5 rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-1.5 text-xs font-extrabold text-amber-400 hover:bg-amber-500/20 transition-all cursor-pointer shadow-sm max-w-full"
                           >
                             <Paperclip className="h-3.5 w-3.5 shrink-0" />
@@ -1238,10 +1235,7 @@ function AdminDashboardContent() {
                       📎 {activeAssignmentModal.attachmentName || "Attached_Document"}
                     </span>
                     <a
-                      href={activeAssignmentModal.attachment}
-                      download={activeAssignmentModal.attachmentName || "attachment"}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                      href={`/api/download?file=${encodeURIComponent(activeAssignmentModal.attachment || "")}&name=${encodeURIComponent(activeAssignmentModal.attachmentName || "attachment")}`}
                       className="px-3 py-1 rounded-lg bg-primary text-black font-extrabold hover:bg-primary/90 text-xs shrink-0"
                     >
                       Download
@@ -1479,10 +1473,7 @@ function AdminDashboardContent() {
                   📁 Customer File: {targetApproveDocument.attachmentName || "Uploaded_Document"}
                 </span>
                 <a
-                  href={targetApproveDocument.attachment}
-                  download={targetApproveDocument.attachmentName || "customer_document"}
-                  target="_blank"
-                  rel="noopener noreferrer"
+                  href={`/api/download?file=${encodeURIComponent(targetApproveDocument.attachment || "")}&name=${encodeURIComponent(targetApproveDocument.attachmentName || "customer_document")}`}
                   className="px-3 py-1 rounded-lg bg-amber-500 text-black font-extrabold hover:bg-amber-400 text-xs shrink-0"
                 >
                   Download File

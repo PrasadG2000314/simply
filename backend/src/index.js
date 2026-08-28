@@ -28,6 +28,29 @@ app.use(express.urlencoded({ limit: "100mb", extended: true }));
 // Serve uploaded files statically from ./uploads directory
 app.use("/uploads", express.static(path.join(__dirname, "../uploads")));
 
+// Force-download endpoint: GET /api/download?file=/uploads/username/file.pdf
+app.get("/api/download", (req, res) => {
+  const filePath = req.query.file;
+  if (!filePath || typeof filePath !== "string" || !filePath.startsWith("/uploads/")) {
+    return res.status(400).json({ success: false, message: "Invalid file path" });
+  }
+  // Convert URL path to absolute disk path
+  const relativePath = filePath.replace(/^\/uploads\//, "");
+  const absolutePath = path.join(__dirname, "../uploads", relativePath);
+  // Security: prevent directory traversal
+  const uploadsDir = path.resolve(path.join(__dirname, "../uploads"));
+  const resolved = path.resolve(absolutePath);
+  if (!resolved.startsWith(uploadsDir)) {
+    return res.status(403).json({ success: false, message: "Access denied" });
+  }
+  const fileName = req.query.name || path.basename(absolutePath);
+  res.download(resolved, fileName, (err) => {
+    if (err && !res.headersSent) {
+      res.status(404).json({ success: false, message: "File not found" });
+    }
+  });
+});
+
 // ─── Routes ───────────────────────────────────────────────────────────────────
 app.use("/api/auth", require("./routes/auth"));
 app.use("/api/admin", require("./routes/admin"));

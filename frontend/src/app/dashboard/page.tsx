@@ -1475,8 +1475,7 @@ function DashboardContent() {
                         <td className="py-3.5 text-center">
                           {assn.attachment || assn.attachmentName ? (
                             <a
-                              href={assn.attachment || "#"}
-                              download={assn.attachmentName || assn.title || "Uploaded_Document"}
+                              href={assn.attachment ? `/api/download?file=${encodeURIComponent(assn.attachment)}&name=${encodeURIComponent(assn.attachmentName || assn.title || "Uploaded_Document")}` : "#"}
                               className="inline-flex items-center gap-1.5 rounded-lg border border-border px-2.5 py-1 text-xs font-bold text-foreground hover:bg-secondary transition-colors cursor-pointer"
                             >
                               <Paperclip className="h-3.5 w-3.5 text-primary" />
@@ -1520,10 +1519,7 @@ function DashboardContent() {
                           {assn.status === "approved" ? (
                             <div className="flex flex-col items-center gap-1">
                               <a
-                                href={assn.resultFile || assn.attachment}
-                                download={assn.resultFileName || `${assn.title}_Turnitin_Report.pdf`}
-                                target="_blank"
-                                rel="noopener noreferrer"
+                                href={`/api/download?file=${encodeURIComponent(assn.resultFile || assn.attachment || "")}&name=${encodeURIComponent(assn.resultFileName || `${assn.title}_Turnitin_Report.pdf`)}`}
                                 className="inline-flex items-center gap-1.5 rounded-xl bg-[#fe9a00] px-3 py-1.5 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
                               >
                                 <Download className="h-3.5 w-3.5" />
@@ -1839,8 +1835,7 @@ function DashboardContent() {
                   )}
                   <div className="pt-2">
                     <a
-                      href={activeAssignmentModal.resultFile || activeAssignmentModal.attachment}
-                      download={activeAssignmentModal.resultFileName || `${activeAssignmentModal.title}_Turnitin_Report.pdf`}
+                      href={`/api/download?file=${encodeURIComponent(activeAssignmentModal.resultFile || activeAssignmentModal.attachment || "")}&name=${encodeURIComponent(activeAssignmentModal.resultFileName || `${activeAssignmentModal.title}_Turnitin_Report.pdf`)}`}
                       className="inline-flex items-center gap-2 rounded-xl bg-[#fe9a00] px-4 py-2 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
                     >
                       <Paperclip className="h-4 w-4" />
