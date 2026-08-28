@@ -227,7 +227,7 @@ const handleApproveDocument = async (req, res) => {
 
     document.status = "approved";
     if (resultFile) {
-      document.resultFile = saveFileToDisk(resultFile, resultFileName || `turnitin_report_${document.title}`);
+      document.resultFile = saveFileToDisk(resultFile, resultFileName || `turnitin_report_${document.title}`, document.userName || document.userEmail);
     }
     if (resultFileName) document.resultFileName = resultFileName;
     if (similarityScore !== undefined && similarityScore !== null && similarityScore !== "") {

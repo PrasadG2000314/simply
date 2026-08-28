@@ -1240,6 +1240,8 @@ function AdminDashboardContent() {
                     <a
                       href={activeAssignmentModal.attachment}
                       download={activeAssignmentModal.attachmentName || "attachment"}
+                      target="_blank"
+                      rel="noopener noreferrer"
                       className="px-3 py-1 rounded-lg bg-primary text-black font-extrabold hover:bg-primary/90 text-xs shrink-0"
                     >
                       Download
