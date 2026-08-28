@@ -4,6 +4,7 @@ const User = require("../models/User");
 const PaymentSlip = require("../models/PaymentSlip");
 const Document = require("../models/Document");
 const { adminProtect } = require("../middleware/adminAuth");
+const { saveFileToDisk } = require("../utils/fileStorage");
 
 const router = express.Router();
 
@@ -225,7 +226,9 @@ const handleApproveDocument = async (req, res) => {
     const { resultFile, resultFileName, similarityScore, aiScore, adminNote } = req.body;
 
     document.status = "approved";
-    if (resultFile) document.resultFile = resultFile;
+    if (resultFile) {
+      document.resultFile = saveFileToDisk(resultFile, resultFileName || `turnitin_report_${document.title}`);
+    }
     if (resultFileName) document.resultFileName = resultFileName;
     if (similarityScore !== undefined && similarityScore !== null && similarityScore !== "") {
       document.similarityScore = Number(similarityScore);

@@ -537,10 +537,27 @@ function DashboardContent() {
     localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
   };
 
-  // Handle Slip Image Selection with Canvas Compression
+  // Handle Slip Image Selection with Canvas Compression & 10MB Limit Check
   const handleSlipFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+
+      if (file.size > MAX_FILE_SIZE) {
+        const sizeMB = (file.size / (1024 * 1024)).toFixed(1);
+        const errorMsg = `File size (${sizeMB}MB) exceeds 10MB limit. Please upload a receipt under 10MB.`;
+        setCheckoutError(errorMsg);
+        showAlert({
+          title: "File Exceeds 10MB Limit",
+          message: `The selected bank slip file is ${sizeMB}MB. Maximum allowed file size is 10MB.`,
+          variant: "warning",
+        });
+        setSlipFile(null);
+        setSlipPreview(null);
+        if (slipInputRef.current) slipInputRef.current.value = "";
+        return;
+      }
+
       setSlipFile(file);
       setCheckoutError("");
 
@@ -1976,9 +1993,10 @@ function DashboardContent() {
                         </button>
                       </div>
                     ) : (
-                      <div className="py-4 space-y-2">
+                      <div className="py-4 space-y-1.5">
                         <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
                         <p className="text-xs font-bold">Click to upload transfer receipt</p>
+                        <p className="text-[10px] text-muted-foreground font-semibold">PNG, JPG, or PDF (Max File Size: 10MB)</p>
                       </div>
                     )}
                   </div>

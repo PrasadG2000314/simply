@@ -32,6 +32,8 @@ services:
       - ADMIN_JWT_SECRET=admin_super_secret_change_in_production
     expose:
       - "5000"
+    volumes:
+      - uploads_data:/app/uploads
     depends_on:
       - db
     networks:
@@ -76,6 +78,7 @@ services:
 # ─── Persistent Volumes ───────────────────────────────────────────────────────
 volumes:
   mongodb_data:
+  uploads_data:
 
 # ─── Network ─────────────────────────────────────────────────────────────────
 networks:

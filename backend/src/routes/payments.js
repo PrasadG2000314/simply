@@ -5,6 +5,8 @@ const User = require("../models/User");
 
 const router = express.Router();
 
+const { saveFileToDisk } = require("../utils/fileStorage");
+
 // ─── POST /api/payments/upload-slip ──────────────────────────────────────────
 router.post("/upload-slip", async (req, res) => {
   try {
@@ -46,6 +48,9 @@ router.post("/upload-slip", async (req, res) => {
       }
     }
 
+    // Save uploaded slip file to server disk
+    const savedSlipPath = saveFileToDisk(slipImage, `slip_${finalUserName}`);
+
     // Create payment slip in MongoDB Database
     const newSlip = await PaymentSlip.create({
       userId,
@@ -54,7 +59,7 @@ router.post("/upload-slip", async (req, res) => {
       packageName,
       credits: Number(credits),
       amount: Number(amount),
-      slipImage,
+      slipImage: savedSlipPath,
       status: "pending",
     });
 

@@ -5,6 +5,8 @@ const User = require("../models/User");
 
 const router = express.Router();
 
+const { saveFileToDisk } = require("../utils/fileStorage");
+
 // ─── POST /api/documents/submit ──────────────────────────────────────────────
 router.post("/submit", async (req, res) => {
   try {
@@ -60,6 +62,9 @@ router.post("/submit", async (req, res) => {
       await freshUser.save({ validateBeforeSave: false });
     }
 
+    // Save attachment file to server disk
+    const savedAttachmentPath = saveFileToDisk(attachment, attachmentName || title);
+
     // Create document submission in MongoDB Database
     const newDocument = await Document.create({
       userId,
@@ -70,7 +75,7 @@ router.post("/submit", async (req, res) => {
       requirements: requirements || "",
       deliverables: deliverables || "",
       deadline: deadline ? new Date(deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
-      attachment: attachment || "",
+      attachment: savedAttachmentPath,
       attachmentName: attachmentName || "",
       status: "pending",
     });
