@@ -53,16 +53,24 @@ jobs:
             echo "🐳 Building and deploying Docker containers..."
             docker compose up -d --build --remove-orphans
 
-            echo "🔒 Requesting real browser-trusted Let's Encrypt SSL certificate..."
-            sudo docker run --rm \
-              -v simply_certbot_etc:/etc/letsencrypt \
-              -v simply_certbot_www:/var/www/certbot \
-              certbot/certbot certonly --webroot -w /var/www/certbot \
-              -d turnipass.com -d www.turnipass.com \
-              --email admin@turnipass.com --agree-tos --force-renewal --non-interactive || true
+            echo "🔒 Requesting official Let's Encrypt SSL certificate via Standalone mode..."
+            sudo docker compose stop nginx || true
 
-            echo "🔄 Reloading Nginx with new SSL certificate..."
-            sudo docker compose exec -T nginx nginx -s reload || true
+            sudo docker run --rm \
+              -p 80:80 \
+              -v simply_certbot_etc:/etc/letsencrypt \
+              certbot/certbot certonly --standalone \
+              -d turnipass.com -d www.turnipass.com \
+              --email admin@turnipass.com --agree-tos --non-interactive || \
+            sudo docker run --rm \
+              -p 80:80 \
+              -v simply_certbot_etc:/etc/letsencrypt \
+              certbot/certbot certonly --standalone \
+              -d turnipass.com \
+              --email admin@turnipass.com --agree-tos --non-interactive || true
+
+            echo "🚀 Starting Nginx with official SSL certificate..."
+            sudo docker compose start nginx
 
             echo "🧹 Cleaning up old Docker images..."
             docker image prune -f
