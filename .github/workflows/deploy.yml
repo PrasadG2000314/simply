@@ -36,10 +36,33 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
+            # Create certbot volume directories if they don't exist
+            echo "🔒 Setting up SSL volume paths..."
+            CERT_DIR="/var/lib/docker/volumes/simply_certbot_etc/_data/live/turnipass.com"
+            if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
+              echo "🔑 Creating temporary self-signed SSL cert for initial boot..."
+              sudo mkdir -p "$CERT_DIR"
+              sudo openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+                -keyout "$CERT_DIR/privkey.pem" \
+                -out "$CERT_DIR/fullchain.pem" \
+                -subj "/CN=turnipass.com"
+            fi
+
             echo "🐳 Building and deploying Docker containers..."
             docker compose up -d --build --remove-orphans
+
+            echo "🔒 Requesting real Let's Encrypt SSL certificate..."
+            sudo docker run --rm \
+              -v simply_certbot_etc:/etc/letsencrypt \
+              -v simply_certbot_www:/var/www/certbot \
+              certbot/certbot certonly --webroot -w /var/www/certbot \
+              -d turnipass.com -d www.turnipass.com \
+              --register-unsafely-without-email --agree-tos --non-interactive || true
+
+            echo "🔄 Reloading Nginx with new SSL certificate..."
+            sudo docker compose exec -T nginx nginx -s reload || true
 
             echo "🧹 Cleaning up old Docker images..."
             docker image prune -f
 
-            echo "✅ Deployment completed successfully!"
+            echo "✅ SSL Deployment completed successfully!"
