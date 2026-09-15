@@ -26,7 +26,7 @@ services:
       - MONGO_URI=mongodb://db:27017/simply_db
       - JWT_SECRET=change_this_to_a_strong_random_secret_in_production
       - JWT_EXPIRES_IN=7d
-      - FRONTEND_URL=http://localhost
+      - FRONTEND_URL=http://turnipass.com
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=simply@admin2024
       - ADMIN_JWT_SECRET=admin_super_secret_change_in_production
