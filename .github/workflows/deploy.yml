@@ -53,13 +53,13 @@ jobs:
             echo "🐳 Building and deploying Docker containers..."
             docker compose up -d --build --remove-orphans
 
-            echo "🔒 Requesting real Let's Encrypt SSL certificate..."
+            echo "🔒 Requesting real browser-trusted Let's Encrypt SSL certificate..."
             sudo docker run --rm \
               -v simply_certbot_etc:/etc/letsencrypt \
               -v simply_certbot_www:/var/www/certbot \
               certbot/certbot certonly --webroot -w /var/www/certbot \
               -d turnipass.com -d www.turnipass.com \
-              --register-unsafely-without-email --agree-tos --non-interactive || true
+              --email admin@turnipass.com --agree-tos --force-renewal --non-interactive || true
 
             echo "🔄 Reloading Nginx with new SSL certificate..."
             sudo docker compose exec -T nginx nginx -s reload || true
