@@ -36,8 +36,10 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
-            # Create certbot volume directories if they don't exist
+            # Create certbot volumes explicitly
             echo "🔒 Setting up SSL volume paths..."
+            sudo docker volume create simply_certbot_etc || true
+            sudo docker volume create simply_certbot_www || true
             CERT_DIR="/var/lib/docker/volumes/simply_certbot_etc/_data/live/turnipass.com"
             if [ ! -f "$CERT_DIR/fullchain.pem" ]; then
               echo "🔑 Creating temporary self-signed SSL cert for initial boot..."
