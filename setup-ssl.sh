@@ -20,128 +20,44 @@ echo "============================================"
 # Step 1: Ensure we are in the project directory
 cd "$PROJECT_DIR"
 
-# Step 2: Ensure Docker compose stack is running HTTP for ACME challenge
+# Step 2: Ensure dummy certificates exist if real ones don't exist yet
+# (Nginx requires cert files to start up with the HTTPS config in nginx.conf)
 echo ""
-echo "🚀 Step 1: Ensuring web server is active on HTTP..."
+echo "🔑 Step 1: Checking SSL certificates..."
+CERT_PATH="/var/lib/docker/volumes/simply_certbot_etc/_data/live/$DOMAIN"
+
+if [ ! -f "$CERT_PATH/fullchain.pem" ]; then
+  echo "   ⚠️  No existing SSL certificates found. Creating dummy certificate for initial Nginx startup..."
+  sudo mkdir -p "$CERT_PATH"
+  sudo openssl req -x509 -nodes -newkey rsa:2048 -days 1 \
+    -keyout "$CERT_PATH/privkey.pem" \
+    -out "$CERT_PATH/fullchain.pem" \
+    -subj "/CN=localhost"
+  echo "   ✅ Dummy certificate generated."
+fi
+
+# Step 3: Ensure Nginx container is running with nginx.conf
+echo ""
+echo "🚀 Step 2: Starting Nginx..."
 docker compose up -d nginx
 
-# Step 3: Request Let's Encrypt certificate via webroot mode
+# Step 4: Request real Let's Encrypt certificate via webroot mode
 echo ""
-echo "🔒 Step 2: Requesting Let's Encrypt SSL certificate..."
+echo "🔒 Step 3: Requesting Let's Encrypt SSL certificate..."
 docker run --rm \
   -v simply_certbot_etc:/etc/letsencrypt \
   -v simply_certbot_www:/var/www/certbot \
   certbot/certbot certonly --webroot \
   -w /var/www/certbot \
   -d "$DOMAIN" -d "$WWW_DOMAIN" \
-  --email "$EMAIL" --agree-tos --non-interactive
+  --email "$EMAIL" --agree-tos --non-interactive --force-renewal
 
 echo ""
 echo "   ✅ SSL certificate obtained successfully!"
 
-# Step 4: Update nginx.conf with HTTPS and 301 Redirects
+# Step 5: Reload Nginx with official SSL certificate
 echo ""
-echo "📝 Step 3: Updating Nginx configuration for HTTPS & Redirects..."
-cat > "$PROJECT_DIR/nginx.conf" << 'NGINX_CONF'
-events {
-    worker_connections 1024;
-}
-
-http {
-    include       mime.types;
-    default_type  application/octet-stream;
-    sendfile        on;
-    keepalive_timeout 65;
-
-    # Allow large body size for document uploads (up to 100MB)
-    client_max_body_size 100M;
-
-    # Gzip compression
-    gzip on;
-    gzip_types text/plain text/css application/json application/javascript text/xml application/xml application/xml+rss text/javascript;
-
-    # ─── HTTP: Redirect all traffic to HTTPS ──────────────────────────────────
-    server {
-        listen 80;
-        server_name turnipass.com www.turnipass.com _;
-
-        # ACME challenge path for Certbot domain validation
-        location /.well-known/acme-challenge/ {
-            root /var/www/certbot;
-        }
-
-        location / {
-            return 301 https://turnipass.com$request_uri;
-        }
-    }
-
-    # ─── HTTPS: Redirect WWW to Non-WWW ───────────────────────────────────────
-    server {
-        listen 443 ssl;
-        server_name www.turnipass.com;
-
-        ssl_certificate     /etc/letsencrypt/live/turnipass.com/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/turnipass.com/privkey.pem;
-        ssl_protocols TLSv1.2 TLSv1.3;
-        ssl_ciphers HIGH:!aNULL:!MD5;
-
-        return 301 https://turnipass.com$request_uri;
-    }
-
-    # ─── HTTPS: Main Primary Server (turnipass.com) ───────────────────────────
-    server {
-        listen 443 ssl;
-        server_name turnipass.com;
-
-        ssl_certificate     /etc/letsencrypt/live/turnipass.com/fullchain.pem;
-        ssl_certificate_key /etc/letsencrypt/live/turnipass.com/privkey.pem;
-        ssl_protocols TLSv1.2 TLSv1.3;
-        ssl_ciphers HIGH:!aNULL:!MD5;
-
-        # Backend API proxy
-        location /api/ {
-            proxy_pass http://api:5000/api/;
-            proxy_http_version 1.1;
-            proxy_set_header Host $host;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto https;
-        }
-
-        # Static Uploaded Files Proxy
-        location /uploads/ {
-            proxy_pass http://api:5000;
-            proxy_http_version 1.1;
-            proxy_set_header Host $host;
-        }
-
-        # Health check for API
-        location /health {
-            proxy_pass http://api:5000/health;
-            proxy_http_version 1.1;
-            proxy_set_header Host $host;
-        }
-
-        # Frontend Next.js proxy (catch all)
-        location / {
-            proxy_pass http://web:3000;
-            proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection 'upgrade';
-            proxy_set_header Host $host;
-            proxy_cache_bypass $http_upgrade;
-            proxy_set_header X-Real-IP $remote_addr;
-            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-            proxy_set_header X-Forwarded-Proto https;
-        }
-    }
-}
-NGINX_CONF
-echo "   ✅ Nginx configuration updated."
-
-# Step 5: Reload Nginx with SSL
-echo ""
-echo "🚀 Step 4: Reloading Nginx with SSL..."
+echo "🚀 Step 4: Reloading Nginx with official SSL certificate..."
 docker compose exec nginx nginx -s reload || docker compose restart nginx
 echo "   ✅ Nginx reloaded successfully!"
 
