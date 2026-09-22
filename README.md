@@ -67,76 +67,60 @@ simply/
 
 ---
 
-## 🚀 Quick Start (Local Development)
+## 🛠️ Development & Production Environments
 
-### Option 1: Using Docker Compose (Recommended)
+Detailed instructions can be found in [ENVIRONMENT_SETUP.md](file:///d:/Project/simply/ENVIRONMENT_SETUP.md).
 
-Run the full stack (Next.js, Express, MongoDB, and Nginx) with a single command:
+### 🧪 1. Local Development Mode
 
+#### Option A: Local Node / npm (Fastest for Development)
 ```bash
-# 1. Clone the repository
-git clone https://github.com/PrasadG2000314/simply.git
-cd simply
+# Terminal 1: Backend API (http://localhost:5000)
+npm run dev:backend
 
-# 2. Start all services in detached mode
-docker compose up -d --build
+# Terminal 2: Frontend App (http://localhost:3000)
+npm run dev:frontend
 ```
 
-Access the application:
-- 🌐 **Web Frontend & API Proxy:** `http://localhost`
-- 📡 **Direct API Health Check:** `http://localhost/health` or `http://localhost:5000/health`
-- 🗄️ **MongoDB Database:** `localhost:27017`
-
-To stop the containers:
+#### Option B: Docker Development Stack (With Hot-Reload)
 ```bash
-docker compose down
+# Launch Dev Stack (Frontend: 3000, Backend: 5000, Mongo: 27017)
+npm run dev:docker
+
+# Stop Dev Stack
+npm run dev:docker:down
 ```
 
 ---
 
-### Option 2: Running Locally Without Docker
+### 🌐 2. Production Environment Mode
 
-#### Prerequisites
-- Node.js `v18+` or `v20+`
-- MongoDB server running locally on `mongodb://localhost:27017/simply_db`
-
-#### 1. Backend Setup
 ```bash
-cd backend
-npm install
-cp .env.example .env # Update environment variables as needed
-npm run dev
-```
-*Backend server runs at `http://localhost:5000`.*
+# 1. Copy production env template
+cp .env.production.example .env
 
-#### 2. Frontend Setup
-```bash
-cd frontend
-npm install
-npm run dev
+# 2. Start full production stack (Nginx, Let's Encrypt SSL, Next.js, Express, MongoDB)
+npm run prod:docker
+
+# 3. View live production logs
+npm run prod:docker:logs
+
+# 4. Stop production stack
+npm run prod:docker:down
 ```
-*Frontend app runs at `http://localhost:3000`.*
 
 ---
 
 ## 🔐 Environment Variables
 
-### Root / Backend `.env.example`
-```env
-NODE_ENV=development
-PORT=5000
-MONGO_URI=mongodb://localhost:27017/simply_db
-JWT_SECRET=your_jwt_secret_key_here
-JWT_EXPIRES_IN=7d
-FRONTEND_URL=http://localhost:3000
+The codebase provides separate environment configurations for Development and Production:
 
-# Admin Credentials
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=change_this_password
-ADMIN_JWT_SECRET=admin_jwt_secret_here
-```
+| Environment | Config File | Purpose |
+| :--- | :--- | :--- |
+| **Development** | `.env.development` | Preset defaults for `http://localhost:3000` & `http://localhost:5000` |
+| **Production Template** | `.env.production.example` | Template for domain name, SSL, and production secrets |
+| **Overview Guide** | `.env.example` | High-level instructions for OAuth and env variables |
 
----
 
 ## 📡 API Endpoints Summary
 

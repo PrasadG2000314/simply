@@ -1,0 +1,21 @@
+{
+  "name": "simply-root",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Simply SaaS - Monorepo root scripts for Development and Production environments",
+  "scripts": {
+    "env:dev": "node scripts/switch-env.js dev",
+    "env:prod": "node scripts/switch-env.js prod",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:docker": "docker compose -f docker-compose.dev.yml up --build",
+    "dev:docker:down": "docker compose -f docker-compose.dev.yml down",
+    "prod:docker": "docker compose -f docker-compose.yml up -d --build",
+    "prod:docker:down": "docker compose -f docker-compose.yml down",
+    "prod:docker:logs": "docker compose -f docker-compose.yml logs -f",
+    "build:frontend": "npm --prefix frontend run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT"
+}
