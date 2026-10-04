@@ -147,7 +147,7 @@ export default function Contact() {
                 <div className="space-y-2 text-xs font-bold text-primary">
                   <Link href="/how-it-works" className="flex items-center gap-2 hover:underline">
                     <HelpCircle className="h-4 w-4 shrink-0" />
-                    <span>How standard scans work</span>
+                    <span>How Official Turnitin scans work</span>
                   </Link>
                   <Link href="/#pricing" className="flex items-center gap-2 hover:underline">
                     <MessageSquare className="h-4 w-4 shrink-0" />

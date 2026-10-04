@@ -57,8 +57,9 @@ function LoginContent() {
 
       const buy = searchParams.get("buy");
       const price = searchParams.get("price");
+      const name = searchParams.get("name");
       if (buy && price) {
-        router.push(`/dashboard?buy=${buy}&price=${price}`);
+        router.push(`/dashboard?buy=${buy}&price=${price}${name ? `&name=${encodeURIComponent(name)}` : ""}`);
       } else {
         router.push("/dashboard");
       }

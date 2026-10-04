@@ -29,65 +29,7 @@ type PackageTier = {
   popular?: boolean;
 };
 
-const standardPackages: PackageTier[] = [
-  {
-    name: "1 Credits",
-    credits: 1,
-    originalPrice: 1000,
-    discountedPrice: 500,
-    perCreditPrice: 500,
-    discount: "20% OFF",
-    savings: 500,
-  },
-  {
-    name: "5 Credits",
-    credits: 5,
-    originalPrice: 4750,
-    discountedPrice: 2500,
-    perCreditPrice: 500,
-    discount: "21% OFF",
-    savings: 2250,
-  },
-  {
-    name: "10 Credits",
-    credits: 10,
-    originalPrice: 9000,
-    discountedPrice: 4500,
-    perCreditPrice: 450,
-    discount: "22% OFF",
-    savings: 4500,
-    popular: true,
-  },
-  {
-    name: "Editor Elite",
-    credits: 25,
-    originalPrice: 21250,
-    discountedPrice: 10000,
-    perCreditPrice: 400,
-    discount: "24% OFF",
-    savings: 11250,
-  },
-  {
-    name: "Department",
-    credits: 50,
-    originalPrice: 40000,
-    discountedPrice: 17500,
-    perCreditPrice: 350,
-    discount: "25% OFF",
-    savings: 22500,
-  },
-  {
-    name: "Institution",
-    credits: 100,
-    originalPrice: 75000,
-    discountedPrice: 30000,
-    perCreditPrice: 300,
-    discount: "27% OFF",
-    savings: 45000,
-  },
-];
-
-const apiPackages: PackageTier[] = [
+const officialPackages: PackageTier[] = [
   {
     name: "1 Credit",
     credits: 1,
@@ -142,6 +84,64 @@ const apiPackages: PackageTier[] = [
     perCreditPrice: 500,
     discount: "27% OFF",
     savings: 25000,
+  },
+];
+
+const apiPackages: PackageTier[] = [
+  {
+    name: "1 Credit",
+    credits: 1,
+    originalPrice: 1000,
+    discountedPrice: 500,
+    perCreditPrice: 500,
+    discount: "20% OFF",
+    savings: 500,
+  },
+  {
+    name: "5 Credits",
+    credits: 5,
+    originalPrice: 4750,
+    discountedPrice: 2500,
+    perCreditPrice: 500,
+    discount: "21% OFF",
+    savings: 2250,
+  },
+  {
+    name: "10 Credits",
+    credits: 10,
+    originalPrice: 9000,
+    discountedPrice: 4500,
+    perCreditPrice: 450,
+    discount: "22% OFF",
+    savings: 4500,
+    popular: true,
+  },
+  {
+    name: "Editor Elite",
+    credits: 25,
+    originalPrice: 21250,
+    discountedPrice: 10000,
+    perCreditPrice: 400,
+    discount: "24% OFF",
+    savings: 11250,
+  },
+  {
+    name: "Department",
+    credits: 50,
+    originalPrice: 40000,
+    discountedPrice: 17500,
+    perCreditPrice: 350,
+    discount: "25% OFF",
+    savings: 22500,
+  },
+  {
+    name: "Institution",
+    credits: 100,
+    originalPrice: 75000,
+    discountedPrice: 30000,
+    perCreditPrice: 300,
+    discount: "27% OFF",
+    savings: 45000,
   },
 ];
 
@@ -253,19 +253,20 @@ function PackageCard({ pkg, onBuy }: { pkg: PackageTier; onBuy: (p: PackageTier)
 
 export default function PackagesPage() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"standard" | "api">("standard");
+  const [activeTab, setActiveTab] = useState<"official" | "api">("official");
 
-  const packages = activeTab === "standard" ? standardPackages : apiPackages;
+  const packages = activeTab === "official" ? officialPackages : apiPackages;
 
   const handleBuy = (pkg: PackageTier) => {
     const user = localStorage.getItem("currentUser") || localStorage.getItem("token");
+    const packageName = `${activeTab === "official" ? "Official Turnitin" : "API Tool"} - ${pkg.name}`;
     if (!user) {
       router.push(
-        `/auth/login?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(pkg.name)}`
+        `/auth/login?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(packageName)}`
       );
       return;
     }
-    router.push(`/dashboard?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(pkg.name)}`);
+    router.push(`/dashboard?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(packageName)}`);
   };
 
   return (
@@ -320,15 +321,15 @@ export default function PackagesPage() {
           <div className="flex justify-center">
             <div className="inline-flex rounded-xl border border-border bg-card p-1 gap-1 shadow-sm">
               <button
-                id="tab-standard"
-                onClick={() => setActiveTab("standard")}
+                id="tab-official"
+                onClick={() => setActiveTab("official")}
                 className={`px-4 sm:px-5 py-2 rounded-lg text-xs font-extrabold transition-all duration-200 cursor-pointer ${
-                  activeTab === "standard"
+                  activeTab === "official"
                     ? "bg-primary text-primary-foreground shadow-md"
                     : "text-muted-foreground hover:text-foreground"
                 }`}
               >
-                Standard / Discounted
+                Official Turnitin
               </button>
               <button
                 id="tab-api"
@@ -346,13 +347,13 @@ export default function PackagesPage() {
 
           {/* Tab description */}
           <div className="text-center">
-            {activeTab === "standard" ? (
+            {activeTab === "official" ? (
               <p className="text-xs text-muted-foreground font-semibold">
-                Best value for students, researchers, and academic writers.
+                Official Turnitin Feedback Studio reports for students, researchers, and academic writers.
               </p>
             ) : (
               <p className="text-xs text-muted-foreground font-semibold">
-                Optimized for developers and teams integrating via our API.
+                High-speed AI + Similarity checks optimized for developers and teams using API tools.
               </p>
             )}
           </div>

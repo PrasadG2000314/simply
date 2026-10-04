@@ -127,7 +127,7 @@ const FAQS = [
 
 export default function Home() {
   const [activeReportTab, setActiveReportTab] = useState<"similarity" | "ai">("similarity");
-  const [pricingTab, setPricingTab] = useState<"standard" | "api">("standard");
+  const [pricingTab, setPricingTab] = useState<"official" | "api">("official");
   const [openFaqs, setOpenFaqs] = useState<Record<number, boolean>>({});
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -569,8 +569,8 @@ export default function Home() {
               {[
                 {
                   step: "01",
-                  title: "Select Your Checking Standard",
-                  desc: "Choose the required standard for your AI + Similarity check. Select either Standard Checking or API-Based Reports based on your requirements.",
+                  title: "Select Your Checking Package",
+                  desc: "Choose the required package for your AI + Similarity check. Select either Official Turnitin Checking or API Tool Reports based on your requirements.",
                 },
                 {
                   step: "02",
@@ -580,7 +580,7 @@ export default function Home() {
                 {
                   step: "03",
                   title: "Upload Your Document",
-                  desc: "Upload your PDF, DOCX, or DOC file through the dashboard. Your document will be processed according to your selected checking standard.",
+                  desc: "Upload your PDF, DOCX, or DOC file through the dashboard. Your document will be processed according to your selected checking package.",
                 },
                 {
                   step: "04",
@@ -640,14 +640,14 @@ export default function Home() {
               <div className="flex flex-col items-center gap-3 pt-4">
                 <div className="inline-flex rounded-2xl border border-border bg-card p-1.5 gap-1.5 shadow-md">
                   <button
-                    id="home-pricing-standard"
-                    onClick={() => setPricingTab("standard")}
-                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${pricingTab === "standard"
+                    id="home-pricing-official"
+                    onClick={() => setPricingTab("official")}
+                    className={`px-6 py-2.5 rounded-xl text-xs font-extrabold transition-all duration-300 cursor-pointer ${pricingTab === "official"
                       ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-primary/25"
                       : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                       }`}
                   >
-                    Standard / Discounted
+                    Official Turnitin
                   </button>
                   <button
                     id="home-pricing-api"
@@ -661,76 +661,19 @@ export default function Home() {
                   </button>
                 </div>
                 <p className="text-xs text-muted-foreground font-semibold">
-                  {pricingTab === "standard"
-                    ? "Best value for students, researchers, and academic writers."
-                    : "Optimized for developers and teams integrating via our API."}
+                  {pricingTab === "official"
+                    ? "Official Turnitin Feedback Studio reports for students, researchers, and academic writers."
+                    : "High-speed AI + Similarity checks optimized for developers and teams using API tools."}
                 </p>
               </div>
             </div>
 
             {/* Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
-              {(pricingTab === "standard"
+              {(pricingTab === "official"
                 ? [
                   {
-                    name: "1 Credits",
-                    credits: 1,
-                    originalPrice: 1000,
-                    discountedPrice: 500,
-                    perCreditPrice: 500,
-                    discount: "20% OFF",
-                    savings: 500,
-                  },
-                  {
-                    name: "5 Credits",
-                    credits: 5,
-                    originalPrice: 4750,
-                    discountedPrice: 2500,
-                    perCreditPrice: 500,
-                    discount: "21% OFF",
-                    savings: 2250,
-                  },
-                  {
-                    name: "10 Credits",
-                    credits: 10,
-                    originalPrice: 9000,
-                    discountedPrice: 4500,
-                    perCreditPrice: 450,
-                    discount: "22% OFF",
-                    savings: 4500,
-                    popular: true,
-                  },
-                  {
-                    name: "Editor Elite",
-                    credits: 25,
-                    originalPrice: 21250,
-                    discountedPrice: 10000,
-                    perCreditPrice: 400,
-                    discount: "24% OFF",
-                    savings: 11250,
-                  },
-                  {
-                    name: "Department",
-                    credits: 50,
-                    originalPrice: 40000,
-                    discountedPrice: 17500,
-                    perCreditPrice: 350,
-                    discount: "25% OFF",
-                    savings: 22500,
-                  },
-                  {
-                    name: "Institution",
-                    credits: 100,
-                    originalPrice: 75000,
-                    discountedPrice: 30000,
-                    perCreditPrice: 300,
-                    discount: "27% OFF",
-                    savings: 45000,
-                  },
-                ]
-                : [
-                  {
-                    name: "1 Credits",
+                    name: "1 Credit",
                     credits: 1,
                     originalPrice: 1000,
                     discountedPrice: 700,
@@ -785,6 +728,63 @@ export default function Home() {
                     savings: 25000,
                   },
                 ]
+                : [
+                  {
+                    name: "1 Credit",
+                    credits: 1,
+                    originalPrice: 1000,
+                    discountedPrice: 500,
+                    perCreditPrice: 500,
+                    discount: "20% OFF",
+                    savings: 500,
+                  },
+                  {
+                    name: "5 Credits",
+                    credits: 5,
+                    originalPrice: 4750,
+                    discountedPrice: 2500,
+                    perCreditPrice: 500,
+                    discount: "21% OFF",
+                    savings: 2250,
+                  },
+                  {
+                    name: "10 Credits",
+                    credits: 10,
+                    originalPrice: 9000,
+                    discountedPrice: 4500,
+                    perCreditPrice: 450,
+                    discount: "22% OFF",
+                    savings: 4500,
+                    popular: true,
+                  },
+                  {
+                    name: "Editor Elite",
+                    credits: 25,
+                    originalPrice: 21250,
+                    discountedPrice: 10000,
+                    perCreditPrice: 400,
+                    discount: "24% OFF",
+                    savings: 11250,
+                  },
+                  {
+                    name: "Department",
+                    credits: 50,
+                    originalPrice: 40000,
+                    discountedPrice: 17500,
+                    perCreditPrice: 350,
+                    discount: "25% OFF",
+                    savings: 22500,
+                  },
+                  {
+                    name: "Institution",
+                    credits: 100,
+                    originalPrice: 75000,
+                    discountedPrice: 30000,
+                    perCreditPrice: 300,
+                    discount: "27% OFF",
+                    savings: 45000,
+                  },
+                ]
               ).map((pkg) => (
                 <div
                   key={pkg.name}
@@ -803,7 +803,7 @@ export default function Home() {
                   )}
 
                   {/* Package Label */}
-                  {pkg.name !== "1 Credits" && pkg.name !== "5 Credits" && pkg.name !== "10 Credits" && (
+                  {pkg.name !== "1 Credit" && pkg.name !== "1 Credits" && pkg.name !== "5 Credits" && pkg.name !== "10 Credits" && (
                     <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest mb-1">
                       {pkg.name}
                     </p>
@@ -875,11 +875,12 @@ export default function Home() {
                   <button
                     id={`home-buy-${pkg.credits}`}
                     onClick={() => {
+                      const packageName = `${pricingTab === "official" ? "Official Turnitin" : "API Tool"} - ${pkg.name}`;
                       const storedUser = localStorage.getItem("currentUser") || localStorage.getItem("token");
                       if (storedUser) {
-                        router.push(`/dashboard?buy=${pkg.credits}&price=${pkg.discountedPrice}`);
+                        router.push(`/dashboard?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(packageName)}`);
                       } else {
-                        router.push(`/auth/register?buy=${pkg.credits}&price=${pkg.discountedPrice}`);
+                        router.push(`/auth/register?buy=${pkg.credits}&price=${pkg.discountedPrice}&name=${encodeURIComponent(packageName)}`);
                       }
                     }}
                     className={`w-full rounded-xl py-3 text-sm font-extrabold transition-all duration-300 hover:scale-[1.02] cursor-pointer flex items-center justify-center gap-2 ${pkg.popular
