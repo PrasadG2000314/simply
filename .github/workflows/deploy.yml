@@ -54,8 +54,8 @@ jobs:
               RETRY_COUNT=$((RETRY_COUNT + 1))
               echo "🔍 Healthcheck attempt $RETRY_COUNT/$MAX_RETRIES..."
 
-              API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health || true)
-              WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/ || true)
+              API_STATUS=$(curl -k -L -s -o /dev/null -w "%{http_code}" http://localhost/health || true)
+              WEB_STATUS=$(curl -k -L -s -o /dev/null -w "%{http_code}" http://localhost/ -H "Host: turnipass.com" || true)
 
               if [ "$API_STATUS" -eq 200 ] && [ "$WEB_STATUS" -eq 200 ]; then
                 echo "✅ Backend API health status: $API_STATUS OK"
