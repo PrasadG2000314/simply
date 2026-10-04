@@ -67,6 +67,7 @@ interface DocumentRecord {
   attachmentName?: string;
   resultFile?: string;
   resultFileName?: string;
+  resultFiles?: { url?: string; name?: string; fileData?: string }[];
   similarityScore?: number;
   aiScore?: number;
   status: "pending" | "approved" | "rejected" | "cancelled" | string;
@@ -227,6 +228,7 @@ function DashboardContent() {
   const [scanProgress, setScanProgress] = useState(0);
   const [scanStatusText, setScanStatusText] = useState("");
   const [isScanning, setIsScanning] = useState(false);
+  const [isVerifyDocModalOpen, setIsVerifyDocModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchMySlips = async () => {
@@ -942,6 +944,27 @@ function DashboardContent() {
     reader.readAsDataURL(file);
   };
 
+  const initiateDocVerification = () => {
+    if (!userData || !scanFile) return;
+
+    if ((userData.credits || 0) < 1) {
+      showAlert({
+        title: "Insufficient Coins",
+        message: "You need at least 1 coin to scan a document.",
+        variant: "warning",
+      });
+      setIsCheckoutOpen(true);
+      return;
+    }
+
+    setIsVerifyDocModalOpen(true);
+  };
+
+  const confirmAndSubmitScan = async () => {
+    setIsVerifyDocModalOpen(false);
+    await startScan();
+  };
+
   // Submit Document & Hold 1 Coin (Calls POST /api/documents/submit)
   const startScan = async () => {
     if (!userData || !scanFile) return;
@@ -1072,8 +1095,8 @@ function DashboardContent() {
             setScanFile(null);
             setScanFileData(null);
             showAlert({
-              title: "Document Submitted!",
-              message: `Document "${scanFile}" submitted successfully! 1 coin placed on hold.`,
+              title: "Document Verified & Submitted!",
+              message: `Document "${scanFile}" verified & submitted successfully! 1 coin deducted. Your document is now pending Turnitin scan report from admin.`,
               variant: "success",
             });
           }, 600);
@@ -1409,7 +1432,7 @@ function DashboardContent() {
                   </div>
 
                   <button
-                    onClick={startScan}
+                    onClick={initiateDocVerification}
                     disabled={!scanFile}
                     className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 disabled:opacity-40 disabled:pointer-events-none transition-all duration-300 hover:scale-[1.01] cursor-pointer"
                   >
@@ -1488,13 +1511,13 @@ function DashboardContent() {
 
                         {/* 3. Status */}
                         <td className="py-3.5 text-center">
-                          {assn.status === "rejected" ? (
+                          {assn.status === "rejected" || assn.status === "refunded" ? (
                             <span
-                              className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-0.5 text-[10px] font-black text-red-600 border border-red-500/20"
-                              title={assn.adminNote || "1 coin refunded"}
+                              className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[10px] font-black text-blue-600 border border-blue-500/20"
+                              title={assn.adminNote || "1 coin refunded by admin"}
                             >
-                              <XCircle className="h-3 w-3" />
-                              Rejected (1 Coin Refunded)
+                              <RefreshCw className="h-3 w-3" />
+                              Refunded by Admin (+1 Coin Returned)
                             </span>
                           ) : assn.status === "cancelled" ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-gray-500/15 px-2.5 py-0.5 text-[10px] font-black text-gray-400 border border-gray-500/20">
@@ -1509,7 +1532,7 @@ function DashboardContent() {
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black text-amber-600 border border-amber-500/20">
                               <Clock className="h-3 w-3" />
-                              1 Coin On Hold
+                              1 Coin Deducted / Held
                             </span>
                           )}
                         </td>
@@ -1518,31 +1541,42 @@ function DashboardContent() {
                         <td className="py-3.5 text-center">
                           {assn.status === "approved" ? (
                             <div className="flex flex-col items-center gap-1">
-                              <a
-                                href={`/api/download?file=${encodeURIComponent(assn.resultFile || assn.attachment || "")}&name=${encodeURIComponent(assn.resultFileName || `${assn.title}_Turnitin_Report.pdf`)}`}
-                                className="inline-flex items-center gap-1.5 rounded-xl bg-[#fe9a00] px-3 py-1.5 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
-                              >
-                                <Download className="h-3.5 w-3.5" />
-                                Download Report 📥
-                              </a>
+                              {assn.resultFiles && assn.resultFiles.length > 0 ? (
+                                <div className="flex flex-col gap-1 w-full max-w-[160px]">
+                                  {assn.resultFiles.map((rf, idx) => (
+                                    <a
+                                      key={idx}
+                                      href={`/api/download?file=${encodeURIComponent(rf.url || rf.fileData || "")}&name=${encodeURIComponent(rf.name || `Report_${idx + 1}.pdf`)}`}
+                                      className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#fe9a00] px-2.5 py-1 text-[11px] font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer truncate"
+                                      title={rf.name}
+                                    >
+                                      <Download className="h-3 w-3 shrink-0" />
+                                      <span className="truncate">{rf.name || `Report ${idx + 1}`}</span>
+                                    </a>
+                                  ))}
+                                </div>
+                              ) : (
+                                <a
+                                  href={`/api/download?file=${encodeURIComponent(assn.resultFile || assn.attachment || "")}&name=${encodeURIComponent(assn.resultFileName || `${assn.title}_Turnitin_Report.pdf`)}`}
+                                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#fe9a00] px-3 py-1.5 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
+                                >
+                                  <Download className="h-3.5 w-3.5" />
+                                  Download Report 📥
+                                </a>
+                              )}
                               {assn.similarityScore !== undefined && assn.similarityScore !== null && (
                                 <span className="text-[10px] font-extrabold text-[#fe9a00]">
                                   Similarity: {assn.similarityScore}% {assn.aiScore !== undefined && assn.aiScore !== null ? `| AI: ${assn.aiScore}%` : ""}
                                 </span>
                               )}
                             </div>
-                          ) : assn.status === "cancelled" || assn.status === "rejected" ? (
-                            <span className="text-xs text-muted-foreground italic">N/A</span>
+                          ) : assn.status === "cancelled" || assn.status === "rejected" || assn.status === "refunded" ? (
+                            <span className="text-xs text-blue-600 dark:text-blue-400 font-bold italic">Refunded by Admin</span>
                           ) : (
-                            <div className="flex items-center justify-center gap-2">
-                              <button
-                                onClick={() => cancelAssignment(assn._id || assn.id || "")}
-                                className="inline-flex items-center gap-1 rounded-xl bg-red-500/10 border border-red-500/30 px-3 py-1.5 text-xs font-extrabold text-red-500 hover:bg-red-500/20 transition-all cursor-pointer"
-                              >
-                                <XCircle className="h-3.5 w-3.5" />
-                                Cancel Case
-                              </button>
-                            </div>
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-extrabold">
+                              <Clock className="h-3.5 w-3.5 animate-spin" />
+                              Awaiting Admin Scan
+                            </span>
                           )}
                         </td>
                       </tr>
@@ -1834,13 +1868,33 @@ function DashboardContent() {
                     </div>
                   )}
                   <div className="pt-2">
-                    <a
-                      href={`/api/download?file=${encodeURIComponent(activeAssignmentModal.resultFile || activeAssignmentModal.attachment || "")}&name=${encodeURIComponent(activeAssignmentModal.resultFileName || `${activeAssignmentModal.title}_Turnitin_Report.pdf`)}`}
-                      className="inline-flex items-center gap-2 rounded-xl bg-[#fe9a00] px-4 py-2 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
-                    >
-                      <Paperclip className="h-4 w-4" />
-                      Download Checked Turnitin Report 📥
-                    </a>
+                    {activeAssignmentModal.resultFiles && activeAssignmentModal.resultFiles.length > 0 ? (
+                      <div className="space-y-2">
+                        <p className="text-[11px] font-extrabold text-foreground">
+                          Turnitin Report Files ({activeAssignmentModal.resultFiles.length}):
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          {activeAssignmentModal.resultFiles.map((rf, idx) => (
+                            <a
+                              key={idx}
+                              href={`/api/download?file=${encodeURIComponent(rf.url || rf.fileData || "")}&name=${encodeURIComponent(rf.name || `Report_${idx + 1}.pdf`)}`}
+                              className="inline-flex items-center gap-2 rounded-xl bg-[#fe9a00] px-3.5 py-2 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
+                            >
+                              <Paperclip className="h-4 w-4" />
+                              Download {rf.name || `Report ${idx + 1}`} 📥
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      <a
+                        href={`/api/download?file=${encodeURIComponent(activeAssignmentModal.resultFile || activeAssignmentModal.attachment || "")}&name=${encodeURIComponent(activeAssignmentModal.resultFileName || `${activeAssignmentModal.title}_Turnitin_Report.pdf`)}`}
+                        className="inline-flex items-center gap-2 rounded-xl bg-[#fe9a00] px-4 py-2 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
+                      >
+                        <Paperclip className="h-4 w-4" />
+                        Download Checked Turnitin Report 📥
+                      </a>
+                    )}
                   </div>
                 </div>
               )}
@@ -2150,6 +2204,84 @@ function DashboardContent() {
                 }`}
               >
                 {confirmDialog.confirmText || "Confirm"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Document Upload Verification Modal */}
+      {isVerifyDocModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+          <div className="w-full max-w-lg bg-card border border-border rounded-3xl p-6 space-y-6 shadow-2xl relative text-left">
+            <button
+              onClick={() => setIsVerifyDocModalOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-xl bg-muted text-muted-foreground hover:text-foreground cursor-pointer"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            {/* Header */}
+            <div className="space-y-1.5">
+              <div className="inline-flex items-center gap-1.5 rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-xs font-black text-primary">
+                <FileCheck className="h-3.5 w-3.5" /> Confirm Document Submission
+              </div>
+              <h3 className="text-xl font-black text-foreground tracking-tight">Verify Your Document</h3>
+              <p className="text-xs text-muted-foreground font-semibold">
+                Please verify that this is the correct document before proceeding with submission.
+              </p>
+            </div>
+
+            {/* Document Details Box */}
+            <div className="p-4 bg-muted/30 border border-border/80 rounded-2xl space-y-3">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <FileText className="h-5 w-5" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-black text-foreground truncate">{scanFile}</p>
+                  <p className="text-[10px] text-muted-foreground font-semibold">Ready for Turnitin No-Repository Scan</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/60 text-xs">
+                <div className="bg-background/80 p-2.5 rounded-xl border border-border/60">
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Current Balance</p>
+                  <p className="text-sm font-black text-foreground">{userData.credits} Coins</p>
+                </div>
+                <div className="bg-primary/10 p-2.5 rounded-xl border border-primary/20">
+                  <p className="text-[10px] font-extrabold text-primary uppercase">After Submission</p>
+                  <p className="text-sm font-black text-primary">{Math.max(0, userData.credits - 1)} Coins (-1)</p>
+                </div>
+              </div>
+            </div>
+
+            {/* Notice */}
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-400 font-semibold">
+              <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
+              <div>
+                <p className="font-bold">1 Coin Deduction Notice:</p>
+                <p className="text-[11px] mt-0.5">
+                  Submitting this document will deduct 1 Coin from your account. Only admin can refund coins if requested.
+                </p>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+              <button
+                onClick={() => setIsVerifyDocModalOpen(false)}
+                className="w-full sm:w-auto px-4 py-2.5 rounded-xl border border-border text-xs font-bold text-muted-foreground hover:bg-muted cursor-pointer"
+              >
+                Cancel / Change File
+              </button>
+              <button
+                onClick={confirmAndSubmitScan}
+                disabled={isScanning}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] px-5 py-2.5 text-xs font-black text-white hover:brightness-110 shadow-md cursor-pointer disabled:opacity-50"
+              >
+                <CheckCircle className="h-4 w-4" />
+                <span>Confirm & Submit (-1 Coin)</span>
               </button>
             </div>
           </div>

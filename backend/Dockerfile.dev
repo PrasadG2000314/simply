@@ -1,0 +1,14 @@
+FROM node:20-alpine
+
+WORKDIR /app
+
+# Copy package files and install all dependencies (including devDependencies like nodemon)
+COPY package*.json ./
+RUN npm install
+
+# Copy source code
+COPY . .
+
+EXPOSE 5000
+
+CMD ["npm", "run", "dev"]

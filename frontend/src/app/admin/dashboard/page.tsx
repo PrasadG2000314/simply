@@ -21,6 +21,8 @@ import {
   BookOpen,
   Lock,
   Paperclip,
+  Trash2,
+  FileText,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -66,6 +68,7 @@ interface AssignmentRecord {
   attachmentName?: string;
   resultFile?: string;
   resultFileName?: string;
+  resultFiles?: { url?: string; name?: string; fileData?: string }[];
   similarityScore?: number;
   aiScore?: number;
   status: "pending" | "approved" | "rejected";
@@ -90,7 +93,7 @@ function AdminDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"assignments" | "slips" | "users">("assignments");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "refunded" | "rejected">("pending");
   const [search, setSearch] = useState("");
   const [adminUser] = useState<{ username: string } | null>(() => {
     if (typeof window !== "undefined") {
@@ -116,6 +119,7 @@ function AdminDashboardContent() {
   const [targetApproveDocument, setTargetApproveDocument] = useState<AssignmentRecord | null>(null);
   const [approveResultFile, setApproveResultFile] = useState<string | null>(null);
   const [approveResultFileName, setApproveResultFileName] = useState("");
+  const [approveResultFiles, setApproveResultFiles] = useState<{ url?: string; name?: string; fileData?: string }[]>([]);
   const [approveSimilarityScore, setApproveSimilarityScore] = useState("");
   const [approveAiScore, setApproveAiScore] = useState("");
   const [approveAdminNote, setApproveAdminNote] = useState("");
@@ -358,8 +362,20 @@ function AdminDashboardContent() {
   // ─── Approve Assignment Handler (Consumes 1 Held Coin) ──────────────────────
   const handleOpenApproveModal = (assn: AssignmentRecord) => {
     setTargetApproveDocument(assn);
-    setApproveResultFile(assn.resultFile || null);
-    setApproveResultFileName(assn.resultFileName || "");
+    if (assn.resultFiles && assn.resultFiles.length > 0) {
+      setApproveResultFiles(assn.resultFiles);
+      setApproveResultFile(assn.resultFiles[0].url || null);
+      setApproveResultFileName(assn.resultFiles[0].name || "");
+    } else if (assn.resultFile) {
+      const single = [{ url: assn.resultFile, name: assn.resultFileName || "Turnitin_Report.pdf" }];
+      setApproveResultFiles(single);
+      setApproveResultFile(assn.resultFile);
+      setApproveResultFileName(assn.resultFileName || "");
+    } else {
+      setApproveResultFiles([]);
+      setApproveResultFile(null);
+      setApproveResultFileName("");
+    }
     setApproveSimilarityScore(assn.similarityScore !== undefined && assn.similarityScore !== null ? String(assn.similarityScore) : "");
     setApproveAiScore(assn.aiScore !== undefined && assn.aiScore !== null ? String(assn.aiScore) : "");
     setApproveAdminNote(assn.adminNote || "");
@@ -367,26 +383,59 @@ function AdminDashboardContent() {
   };
 
   const handleApproveFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setApproveResultFileName(file.name);
+    if (e.target.files && e.target.files.length > 0) {
+      const filesArray = Array.from(e.target.files);
 
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setApproveResultFile(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      const filePromises = filesArray.map((file) => {
+        return new Promise<{ name: string; fileData: string; url?: string }>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => {
+            resolve({
+              name: file.name,
+              fileData: reader.result as string,
+            });
+          };
+          reader.readAsDataURL(file);
+        });
+      });
+
+      Promise.all(filePromises).then((newItems) => {
+        setApproveResultFiles((prev) => {
+          const updated = [...prev, ...newItems];
+          if (updated[0]) {
+            setApproveResultFile(updated[0].fileData || updated[0].url || null);
+            setApproveResultFileName(updated[0].name || "");
+          }
+          return updated;
+        });
+      });
+
+      e.target.value = "";
     }
+  };
+
+  const handleRemoveApproveFile = (indexToRemove: number) => {
+    setApproveResultFiles((prev) => {
+      const updated = prev.filter((_, i) => i !== indexToRemove);
+      if (updated.length > 0) {
+        setApproveResultFile(updated[0].fileData || updated[0].url || null);
+        setApproveResultFileName(updated[0].name || "");
+      } else {
+        setApproveResultFile(null);
+        setApproveResultFileName("");
+      }
+      return updated;
+    });
   };
 
   const handleConfirmApproveDocument = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!targetApproveDocument) return;
 
-    if (!approveResultFile && !approveResultFileName) {
+    if (approveResultFiles.length === 0) {
       showAlert({
         title: "Turnitin Report Required",
-        message: "Please select and upload the checked Turnitin result document.",
+        message: "Please select and upload at least one checked Turnitin result document.",
         variant: "warning",
       });
       return;
@@ -395,6 +444,10 @@ function AdminDashboardContent() {
     const token = getToken();
     const targetId = targetApproveDocument._id || targetApproveDocument.id;
     if (targetId) setActionLoadingId(targetId);
+
+    const primaryFile = approveResultFiles[0];
+    const primaryUrl = primaryFile.url || primaryFile.fileData || "";
+    const primaryName = primaryFile.name || "Turnitin_Checked_Report.pdf";
 
     // Sync local storage state
     const localAssns: AssignmentRecord[] = JSON.parse(
@@ -405,8 +458,9 @@ function AdminDashboardContent() {
         return {
           ...a,
           status: "approved" as const,
-          resultFile: approveResultFile || a.resultFile || "",
-          resultFileName: approveResultFileName || a.resultFileName || "Turnitin_Checked_Report.pdf",
+          resultFile: primaryUrl || a.resultFile || "",
+          resultFileName: primaryName || a.resultFileName || "Turnitin_Checked_Report.pdf",
+          resultFiles: approveResultFiles,
           similarityScore: approveSimilarityScore ? Number(approveSimilarityScore) : a.similarityScore,
           aiScore: approveAiScore ? Number(approveAiScore) : a.aiScore,
           adminNote: approveAdminNote || a.adminNote,
@@ -417,8 +471,8 @@ function AdminDashboardContent() {
     localStorage.setItem("myDocuments", JSON.stringify(updatedLocalAssns));
     localStorage.setItem("myAssignments", JSON.stringify(updatedLocalAssns));
 
-    // Decrement holdCredits in registeredUsers
-    if (targetApproveDocument.userEmail) {
+    // Decrement holdCredits in registeredUsers if needed
+    if (targetApproveDocument.userEmail && targetApproveDocument.status !== "approved") {
       const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
       if (allUsers[targetApproveDocument.userEmail]) {
         const curHold = allUsers[targetApproveDocument.userEmail].holdCredits || 0;
@@ -436,8 +490,9 @@ function AdminDashboardContent() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({
-            resultFile: approveResultFile,
-            resultFileName: approveResultFileName,
+            resultFile: primaryUrl,
+            resultFileName: primaryName,
+            resultFiles: approveResultFiles,
             similarityScore: approveSimilarityScore,
             aiScore: approveAiScore,
             adminNote: approveAdminNote,
@@ -450,7 +505,7 @@ function AdminDashboardContent() {
 
     showAlert({
       title: "Document Approved!",
-      message: `Document approved & Turnitin report uploaded for ${targetApproveDocument.userName}!`,
+      message: `Document approved & ${approveResultFiles.length} Turnitin report file(s) delivered for ${targetApproveDocument.userName}!`,
       variant: "success",
     });
     setIsApproveModalOpen(false);
@@ -574,6 +629,69 @@ function AdminDashboardContent() {
 
     setActionLoadingId(null);
     fetchData(true);
+  };
+
+  const handleRefundDocument = (assn: AssignmentRecord) => {
+    showConfirm({
+      title: "Refund Document & Credit 1 Coin?",
+      message: `Refunding this document scan will return 1 coin to ${assn.userName} (${assn.userEmail}).`,
+      confirmText: "Yes, Refund 1 Coin",
+      cancelText: "Cancel",
+      variant: "warning",
+      onConfirm: async () => {
+        const token = getToken();
+        const targetId = assn._id || assn.id;
+        if (targetId) setActionLoadingId(targetId);
+
+        // Sync local storage state
+        const localAssns: AssignmentRecord[] = JSON.parse(
+          localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
+        );
+        const updatedLocalAssns = localAssns.map((a) => {
+          if ((a._id || a.id) === targetId) {
+            return { ...a, status: "refunded" as const, adminNote: "Refunded by Admin" };
+          }
+          return a;
+        });
+        localStorage.setItem("myDocuments", JSON.stringify(updatedLocalAssns));
+        localStorage.setItem("myAssignments", JSON.stringify(updatedLocalAssns));
+
+        // Increment credits in registeredUsers
+        if (assn.userEmail) {
+          const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
+          if (allUsers[assn.userEmail]) {
+            const curCredits = allUsers[assn.userEmail].credits || 0;
+            const curHold = allUsers[assn.userEmail].holdCredits || 0;
+            allUsers[assn.userEmail].credits = curCredits + 1;
+            allUsers[assn.userEmail].holdCredits = Math.max(0, curHold - 1);
+            localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
+          }
+        }
+
+        if (token && assn._id) {
+          try {
+            await fetch(`${API_URL}/admin/documents/${assn._id}/refund`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({ adminNote: "Refunded by Admin" }),
+            });
+          } catch (err) {
+            console.error("API refund document error:", err);
+          }
+        }
+
+        showAlert({
+          title: "Document Refunded!",
+          message: `1 Coin successfully refunded to ${assn.userName}'s account balance.`,
+          variant: "success",
+        });
+        setActionLoadingId(null);
+        fetchData(true);
+      },
+    });
   };
 
   const filteredUsers = users.filter(
@@ -820,7 +938,7 @@ function AdminDashboardContent() {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
-                {(["pending", "approved", "rejected", "all"] as const).map((st) => (
+                {(["pending", "approved", "refunded", "rejected", "all"] as const).map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
@@ -881,12 +999,12 @@ function AdminDashboardContent() {
                             <CheckCircle className="h-3 w-3" /> Approved & Delivered
                           </span>
                         )}
-                        {assn.status === "rejected" && (
+                        {(assn.status === "rejected" || assn.status === "refunded") && (
                           <span
-                            className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 text-[10px] font-black text-red-400"
-                            title={assn.adminNote}
+                            className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-[10px] font-black text-blue-400"
+                            title={assn.adminNote || "Refunded by admin"}
                           >
-                            <XCircle className="h-3 w-3" /> Rejected (Refunded)
+                            <RefreshCw className="h-3 w-3" /> Refunded (+1 Coin)
                           </span>
                         )}
                       </div>
@@ -927,25 +1045,43 @@ function AdminDashboardContent() {
 
                       <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
                         {assn.status === "approved" && (
-                          <button
-                            onClick={() => handleOpenApproveModal(assn)}
-                            disabled={actionLoadingId === (assn._id || assn.id)}
-                            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600/20 border border-blue-500/40 px-4 py-2 text-xs font-black text-blue-400 hover:bg-blue-600/30 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
-                          >
-                            <Paperclip className="h-3.5 w-3.5 text-blue-400" />
-                            {assn.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
-                          </button>
+                          <>
+                            <button
+                              onClick={() => handleRefundDocument(assn)}
+                              disabled={actionLoadingId === (assn._id || assn.id)}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-black text-blue-400 hover:bg-blue-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
+                              Refund 1 Coin
+                            </button>
+                            <button
+                              onClick={() => handleOpenApproveModal(assn)}
+                              disabled={actionLoadingId === (assn._id || assn.id)}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600/20 border border-blue-500/40 px-4 py-2 text-xs font-black text-blue-400 hover:bg-blue-600/30 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                            >
+                              <Paperclip className="h-3.5 w-3.5 text-blue-400" />
+                              {assn.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
+                            </button>
+                          </>
                         )}
 
                         {assn.status === "pending" && (
                           <>
+                            <button
+                              onClick={() => handleRefundDocument(assn)}
+                              disabled={actionLoadingId === (assn._id || assn.id)}
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-black text-blue-400 hover:bg-blue-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                            >
+                              <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
+                              Refund 1 Coin
+                            </button>
                             <button
                               onClick={() => handleOpenRejectAssignmentModal(assn)}
                               disabled={actionLoadingId === (assn._id || assn.id)}
                               className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
                             >
                               <X className="h-3.5 w-3.5" />
-                              Reject & Refund
+                              Reject
                             </button>
                             <button
                               onClick={() => handleOpenApproveModal(assn)}
@@ -1249,7 +1385,25 @@ function AdminDashboardContent() {
             {activeAssignmentModal.status === "approved" && (
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-zinc-800">
                 <div className="text-xs">
-                  {activeAssignmentModal.resultFile ? (
+                  {activeAssignmentModal.resultFiles && activeAssignmentModal.resultFiles.length > 0 ? (
+                    <div className="space-y-1">
+                      <span className="text-green-400 font-bold flex items-center gap-1">
+                        <CheckCircle className="h-3.5 w-3.5 shrink-0" /> {activeAssignmentModal.resultFiles.length} Report File(s) Uploaded
+                      </span>
+                      <div className="flex flex-wrap gap-1.5 pt-1">
+                        {activeAssignmentModal.resultFiles.map((rf, idx) => (
+                          <a
+                            key={idx}
+                            href={`/api/download?file=${encodeURIComponent(rf.url || rf.fileData || "")}&name=${encodeURIComponent(rf.name || `Report_${idx + 1}.pdf`)}`}
+                            className="text-[11px] text-amber-400 font-bold hover:underline flex items-center gap-1 bg-zinc-800 px-2.5 py-1 rounded-lg border border-zinc-700"
+                          >
+                            <Paperclip className="h-3 w-3 text-amber-400" />
+                            {rf.name || `Report ${idx + 1}`}
+                          </a>
+                        ))}
+                      </div>
+                    </div>
+                  ) : activeAssignmentModal.resultFile ? (
                     <span className="text-green-400 font-bold flex items-center gap-1">
                       <CheckCircle className="h-3.5 w-3.5 shrink-0" /> Report Uploaded ({activeAssignmentModal.resultFileName || "Report.pdf"})
                     </span>
@@ -1482,32 +1636,73 @@ function AdminDashboardContent() {
             )}
 
             <form onSubmit={handleConfirmApproveDocument} className="space-y-4 pt-2">
-              {/* Checked Turnitin Document Upload Box */}
-              <div className="space-y-1">
-                <label className="text-xs font-extrabold text-white">
-                  Upload Checked Turnitin Report Document <span className="text-red-400">*</span>
-                </label>
+              {/* Checked Turnitin Document Upload Box (Supports Multiple Files) */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-extrabold text-white">
+                    Upload Checked Turnitin Report Document(s) <span className="text-red-400">*</span>
+                  </label>
+                  {approveResultFiles.length > 0 && (
+                    <span className="text-[10px] font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
+                      {approveResultFiles.length} file(s) selected
+                    </span>
+                  )}
+                </div>
+
                 <div
                   onClick={() => resultFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-zinc-700 hover:border-primary/60 rounded-xl p-4 text-center cursor-pointer bg-zinc-800/40 transition-all"
+                  className="border-2 border-dashed border-zinc-700 hover:border-[#fe9a00]/60 rounded-xl p-4 text-center cursor-pointer bg-zinc-800/40 hover:bg-zinc-800/60 transition-all"
                 >
                   <input
                     type="file"
                     ref={resultFileInputRef}
                     onChange={handleApproveFileChange}
                     accept=".pdf,.docx,.zip,.png,.jpg"
+                    multiple
                     className="hidden"
                   />
-                  {approveResultFileName ? (
-                    <p className="text-xs font-bold text-primary truncate">
-                      📄 {approveResultFileName}
-                    </p>
-                  ) : (
-                    <p className="text-xs text-zinc-400 font-semibold flex items-center justify-center gap-1.5">
-                      <Paperclip className="h-4 w-4 text-primary" /> Click to upload Checked Turnitin PDF / Report
-                    </p>
-                  )}
+                  <p className="text-xs text-zinc-300 font-semibold flex items-center justify-center gap-1.5">
+                    <Paperclip className="h-4 w-4 text-[#fe9a00]" /> Click to select or add Turnitin PDF / Report files
+                  </p>
+                  <p className="text-[10px] text-zinc-500 font-medium mt-1">
+                    Multiple files supported (e.g. Similarity Report PDF + AI Report PDF)
+                  </p>
                 </div>
+
+                {/* Selected Files List */}
+                {approveResultFiles.length > 0 && (
+                  <div className="space-y-1.5 pt-1">
+                    <p className="text-[11px] font-extrabold text-zinc-300">
+                      Attached Documents List:
+                    </p>
+                    <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                      {approveResultFiles.map((file, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center justify-between gap-2 p-2.5 bg-zinc-800 border border-zinc-700/80 rounded-xl text-xs"
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <FileText className="h-4 w-4 text-[#fe9a00] shrink-0" />
+                            <span className="font-bold text-zinc-200 truncate">
+                              {file.name || `Document ${idx + 1}`}
+                            </span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveApproveFile(idx);
+                            }}
+                            className="p-1 text-zinc-400 hover:text-red-400 rounded-lg hover:bg-zinc-700/60 transition-colors shrink-0 cursor-pointer"
+                            title="Remove file"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Optional Similarity & AI Scores */}
@@ -1557,7 +1752,7 @@ function AdminDashboardContent() {
               <div className="pt-2">
                 <button
                   type="submit"
-                  disabled={!approveResultFileName}
+                  disabled={approveResultFiles.length === 0}
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#fe9a00] py-3 text-xs font-extrabold text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
                 >
                   <CheckCircle className="h-4 w-4" />

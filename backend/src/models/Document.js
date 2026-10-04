@@ -52,7 +52,7 @@ const DocumentSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected"],
+      enum: ["pending", "approved", "rejected", "cancelled", "refunded"],
       default: "pending",
     },
     adminNote: {
@@ -67,6 +67,12 @@ const DocumentSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    resultFiles: [
+      {
+        url: { type: String, default: "" },
+        name: { type: String, default: "" },
+      },
+    ],
     similarityScore: {
       type: Number,
       default: null,

@@ -219,37 +219,59 @@ const handleApproveDocument = async (req, res) => {
       return res.status(404).json({ success: false, message: "Document not found." });
     }
 
-    if (document.status === "approved") {
-      return res.status(400).json({ success: false, message: "Document is already approved." });
-    }
-
-    const { resultFile, resultFileName, similarityScore, aiScore, adminNote } = req.body;
+    const wasAlreadyApproved = document.status === "approved";
+    const { resultFile, resultFileName, resultFiles, similarityScore, aiScore, adminNote } = req.body;
 
     document.status = "approved";
-    if (resultFile) {
-      document.resultFile = saveFileToDisk(resultFile, resultFileName || `turnitin_report_${document.title}`, document.userName || document.userEmail);
+
+    let savedFilesList = [];
+
+    if (Array.isArray(resultFiles) && resultFiles.length > 0) {
+      savedFilesList = resultFiles.map((rf, idx) => {
+        const fileContent = rf.fileData || rf.url || rf.file || "";
+        const fileName = rf.name || rf.fileName || `turnitin_report_${idx + 1}_${document.title}`;
+        const savedUrl = saveFileToDisk(fileContent, fileName, document.userName || document.userEmail);
+        return {
+          url: savedUrl,
+          name: fileName,
+        };
+      });
+      document.resultFiles = savedFilesList;
+      if (savedFilesList[0]) {
+        document.resultFile = savedFilesList[0].url;
+        document.resultFileName = savedFilesList[0].name;
+      }
+    } else if (resultFile) {
+      const savedUrl = saveFileToDisk(resultFile, resultFileName || `turnitin_report_${document.title}`, document.userName || document.userEmail);
+      document.resultFile = savedUrl;
+      document.resultFileName = resultFileName || "Turnitin_Report.pdf";
+      document.resultFiles = [{ url: savedUrl, name: document.resultFileName }];
     }
-    if (resultFileName) document.resultFileName = resultFileName;
+
     if (similarityScore !== undefined && similarityScore !== null && similarityScore !== "") {
       document.similarityScore = Number(similarityScore);
     }
     if (aiScore !== undefined && aiScore !== null && aiScore !== "") {
       document.aiScore = Number(aiScore);
     }
-    if (adminNote) document.adminNote = adminNote;
+    if (adminNote !== undefined) {
+      document.adminNote = adminNote;
+    }
 
     await document.save();
 
-    // Held coin disappears (decrement holdCredits by 1)
-    if (document.userId) {
-      await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1 } });
-    } else if (document.userEmail) {
-      await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1 } });
+    // Held coin disappears (decrement holdCredits by 1) if not already approved
+    if (!wasAlreadyApproved) {
+      if (document.userId) {
+        await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1 } });
+      } else if (document.userEmail) {
+        await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1 } });
+      }
     }
 
     res.status(200).json({
       success: true,
-      message: "Document approved successfully! Held coin consumed.",
+      message: "Document approved successfully! Turnitin report(s) saved.",
       document,
       assignment: document,
     });
@@ -303,6 +325,59 @@ const handleRejectDocument = async (req, res) => {
 
 router.put("/documents/:id/reject", adminProtect, handleRejectDocument);
 router.put("/assignments/:id/reject", adminProtect, handleRejectDocument);
+
+const handleRefundDocument = async (req, res) => {
+  try {
+    const { adminNote } = req.body;
+    const document = await Document.findById(req.params.id);
+
+    if (!document) {
+      return res.status(404).json({ success: false, message: "Document not found." });
+    }
+
+    if (document.status === "refunded") {
+      return res.status(400).json({
+        success: false,
+        message: "Document has already been refunded.",
+      });
+    }
+
+    const wasPending = document.status === "pending";
+    document.status = "refunded";
+    if (adminNote) document.adminNote = adminNote;
+    await document.save();
+
+    // Refund 1 coin back to customer available credits
+    let user = null;
+    if (wasPending) {
+      if (document.userId) {
+        user = await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1, credits: 1 } }, { new: true });
+      } else if (document.userEmail) {
+        user = await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1, credits: 1 } }, { new: true });
+      }
+    } else {
+      if (document.userId) {
+        user = await User.findByIdAndUpdate(document.userId, { $inc: { credits: 1 } }, { new: true });
+      } else if (document.userEmail) {
+        user = await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { credits: 1 } }, { new: true });
+      }
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Document refunded successfully! 1 coin returned to customer's available balance.",
+      document,
+      assignment: document,
+      updatedCredits: user ? user.credits : undefined,
+    });
+  } catch (error) {
+    console.error("Admin refund document error:", error);
+    res.status(500).json({ success: false, message: "Failed to refund document." });
+  }
+};
+
+router.put("/documents/:id/refund", adminProtect, handleRefundDocument);
+router.put("/assignments/:id/refund", adminProtect, handleRefundDocument);
 
 module.exports = router;
 
