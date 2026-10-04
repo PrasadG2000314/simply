@@ -39,7 +39,39 @@ jobs:
             echo "🐳 Building and deploying Docker containers..."
             docker compose up -d --build --remove-orphans
 
+            echo "🔄 Reloading Nginx reverse proxy to refresh container IPs..."
+            docker compose restart nginx || docker exec simply_nginx nginx -s reload || true
+
             echo "🧹 Cleaning up old Docker images..."
             docker image prune -f
 
-            echo "✅ Deployment completed successfully!"
+            echo "🩺 Running Pipeline Healthcheck Verification..."
+            MAX_RETRIES=15
+            RETRY_COUNT=0
+            HEALTHY=false
+
+            while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+              RETRY_COUNT=$((RETRY_COUNT + 1))
+              echo "🔍 Healthcheck attempt $RETRY_COUNT/$MAX_RETRIES..."
+
+              API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health || true)
+              WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/ || true)
+
+              if [ "$API_STATUS" -eq 200 ] && [ "$WEB_STATUS" -eq 200 ]; then
+                echo "✅ Backend API health status: $API_STATUS OK"
+                echo "✅ Frontend Web health status: $WEB_STATUS OK"
+                HEALTHY=true
+                break
+              fi
+
+              echo "⏳ Waiting for containers to start up (API: $API_STATUS, Web: $WEB_STATUS). Retrying in 5s..."
+              sleep 5
+            done
+
+            if [ "$HEALTHY" = true ]; then
+              echo "🎉 Deployment & Healthcheck verification completed successfully! https://turnipass.com/ is live."
+            else
+              echo "❌ ERROR: Healthcheck failed after $MAX_RETRIES attempts. Displaying recent logs:"
+              docker compose logs --tail=50
+              exit 1
+            fi

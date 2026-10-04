@@ -59,13 +59,16 @@ app.use("/api/assignments", require("./routes/documents"));
 app.use("/api/payments", require("./routes/payments"));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
-app.get("/health", (req, res) => {
+const handleHealthCheck = (req, res) => {
   res.status(200).json({
     success: true,
     message: "Simply API is running",
     timestamp: new Date().toISOString(),
   });
-});
+};
+
+app.get("/health", handleHealthCheck);
+app.get("/api/health", handleHealthCheck);
 
 // ─── 404 handler ─────────────────────────────────────────────────────────────
 app.use((req, res) => {

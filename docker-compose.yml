@@ -36,6 +36,12 @@ services:
       - uploads_data:/app/uploads
     depends_on:
       - db
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:5000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - simply_network
 
@@ -56,6 +62,12 @@ services:
       - "3000"
     depends_on:
       - api
+    healthcheck:
+      test: ["CMD-SHELL", "wget --no-verbose --tries=1 --spider http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     networks:
       - simply_network
 
