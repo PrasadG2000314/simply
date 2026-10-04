@@ -70,7 +70,7 @@ interface DocumentRecord {
   resultFiles?: { url?: string; name?: string; fileData?: string }[];
   similarityScore?: number;
   aiScore?: number;
-  status: "pending" | "approved" | "rejected" | "cancelled" | string;
+  status: "pending" | "approved" | "rejected" | "cancelled" | "refunded" | string;
   adminNote?: string;
   createdAt: string;
 }

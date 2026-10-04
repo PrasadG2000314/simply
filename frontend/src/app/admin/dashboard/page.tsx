@@ -71,7 +71,7 @@ interface AssignmentRecord {
   resultFiles?: { url?: string; name?: string; fileData?: string }[];
   similarityScore?: number;
   aiScore?: number;
-  status: "pending" | "approved" | "rejected";
+  status: "pending" | "approved" | "rejected" | "cancelled" | "refunded" | string;
   adminNote?: string;
   createdAt: string;
 }
