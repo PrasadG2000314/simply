@@ -48,7 +48,7 @@ router.post("/login", (req, res) => {
 router.get("/users", adminProtect, async (req, res) => {
   try {
     const users = await User.find()
-      .select("fullName email credits holdCredits createdAt token")
+      .select("fullName email credits holdCredits officialCredits officialHoldCredits apiCredits apiHoldCredits createdAt token")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -60,6 +60,10 @@ router.get("/users", adminProtect, async (req, res) => {
         email: u.email,
         credits: u.credits || 0,
         holdCredits: u.holdCredits || 0,
+        officialCredits: u.officialCredits || 0,
+        officialHoldCredits: u.officialHoldCredits || 0,
+        apiCredits: u.apiCredits || 0,
+        apiHoldCredits: u.apiHoldCredits || 0,
         createdAt: u.createdAt,
         hasActiveToken: !!u.token,
       })),
@@ -83,11 +87,32 @@ router.get("/stats", adminProtect, async (req, res) => {
     const newThisWeek = await User.countDocuments({ createdAt: { $gte: weekAgo } });
 
     const pendingSlips = await PaymentSlip.countDocuments({ status: "pending" });
+    const pendingOfficialSlips = await PaymentSlip.countDocuments({ status: "pending", coinType: { $ne: "api" } });
+    const pendingApiSlips = await PaymentSlip.countDocuments({ status: "pending", coinType: "api" });
+
     const pendingAssignments = await Document.countDocuments({ status: "pending" });
+    const pendingOfficialAssignments = await Document.countDocuments({ status: "pending", scanType: { $ne: "api" } });
+    const pendingApiAssignments = await Document.countDocuments({ status: "pending", scanType: "api" });
+
+    const totalOfficialDocuments = await Document.countDocuments({ scanType: { $ne: "api" } });
+    const totalApiDocuments = await Document.countDocuments({ scanType: "api" });
 
     res.status(200).json({
       success: true,
-      stats: { totalUsers, newToday, newThisWeek, pendingSlips, pendingAssignments, pendingDocuments: pendingAssignments },
+      stats: {
+        totalUsers,
+        newToday,
+        newThisWeek,
+        pendingSlips,
+        pendingOfficialSlips,
+        pendingApiSlips,
+        pendingAssignments,
+        pendingOfficialAssignments,
+        pendingApiAssignments,
+        totalOfficialDocuments,
+        totalApiDocuments,
+        pendingDocuments: pendingAssignments,
+      },
     });
   } catch (error) {
     console.error("Admin stats error:", error);
@@ -98,8 +123,16 @@ router.get("/stats", adminProtect, async (req, res) => {
 // ─── GET /api/admin/slips ────────────────────────────────────────────────────
 router.get("/slips", adminProtect, async (req, res) => {
   try {
-    const { status } = req.query;
-    const filter = status ? { status } : {};
+    const { status, coinType } = req.query;
+    const filter = {};
+    if (status && status !== "all") filter.status = status;
+    if (coinType && coinType !== "all") {
+      if (coinType === "official") {
+        filter.coinType = { $ne: "api" };
+      } else {
+        filter.coinType = coinType;
+      }
+    }
 
     const slips = await PaymentSlip.find(filter).sort({ createdAt: -1 });
 
@@ -130,27 +163,26 @@ router.put("/slips/:id/approve", adminProtect, async (req, res) => {
     slip.status = "approved";
     await slip.save();
 
+    const isApiSlip = slip.coinType === "api" || (slip.packageName && slip.packageName.toLowerCase().includes("api"));
+    const incUpdate = isApiSlip
+      ? { $inc: { apiCredits: slip.credits, credits: slip.credits } }
+      : { $inc: { officialCredits: slip.credits, credits: slip.credits } };
+
     // Increment customer coins/credits in database
     let user = null;
     if (slip.userId) {
-      user = await User.findByIdAndUpdate(
-        slip.userId,
-        { $inc: { credits: slip.credits } },
-        { new: true }
-      );
+      user = await User.findByIdAndUpdate(slip.userId, incUpdate, { new: true });
     } else if (slip.userEmail) {
-      user = await User.findOneAndUpdate(
-        { email: slip.userEmail.toLowerCase() },
-        { $inc: { credits: slip.credits } },
-        { new: true }
-      );
+      user = await User.findOneAndUpdate({ email: slip.userEmail.toLowerCase() }, incUpdate, { new: true });
     }
 
     res.status(200).json({
       success: true,
-      message: `Payment slip approved successfully! ${slip.credits} coins credited to ${slip.userName}.`,
+      message: `Payment slip approved successfully! ${slip.credits} ${isApiSlip ? "API Tool" : "Official Turnitin"} coins credited to ${slip.userName}.`,
       slip,
       updatedCredits: user ? user.credits : undefined,
+      officialCredits: user ? user.officialCredits : undefined,
+      apiCredits: user ? user.apiCredits : undefined,
     });
   } catch (error) {
     console.error("Admin approve slip error:", error);
@@ -192,8 +224,16 @@ router.put("/slips/:id/reject", adminProtect, async (req, res) => {
 
 const handleGetAdminDocuments = async (req, res) => {
   try {
-    const { status } = req.query;
-    const filter = status ? { status } : {};
+    const { status, scanType } = req.query;
+    const filter = {};
+    if (status && status !== "all") filter.status = status;
+    if (scanType && scanType !== "all") {
+      if (scanType === "official") {
+        filter.scanType = { $ne: "api" };
+      } else {
+        filter.scanType = scanType;
+      }
+    }
 
     const documents = await Document.find(filter).sort({ createdAt: -1 });
 
@@ -262,10 +302,15 @@ const handleApproveDocument = async (req, res) => {
 
     // Held coin disappears (decrement holdCredits by 1) if not already approved
     if (!wasAlreadyApproved) {
+      const isApiScan = document.scanType === "api";
+      const holdDec = isApiScan
+        ? { apiHoldCredits: -1, holdCredits: -1 }
+        : { officialHoldCredits: -1, holdCredits: -1 };
+
       if (document.userId) {
-        await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1 } });
+        await User.findByIdAndUpdate(document.userId, { $inc: holdDec });
       } else if (document.userEmail) {
-        await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1 } });
+        await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: holdDec });
       }
     }
 
@@ -304,16 +349,21 @@ const handleRejectDocument = async (req, res) => {
     if (adminNote) document.adminNote = adminNote;
     await document.save();
 
-    // Refund 1 coin back to customer (decrement holdCredits by 1, increment credits by 1)
+    // Refund 1 coin back to customer based on scanType
+    const isApiScan = document.scanType === "api";
+    const refundInc = isApiScan
+      ? { apiHoldCredits: -1, apiCredits: 1, holdCredits: -1, credits: 1 }
+      : { officialHoldCredits: -1, officialCredits: 1, holdCredits: -1, credits: 1 };
+
     if (document.userId) {
-      await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1, credits: 1 } });
+      await User.findByIdAndUpdate(document.userId, { $inc: refundInc });
     } else if (document.userEmail) {
-      await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1, credits: 1 } });
+      await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: refundInc });
     }
 
     res.status(200).json({
       success: true,
-      message: "Document rejected. 1 coin refunded to customer's available balance.",
+      message: `Document rejected. 1 ${isApiScan ? "API Tool" : "Official Turnitin"} coin refunded to customer's available balance.`,
       document,
       assignment: document,
     });
@@ -347,28 +397,31 @@ const handleRefundDocument = async (req, res) => {
     if (adminNote) document.adminNote = adminNote;
     await document.save();
 
-    // Refund 1 coin back to customer available credits
+    // Refund 1 coin back to customer available credits based on scanType
+    const isApiScan = document.scanType === "api";
     let user = null;
-    if (wasPending) {
-      if (document.userId) {
-        user = await User.findByIdAndUpdate(document.userId, { $inc: { holdCredits: -1, credits: 1 } }, { new: true });
-      } else if (document.userEmail) {
-        user = await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { holdCredits: -1, credits: 1 } }, { new: true });
-      }
-    } else {
-      if (document.userId) {
-        user = await User.findByIdAndUpdate(document.userId, { $inc: { credits: 1 } }, { new: true });
-      } else if (document.userEmail) {
-        user = await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: { credits: 1 } }, { new: true });
-      }
+    const refundUpdate = wasPending
+      ? (isApiScan
+          ? { apiHoldCredits: -1, apiCredits: 1, holdCredits: -1, credits: 1 }
+          : { officialHoldCredits: -1, officialCredits: 1, holdCredits: -1, credits: 1 })
+      : (isApiScan
+          ? { apiCredits: 1, credits: 1 }
+          : { officialCredits: 1, credits: 1 });
+
+    if (document.userId) {
+      user = await User.findByIdAndUpdate(document.userId, { $inc: refundUpdate }, { new: true });
+    } else if (document.userEmail) {
+      user = await User.findOneAndUpdate({ email: document.userEmail.toLowerCase() }, { $inc: refundUpdate }, { new: true });
     }
 
     res.status(200).json({
       success: true,
-      message: "Document refunded successfully! 1 coin returned to customer's available balance.",
+      message: `Document refunded successfully! 1 ${isApiScan ? "API Tool" : "Official Turnitin"} coin returned to customer's available balance.`,
       document,
       assignment: document,
       updatedCredits: user ? user.credits : undefined,
+      officialCredits: user ? user.officialCredits : undefined,
+      apiCredits: user ? user.apiCredits : undefined,
     });
   } catch (error) {
     console.error("Admin refund document error:", error);

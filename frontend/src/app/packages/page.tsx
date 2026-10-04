@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import {
@@ -251,9 +251,18 @@ function PackageCard({ pkg, onBuy }: { pkg: PackageTier; onBuy: (p: PackageTier)
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 
-export default function PackagesPage() {
+function PackagesContent() {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"official" | "api">("official");
+  const searchParams = useSearchParams();
+  const serviceParam = searchParams.get("service") || searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"official" | "api">(
+    serviceParam === "api" ? "api" : "official"
+  );
+
+  useEffect(() => {
+    if (serviceParam === "api") setActiveTab("api");
+    else if (serviceParam === "official") setActiveTab("official");
+  }, [serviceParam]);
 
   const packages = activeTab === "official" ? officialPackages : apiPackages;
 
@@ -380,5 +389,19 @@ export default function PackagesPage() {
 
       <Footer />
     </div>
+  );
+}
+
+export default function PackagesPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-muted/20">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary"></div>
+        </div>
+      }
+    >
+      <PackagesContent />
+    </Suspense>
   );
 }

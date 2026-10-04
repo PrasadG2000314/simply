@@ -20,6 +20,7 @@ router.post("/submit", async (req, res) => {
       attachmentName,
       userName,
       userEmail,
+      scanType,
     } = req.body;
 
     if (!title) {
@@ -28,6 +29,8 @@ router.post("/submit", async (req, res) => {
         message: "Document title is required.",
       });
     }
+
+    const finalScanType = scanType === "api" ? "api" : "official";
 
     let userId = null;
     let finalUserName = userName || "Customer";
@@ -57,8 +60,15 @@ router.post("/submit", async (req, res) => {
 
     // Check and update coin balance in DB
     if (freshUser) {
-      freshUser.credits = Math.max(0, (freshUser.credits || 0) - 1);
-      freshUser.holdCredits = (freshUser.holdCredits || 0) + 1;
+      if (finalScanType === "api") {
+        freshUser.apiCredits = Math.max(0, (freshUser.apiCredits || 0) - 1);
+        freshUser.apiHoldCredits = (freshUser.apiHoldCredits || 0) + 1;
+      } else {
+        freshUser.officialCredits = Math.max(0, (freshUser.officialCredits || 0) - 1);
+        freshUser.officialHoldCredits = (freshUser.officialHoldCredits || 0) + 1;
+      }
+      freshUser.credits = (freshUser.officialCredits || 0) + (freshUser.apiCredits || 0);
+      freshUser.holdCredits = (freshUser.officialHoldCredits || 0) + (freshUser.apiHoldCredits || 0);
       await freshUser.save({ validateBeforeSave: false });
     }
 
@@ -77,14 +87,20 @@ router.post("/submit", async (req, res) => {
       deadline: deadline ? new Date(deadline) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       attachment: savedAttachmentPath,
       attachmentName: attachmentName || "",
+      scanType: finalScanType,
       status: "pending",
     });
 
     res.status(201).json({
       success: true,
-      message: "Document submitted successfully! 1 coin placed on hold.",
+      message: `Document submitted successfully! 1 ${finalScanType === "api" ? "API Tool" : "Official Turnitin"} coin placed on hold.`,
       document: newDocument,
       assignment: newDocument,
+      scanType: finalScanType,
+      officialCredits: freshUser ? freshUser.officialCredits : 0,
+      officialHoldCredits: freshUser ? freshUser.officialHoldCredits : 0,
+      apiCredits: freshUser ? freshUser.apiCredits : 0,
+      apiHoldCredits: freshUser ? freshUser.apiHoldCredits : 0,
       availableCredits: freshUser ? freshUser.credits : 0,
       holdCredits: freshUser ? freshUser.holdCredits : 1,
     });
@@ -126,8 +142,15 @@ router.post("/:id/cancel", async (req, res) => {
     }
 
     if (freshUser && document.status === "pending") {
-      freshUser.credits = (freshUser.credits || 0) + 1;
-      freshUser.holdCredits = Math.max(0, (freshUser.holdCredits || 0) - 1);
+      if (document.scanType === "api") {
+        freshUser.apiCredits = (freshUser.apiCredits || 0) + 1;
+        freshUser.apiHoldCredits = Math.max(0, (freshUser.apiHoldCredits || 0) - 1);
+      } else {
+        freshUser.officialCredits = (freshUser.officialCredits || 0) + 1;
+        freshUser.officialHoldCredits = Math.max(0, (freshUser.officialHoldCredits || 0) - 1);
+      }
+      freshUser.credits = (freshUser.officialCredits || 0) + (freshUser.apiCredits || 0);
+      freshUser.holdCredits = (freshUser.officialHoldCredits || 0) + (freshUser.apiHoldCredits || 0);
       await freshUser.save({ validateBeforeSave: false });
     }
 
@@ -136,8 +159,12 @@ router.post("/:id/cancel", async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Document submission cancelled. 1 coin returned to available balance.",
+      message: `Document submission cancelled. 1 ${document.scanType === "api" ? "API Tool" : "Official Turnitin"} coin returned to available balance.`,
       documentId: document._id,
+      officialCredits: freshUser ? freshUser.officialCredits : 0,
+      officialHoldCredits: freshUser ? freshUser.officialHoldCredits : 0,
+      apiCredits: freshUser ? freshUser.apiCredits : 0,
+      apiHoldCredits: freshUser ? freshUser.apiHoldCredits : 0,
       availableCredits: freshUser ? freshUser.credits : 0,
       holdCredits: freshUser ? freshUser.holdCredits : 0,
     });

@@ -48,6 +48,28 @@ const UserSchema = new mongoose.Schema(
       default: 0,
       min: [0, "Hold credits cannot be negative"],
     },
+    // Official Turnitin Coins
+    officialCredits: {
+      type: Number,
+      default: 0,
+      min: [0, "Official Turnitin credits cannot be negative"],
+    },
+    officialHoldCredits: {
+      type: Number,
+      default: 0,
+      min: [0, "Official Turnitin hold credits cannot be negative"],
+    },
+    // API Tool Coins
+    apiCredits: {
+      type: Number,
+      default: 0,
+      min: [0, "API Tool credits cannot be negative"],
+    },
+    apiHoldCredits: {
+      type: Number,
+      default: 0,
+      min: [0, "API Tool hold credits cannot be negative"],
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically

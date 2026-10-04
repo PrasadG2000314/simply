@@ -23,6 +23,8 @@ import {
   Paperclip,
   Trash2,
   FileText,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -34,6 +36,10 @@ interface UserRecord {
   email: string;
   credits: number;
   holdCredits?: number;
+  officialCredits?: number;
+  officialHoldCredits?: number;
+  apiCredits?: number;
+  apiHoldCredits?: number;
   createdAt: string;
   hasActiveToken: boolean;
 }
@@ -45,6 +51,7 @@ interface PaymentSlipRecord {
   userName: string;
   userEmail: string;
   packageName: string;
+  coinType?: "official" | "api";
   credits: number;
   amount: number;
   slipImage: string;
@@ -66,6 +73,7 @@ interface AssignmentRecord {
   deadline: string;
   attachment?: string;
   attachmentName?: string;
+  scanType?: "official" | "api";
   resultFile?: string;
   resultFileName?: string;
   resultFiles?: { url?: string; name?: string; fileData?: string }[];
@@ -81,7 +89,14 @@ interface Stats {
   newToday: number;
   newThisWeek: number;
   pendingSlips: number;
+  pendingOfficialSlips?: number;
+  pendingApiSlips?: number;
   pendingAssignments: number;
+  pendingOfficialAssignments?: number;
+  pendingApiAssignments?: number;
+  totalOfficialDocuments?: number;
+  totalApiDocuments?: number;
+  pendingDocuments?: number;
 }
 
 function AdminDashboardContent() {
@@ -93,6 +108,7 @@ function AdminDashboardContent() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"assignments" | "slips" | "users">("assignments");
+  const [serviceFilter, setServiceFilter] = useState<"all" | "official" | "api">("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "refunded" | "rejected">("pending");
   const [search, setSearch] = useState("");
   const [adminUser] = useState<{ username: string } | null>(() => {
@@ -262,6 +278,27 @@ function AdminDashboardContent() {
       setSlips(combinedSlips);
       setAssignments(combinedAssns);
 
+      const pendingOfficialSlipsCount = combinedSlips.filter(
+        (s) => s.status === "pending" && (s.coinType === "official" || (!s.coinType && !s.packageName?.toLowerCase().includes("api")))
+      ).length;
+      const pendingApiSlipsCount = combinedSlips.filter(
+        (s) => s.status === "pending" && (s.coinType === "api" || s.packageName?.toLowerCase().includes("api"))
+      ).length;
+
+      const pendingOfficialAssnsCount = combinedAssns.filter(
+        (a) => a.status === "pending" && a.scanType !== "api"
+      ).length;
+      const pendingApiAssnsCount = combinedAssns.filter(
+        (a) => a.status === "pending" && a.scanType === "api"
+      ).length;
+
+      const totalOfficialDocs = combinedAssns.filter((a) => a.scanType !== "api").length;
+      const totalApiDocs = combinedAssns.filter((a) => a.scanType === "api").length;
+
+      if (usersData.success) setUsers(usersData.users);
+      setSlips(combinedSlips);
+      setAssignments(combinedAssns);
+
       const pendingSlipsCount = combinedSlips.filter((s) => s.status === "pending").length;
       const pendingAssnsCount = combinedAssns.filter((a) => a.status === "pending").length;
 
@@ -269,7 +306,13 @@ function AdminDashboardContent() {
         setStats({
           ...statsData.stats,
           pendingSlips: pendingSlipsCount,
+          pendingOfficialSlips: pendingOfficialSlipsCount,
+          pendingApiSlips: pendingApiSlipsCount,
           pendingAssignments: pendingAssnsCount,
+          pendingOfficialAssignments: pendingOfficialAssnsCount,
+          pendingApiAssignments: pendingApiAssnsCount,
+          totalOfficialDocuments: totalOfficialDocs,
+          totalApiDocuments: totalApiDocs,
         });
       }
     } catch {
@@ -299,9 +342,12 @@ function AdminDashboardContent() {
 
   // ─── Approve Payment Slip Handler ───────────────────────────────────────────
   const handleApproveSlip = (slip: PaymentSlipRecord) => {
+    const isApiSlip = slip.coinType === "api" || (slip.packageName && slip.packageName.toLowerCase().includes("api"));
+    const serviceName = isApiSlip ? "API Tool" : "Official Turnitin";
+
     showConfirm({
-      title: "Approve payment slip?",
-      message: `This will credit ${slip.credits} coins to ${slip.userName || slip.userEmail}.`,
+      title: `Approve ${serviceName} payment slip?`,
+      message: `This will credit ${slip.credits} ${serviceName} coins to ${slip.userName || slip.userEmail}.`,
       confirmText: "Approve & Credit",
       cancelText: "Cancel",
       variant: "success",
@@ -324,7 +370,12 @@ function AdminDashboardContent() {
         if (slip.userEmail) {
           const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
           if (allUsers[slip.userEmail]) {
-            allUsers[slip.userEmail].credits = (allUsers[slip.userEmail].credits || 0) + slip.credits;
+            if (isApiSlip) {
+              allUsers[slip.userEmail].apiCredits = (allUsers[slip.userEmail].apiCredits || 0) + slip.credits;
+            } else {
+              allUsers[slip.userEmail].officialCredits = (allUsers[slip.userEmail].officialCredits ?? allUsers[slip.userEmail].credits ?? 0) + slip.credits;
+              allUsers[slip.userEmail].credits = (allUsers[slip.userEmail].credits || 0) + slip.credits;
+            }
             localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
           }
         }
@@ -346,7 +397,7 @@ function AdminDashboardContent() {
 
         showAlert({
           title: "Payment Slip Approved!",
-          message: `${slip.credits} coins credited to ${slip.userName || slip.userEmail}.`,
+          message: `${slip.credits} ${serviceName} coins credited to ${slip.userName || slip.userEmail}.`,
           variant: "success",
         });
 
@@ -475,8 +526,15 @@ function AdminDashboardContent() {
     if (targetApproveDocument.userEmail && targetApproveDocument.status !== "approved") {
       const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
       if (allUsers[targetApproveDocument.userEmail]) {
-        const curHold = allUsers[targetApproveDocument.userEmail].holdCredits || 0;
-        allUsers[targetApproveDocument.userEmail].holdCredits = Math.max(0, curHold - 1);
+        const isApi = targetApproveDocument.scanType === "api";
+        if (isApi) {
+          const curHold = allUsers[targetApproveDocument.userEmail].apiHoldCredits || 0;
+          allUsers[targetApproveDocument.userEmail].apiHoldCredits = Math.max(0, curHold - 1);
+        } else {
+          const curHold = allUsers[targetApproveDocument.userEmail].officialHoldCredits ?? allUsers[targetApproveDocument.userEmail].holdCredits ?? 0;
+          allUsers[targetApproveDocument.userEmail].officialHoldCredits = Math.max(0, curHold - 1);
+          allUsers[targetApproveDocument.userEmail].holdCredits = Math.max(0, (allUsers[targetApproveDocument.userEmail].holdCredits || 0) - 1);
+        }
         localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
       }
     }
@@ -587,14 +645,26 @@ function AdminDashboardContent() {
       });
       localStorage.setItem("myAssignments", JSON.stringify(updatedLocalAssns));
 
+      const isApi = targetRejectAssignment.scanType === "api";
+      const coinLabel = isApi ? "API Tool" : "Official Turnitin";
+
       // Refund 1 coin to customer available balance (holdCredits - 1, credits + 1)
       if (targetRejectAssignment.userEmail) {
         const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
         if (allUsers[targetRejectAssignment.userEmail]) {
-          const curCredits = allUsers[targetRejectAssignment.userEmail].credits || 0;
-          const curHold = allUsers[targetRejectAssignment.userEmail].holdCredits || 0;
-          allUsers[targetRejectAssignment.userEmail].credits = curCredits + 1;
-          allUsers[targetRejectAssignment.userEmail].holdCredits = Math.max(0, curHold - 1);
+          if (isApi) {
+            const curCredits = allUsers[targetRejectAssignment.userEmail].apiCredits || 0;
+            const curHold = allUsers[targetRejectAssignment.userEmail].apiHoldCredits || 0;
+            allUsers[targetRejectAssignment.userEmail].apiCredits = curCredits + 1;
+            allUsers[targetRejectAssignment.userEmail].apiHoldCredits = Math.max(0, curHold - 1);
+          } else {
+            const curCredits = allUsers[targetRejectAssignment.userEmail].officialCredits ?? allUsers[targetRejectAssignment.userEmail].credits ?? 0;
+            const curHold = allUsers[targetRejectAssignment.userEmail].officialHoldCredits ?? allUsers[targetRejectAssignment.userEmail].holdCredits ?? 0;
+            allUsers[targetRejectAssignment.userEmail].officialCredits = curCredits + 1;
+            allUsers[targetRejectAssignment.userEmail].credits = (allUsers[targetRejectAssignment.userEmail].credits || 0) + 1;
+            allUsers[targetRejectAssignment.userEmail].officialHoldCredits = Math.max(0, curHold - 1);
+            allUsers[targetRejectAssignment.userEmail].holdCredits = Math.max(0, (allUsers[targetRejectAssignment.userEmail].holdCredits || 0) - 1);
+          }
           localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
         }
       }
@@ -617,7 +687,7 @@ function AdminDashboardContent() {
 
       showAlert({
         title: "Assignment Rejected",
-        message: `Assignment rejected. 1 coin refunded to ${targetRejectAssignment.userName}'s available balance.`,
+        message: `Assignment rejected. 1 ${coinLabel} coin refunded to ${targetRejectAssignment.userName}'s available balance.`,
         variant: "danger",
       });
       setIsRejectModalOpen(false);
@@ -632,10 +702,13 @@ function AdminDashboardContent() {
   };
 
   const handleRefundDocument = (assn: AssignmentRecord) => {
+    const isApi = assn.scanType === "api";
+    const coinLabel = isApi ? "API Tool" : "Official Turnitin";
+
     showConfirm({
-      title: "Refund Document & Credit 1 Coin?",
-      message: `Refunding this document scan will return 1 coin to ${assn.userName} (${assn.userEmail}).`,
-      confirmText: "Yes, Refund 1 Coin",
+      title: `Refund Document & Credit 1 ${coinLabel} Coin?`,
+      message: `Refunding this document scan will return 1 ${coinLabel} coin to ${assn.userName} (${assn.userEmail}).`,
+      confirmText: `Yes, Refund 1 ${coinLabel} Coin`,
       cancelText: "Cancel",
       variant: "warning",
       onConfirm: async () => {
@@ -660,10 +733,14 @@ function AdminDashboardContent() {
         if (assn.userEmail) {
           const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
           if (allUsers[assn.userEmail]) {
-            const curCredits = allUsers[assn.userEmail].credits || 0;
-            const curHold = allUsers[assn.userEmail].holdCredits || 0;
-            allUsers[assn.userEmail].credits = curCredits + 1;
-            allUsers[assn.userEmail].holdCredits = Math.max(0, curHold - 1);
+            if (isApi) {
+              const curCredits = allUsers[assn.userEmail].apiCredits || 0;
+              allUsers[assn.userEmail].apiCredits = curCredits + 1;
+            } else {
+              const curCredits = allUsers[assn.userEmail].officialCredits ?? allUsers[assn.userEmail].credits ?? 0;
+              allUsers[assn.userEmail].officialCredits = curCredits + 1;
+              allUsers[assn.userEmail].credits = (allUsers[assn.userEmail].credits || 0) + 1;
+            }
             localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
           }
         }
@@ -685,7 +762,7 @@ function AdminDashboardContent() {
 
         showAlert({
           title: "Document Refunded!",
-          message: `1 Coin successfully refunded to ${assn.userName}'s account balance.`,
+          message: `1 ${coinLabel} coin successfully refunded to ${assn.userName}'s account balance.`,
           variant: "success",
         });
         setActionLoadingId(null);
@@ -701,22 +778,28 @@ function AdminDashboardContent() {
   );
 
   const filteredSlips = slips.filter((s) => {
+    const isApi = s.coinType === "api" || (s.packageName && s.packageName.toLowerCase().includes("api"));
+    const matchService =
+      serviceFilter === "all" ? true : serviceFilter === "api" ? isApi : !isApi;
     const matchStatus = statusFilter === "all" ? true : s.status === statusFilter;
     const matchSearch =
       s.userName.toLowerCase().includes(search.toLowerCase()) ||
       s.userEmail.toLowerCase().includes(search.toLowerCase()) ||
       s.packageName.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
+    return matchService && matchStatus && matchSearch;
   });
 
   const filteredAssignments = assignments.filter((a) => {
+    const isApi = a.scanType === "api";
+    const matchService =
+      serviceFilter === "all" ? true : serviceFilter === "api" ? isApi : !isApi;
     const matchStatus = statusFilter === "all" ? true : a.status === statusFilter;
     const matchSearch =
       a.userName.toLowerCase().includes(search.toLowerCase()) ||
       a.userEmail.toLowerCase().includes(search.toLowerCase()) ||
       a.title.toLowerCase().includes(search.toLowerCase()) ||
       a.description.toLowerCase().includes(search.toLowerCase());
-    return matchStatus && matchSearch;
+    return matchService && matchStatus && matchSearch;
   });
 
   const formatDate = (iso: string) => {
@@ -731,6 +814,13 @@ function AdminDashboardContent() {
 
   const pendingSlipsCount = slips.filter((s) => s.status === "pending").length;
   const pendingAssnsCount = assignments.filter((a) => a.status === "pending").length;
+  const pendingOfficialAssnsCount = assignments.filter((a) => a.status === "pending" && a.scanType !== "api").length;
+  const pendingApiAssnsCount = assignments.filter((a) => a.status === "pending" && a.scanType === "api").length;
+  const pendingOfficialSlipsCount = slips.filter((s) => s.status === "pending" && (s.coinType !== "api" && !s.packageName?.toLowerCase().includes("api"))).length;
+  const pendingApiSlipsCount = slips.filter((s) => s.status === "pending" && (s.coinType === "api" || s.packageName?.toLowerCase().includes("api"))).length;
+
+  const totalOfficialDocs = assignments.filter((a) => a.scanType !== "api").length;
+  const totalApiDocs = assignments.filter((a) => a.scanType === "api").length;
 
   if (loading) {
     return (
@@ -788,12 +878,84 @@ function AdminDashboardContent() {
         </div>
       </header>
 
-      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-8">
+      <main className="max-w-7xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-5 sm:space-y-6">
         {error && (
           <div className="rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-xs font-bold text-red-400">
             {error}
           </div>
         )}
+
+        {/* ─── Department Switcher Bar: Official Turnitin vs API Tool ────────── */}
+        <div className="bg-zinc-900/90 border border-zinc-800 rounded-2xl p-2 sm:p-2.5 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 shadow-xl">
+          <div className="flex items-center gap-1.5 p-1 bg-zinc-950/80 rounded-xl border border-zinc-800/80 overflow-x-auto scrollbar-none">
+            <button
+              id="filter-service-all"
+              onClick={() => setServiceFilter("all")}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${
+                serviceFilter === "all"
+                  ? "bg-zinc-800 text-white shadow-sm border border-zinc-700"
+                  : "text-zinc-400 hover:text-white"
+              }`}
+            >
+              <span>🌐 All Services</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-700/60 text-zinc-300">
+                {assignments.length} docs
+              </span>
+            </button>
+
+            <button
+              id="filter-service-official"
+              onClick={() => setServiceFilter("official")}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${
+                serviceFilter === "official"
+                  ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20 font-black"
+                  : "text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10"
+              }`}
+            >
+              <ShieldCheck className="h-3.5 w-3.5" />
+              <span>Official Turnitin</span>
+              {pendingOfficialAssnsCount + pendingOfficialSlipsCount > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  serviceFilter === "official" ? "bg-black text-amber-400" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                }`}>
+                  {pendingOfficialAssnsCount + pendingOfficialSlipsCount}
+                </span>
+              )}
+            </button>
+
+            <button
+              id="filter-service-api"
+              onClick={() => setServiceFilter("api")}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${
+                serviceFilter === "api"
+                  ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20 font-black"
+                  : "text-cyan-400/80 hover:text-cyan-300 hover:bg-cyan-500/10"
+              }`}
+            >
+              <Zap className="h-3.5 w-3.5" />
+              <span>API Tool</span>
+              {pendingApiAssnsCount + pendingApiSlipsCount > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
+                  serviceFilter === "api" ? "bg-black text-cyan-400" : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                }`}>
+                  {pendingApiAssnsCount + pendingApiSlipsCount}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-zinc-400 font-semibold px-2 flex-wrap">
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-amber-400 inline-block animate-pulse" />
+              <span className="text-zinc-300 font-bold">Official:</span> {pendingOfficialAssnsCount} docs · {pendingOfficialSlipsCount} slips
+            </span>
+            <span className="text-zinc-700 hidden sm:inline">|</span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-2 w-2 rounded-full bg-cyan-400 inline-block animate-pulse" />
+              <span className="text-zinc-300 font-bold">API Tool:</span> {pendingApiAssnsCount} docs · {pendingApiSlipsCount} slips
+            </span>
+          </div>
+        </div>
 
         {/* Stats Row */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
@@ -802,20 +964,30 @@ function AdminDashboardContent() {
               setActiveTab("assignments");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
+            className={`rounded-2xl border p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer transition-all ${
               pendingAssnsCount > 0
                 ? "border-amber-500/40 bg-amber-500/10 shadow-lg shadow-amber-500/5 hover:border-amber-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
             }`}
           >
-            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
-              <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
+                <BookOpen className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+              <p className="text-lg sm:text-2xl font-black text-amber-400">{pendingAssnsCount}</p>
             </div>
-            <div className="min-w-0">
+            <div className="mt-3">
               <p className="text-[9px] sm:text-[10px] font-extrabold text-amber-500 uppercase tracking-widest truncate">
                 Pending Docs
               </p>
-              <p className="text-lg sm:text-2xl font-black text-amber-400">{pendingAssnsCount}</p>
+              <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-bold flex-wrap">
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  🛡️ {pendingOfficialAssnsCount} Official
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  ⚡ {pendingApiAssnsCount} API
+                </span>
+              </div>
             </div>
           </div>
 
@@ -824,47 +996,72 @@ function AdminDashboardContent() {
               setActiveTab("slips");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer transition-all ${
+            className={`rounded-2xl border p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer transition-all ${
               pendingSlipsCount > 0
                 ? "border-blue-500/40 bg-blue-500/10 shadow-lg shadow-blue-500/5 hover:border-blue-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
             }`}
           >
-            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
-              <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
+                <Building2 className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+              <p className="text-lg sm:text-2xl font-black text-blue-400">{pendingSlipsCount}</p>
             </div>
-            <div className="min-w-0">
+            <div className="mt-3">
               <p className="text-[9px] sm:text-[10px] font-extrabold text-blue-400 uppercase tracking-widest truncate">
                 Pending Slips
               </p>
-              <p className="text-lg sm:text-2xl font-black text-blue-400">{pendingSlipsCount}</p>
+              <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-bold flex-wrap">
+                <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  🛡️ {pendingOfficialSlipsCount} Official
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                  ⚡ {pendingApiSlipsCount} API
+                </span>
+              </div>
             </div>
           </div>
 
           <div
             onClick={() => setActiveTab("users")}
-            className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4 cursor-pointer hover:border-zinc-700 transition-all"
+            className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer hover:border-zinc-700 transition-all"
           >
-            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
-              <Users className="h-4 w-4 sm:h-5 sm:w-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[9px] sm:text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest truncate">
-                Customers
-              </p>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <Users className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
               <p className="text-lg sm:text-2xl font-black text-white">{stats?.totalUsers ?? users.length}</p>
+            </div>
+            <div className="mt-3">
+              <p className="text-[9px] sm:text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest truncate">
+                Registered Customers
+              </p>
+              <p className="text-[10px] text-zinc-400 font-semibold mt-1">
+                2-Coin Wallets Active
+              </p>
             </div>
           </div>
 
-          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3.5 sm:p-5 flex items-center gap-3 sm:gap-4">
-            <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-green-500/10 text-green-400">
-              <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
+          <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-3.5 sm:p-5 flex flex-col justify-between">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 text-purple-400">
+                <Activity className="h-4 w-4 sm:h-5 sm:w-5" />
+              </div>
+              <p className="text-lg sm:text-2xl font-black text-white">{assignments.length}</p>
             </div>
-            <div className="min-w-0">
+            <div className="mt-3">
               <p className="text-[9px] sm:text-[10px] font-extrabold text-zinc-500 uppercase tracking-widest truncate">
-                This Week
+                Total Documents
               </p>
-              <p className="text-lg sm:text-2xl font-black text-white">{stats?.newThisWeek ?? 0}</p>
+              <div className="flex items-center gap-1.5 mt-1.5 text-[10px] font-bold flex-wrap">
+                <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-amber-400 border border-zinc-700">
+                  🛡️ {totalOfficialDocs} Official
+                </span>
+                <span className="px-1.5 py-0.5 rounded bg-zinc-800 text-cyan-400 border border-zinc-700">
+                  ⚡ {totalApiDocs} API
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -988,10 +1185,20 @@ function AdminDashboardContent() {
                         </div>
                       </div>
 
-                      <div className="shrink-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {assn.scanType === "api" ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-0.5 text-[10px] font-black text-cyan-400">
+                            <Zap className="h-3 w-3" /> API Tool
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
+                            <ShieldCheck className="h-3 w-3" /> Official Turnitin
+                          </span>
+                        )}
+
                         {assn.status === "pending" && (
                           <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-[10px] font-black text-amber-400">
-                            <Lock className="h-3 w-3" /> Pending Check (1 Coin Held)
+                            <Lock className="h-3 w-3" /> Pending Check (1 {assn.scanType === "api" ? "API" : "Official"} Coin Held)
                           </span>
                         )}
                         {assn.status === "approved" && (
@@ -1004,7 +1211,7 @@ function AdminDashboardContent() {
                             className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-[10px] font-black text-blue-400"
                             title={assn.adminNote || "Refunded by admin"}
                           >
-                            <RefreshCw className="h-3 w-3" /> Refunded (+1 Coin)
+                            <RefreshCw className="h-3 w-3" /> Refunded (+1 {assn.scanType === "api" ? "API" : "Official"} Coin)
                           </span>
                         )}
                       </div>
@@ -1052,7 +1259,7 @@ function AdminDashboardContent() {
                               className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-black text-blue-400 hover:bg-blue-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
                             >
                               <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
-                              Refund 1 Coin
+                              Refund 1 {assn.scanType === "api" ? "API" : "Official"} Coin
                             </button>
                             <button
                               onClick={() => handleOpenApproveModal(assn)}
@@ -1073,7 +1280,7 @@ function AdminDashboardContent() {
                               className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-black text-blue-400 hover:bg-blue-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
                             >
                               <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
-                              Refund 1 Coin
+                              Refund 1 {assn.scanType === "api" ? "API" : "Official"} Coin
                             </button>
                             <button
                               onClick={() => handleOpenRejectAssignmentModal(assn)}
@@ -1139,110 +1346,125 @@ function AdminDashboardContent() {
               </div>
             ) : (
               <div className="space-y-3.5">
-                {filteredSlips.map((slip) => (
-                  <div
-                    key={slip._id || slip.id}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 hover:border-zinc-700 transition-all shadow-lg"
-                  >
-                    {/* Header */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3.5">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 font-black text-xs border border-blue-500/20">
-                          {slip.userName ? slip.userName.charAt(0).toUpperCase() : "U"}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <p className="text-xs font-black text-white truncate">{slip.userName}</p>
-                            <span className="text-[11px] text-zinc-400 font-medium truncate">({slip.userEmail})</span>
+                {filteredSlips.map((slip) => {
+                  const isApiSlip = slip.coinType === "api" || (slip.packageName && slip.packageName.toLowerCase().includes("api"));
+                  return (
+                    <div
+                      key={slip._id || slip.id}
+                      className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-4 hover:border-zinc-700 transition-all shadow-lg"
+                    >
+                      {/* Header */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800/80 pb-3.5">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-blue-500/10 text-blue-400 font-black text-xs border border-blue-500/20">
+                            {slip.userName ? slip.userName.charAt(0).toUpperCase() : "U"}
                           </div>
-                          <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">
-                            Submitted: {formatDate(slip.createdAt)}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="shrink-0">
-                        {slip.status === "pending" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-[10px] font-black text-blue-400">
-                            <Clock className="h-3 w-3" /> Pending Verification
-                          </span>
-                        )}
-                        {slip.status === "approved" && (
-                          <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/30 px-3 py-1 text-[10px] font-black text-green-400">
-                            <CheckCircle className="h-3 w-3" /> Approved
-                          </span>
-                        )}
-                        {slip.status === "rejected" && (
-                          <span
-                            className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 text-[10px] font-black text-red-400"
-                            title={slip.adminNote}
-                          >
-                            <XCircle className="h-3 w-3" /> Rejected
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Middle: Package & Slip Thumbnail */}
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-800/40 p-3.5 rounded-xl border border-zinc-800">
-                      <div className="space-y-1">
-                        <p className="text-xs font-bold text-white">{slip.packageName}</p>
-                        <div className="flex items-center gap-3">
-                          <span className="text-xs font-black text-primary">LKR {slip.amount.toLocaleString("en-LK")}</span>
-                          <span className="inline-flex items-center gap-1 rounded-lg bg-primary/10 border border-primary/20 px-2.5 py-0.5 text-xs font-black text-primary">
-                            <Coins className="h-3.5 w-3.5" /> +{slip.credits} Coins
-                          </span>
-                        </div>
-                      </div>
-
-                      <div
-                        onClick={() => setActiveSlipModal(slip)}
-                        className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 hover:border-primary px-3 py-1.5 rounded-xl cursor-pointer transition-all self-start sm:self-auto"
-                      >
-                        {slip.slipImage?.startsWith("data:application/pdf") || slip.slipImage?.endsWith(".pdf") ? (
-                          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-400 font-extrabold text-[10px] border border-red-500/20">
-                            PDF
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <p className="text-xs font-black text-white truncate">{slip.userName}</p>
+                              <span className="text-[11px] text-zinc-400 font-medium truncate">({slip.userEmail})</span>
+                            </div>
+                            <p className="text-[10px] text-zinc-500 font-semibold mt-0.5">
+                              Submitted: {formatDate(slip.createdAt)}
+                            </p>
                           </div>
-                        ) : (
-                          <img
-                            src={slip.slipImage}
-                            alt="Slip thumbnail"
-                            className="h-8 w-8 object-cover rounded-lg"
-                          />
-                        )}
-                        <span className="text-xs font-bold text-primary flex items-center gap-1">
-                          <Eye className="h-3.5 w-3.5" /> View Slip Receipt
-                        </span>
-                      </div>
-                    </div>
+                        </div>
 
-                    {/* Actions */}
-                    {slip.status === "pending" && (
-                      <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
-                        <button
-                          onClick={() => handleOpenRejectSlipModal(slip)}
-                          disabled={actionLoadingId === (slip._id || slip.id)}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                          Reject Slip
-                        </button>
-                        <button
-                          onClick={() => handleApproveSlip(slip)}
-                          disabled={actionLoadingId === (slip._id || slip.id)}
-                          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 py-2 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-md disabled:opacity-50 transition-all w-full sm:w-auto"
-                        >
-                          {actionLoadingId === (slip._id || slip.id) ? (
-                            <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {isApiSlip ? (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-0.5 text-[10px] font-black text-cyan-400">
+                              <Zap className="h-3 w-3" /> API Tool Service
+                            </span>
                           ) : (
-                            <Check className="h-3.5 w-3.5" />
+                            <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
+                              <ShieldCheck className="h-3 w-3" /> Official Turnitin
+                            </span>
                           )}
-                          Approve & Credit Coins
-                        </button>
+
+                          {slip.status === "pending" && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-[10px] font-black text-blue-400">
+                              <Clock className="h-3 w-3" /> Pending Verification
+                            </span>
+                          )}
+                          {slip.status === "approved" && (
+                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/30 px-3 py-1 text-[10px] font-black text-green-400">
+                              <CheckCircle className="h-3 w-3" /> Approved
+                            </span>
+                          )}
+                          {slip.status === "rejected" && (
+                            <span
+                              className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 text-[10px] font-black text-red-400"
+                              title={slip.adminNote}
+                            >
+                              <XCircle className="h-3 w-3" /> Rejected
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    )}
-                  </div>
-                ))}
+
+                      {/* Middle: Package & Slip Thumbnail */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-zinc-800/40 p-3.5 rounded-xl border border-zinc-800">
+                        <div className="space-y-1">
+                          <p className="text-xs font-bold text-white">{slip.packageName}</p>
+                          <div className="flex items-center gap-3">
+                            <span className="text-xs font-black text-primary">LKR {slip.amount.toLocaleString("en-LK")}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-black ${
+                              isApiSlip ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400" : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                            }`}>
+                              <Coins className="h-3.5 w-3.5" /> +{slip.credits} {isApiSlip ? "API" : "Official"} Coins
+                            </span>
+                          </div>
+                        </div>
+
+                        <div
+                          onClick={() => setActiveSlipModal(slip)}
+                          className="flex items-center gap-2 bg-zinc-900 border border-zinc-700 hover:border-primary px-3 py-1.5 rounded-xl cursor-pointer transition-all self-start sm:self-auto"
+                        >
+                          {slip.slipImage?.startsWith("data:application/pdf") || slip.slipImage?.endsWith(".pdf") ? (
+                            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10 text-red-400 font-extrabold text-[10px] border border-red-500/20">
+                              PDF
+                            </div>
+                          ) : (
+                            <img
+                              src={slip.slipImage}
+                              alt="Slip thumbnail"
+                              className="h-8 w-8 object-cover rounded-lg"
+                            />
+                          )}
+                          <span className="text-xs font-bold text-primary flex items-center gap-1">
+                            <Eye className="h-3.5 w-3.5" /> View Slip Receipt
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      {slip.status === "pending" && (
+                        <div className="flex items-center justify-end gap-2 pt-2 border-t border-zinc-800/80">
+                          <button
+                            onClick={() => handleOpenRejectSlipModal(slip)}
+                            disabled={actionLoadingId === (slip._id || slip.id)}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                            Reject Slip
+                          </button>
+                          <button
+                            onClick={() => handleApproveSlip(slip)}
+                            disabled={actionLoadingId === (slip._id || slip.id)}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-green-600 px-4 py-2 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-md disabled:opacity-50 transition-all w-full sm:w-auto"
+                          >
+                            {actionLoadingId === (slip._id || slip.id) ? (
+                              <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                            ) : (
+                              <Check className="h-3.5 w-3.5" />
+                            )}
+                            Approve & Credit {isApiSlip ? "API" : "Official"} Coins
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -1288,16 +1510,28 @@ function AdminDashboardContent() {
                       <span className="text-[10px] font-bold text-zinc-600 shrink-0">#{index + 1}</span>
                     </div>
 
-                    <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80 text-xs">
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-zinc-800/80 gap-2 text-xs">
                       <p className="text-[10px] text-zinc-500 font-semibold">Joined: {formatDate(user.createdAt)}</p>
-                      <div className="flex items-center gap-2">
-                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-primary bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-xl">
-                          <Coins className="h-3 w-3" />
-                          {user.credits || 0} Coins
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          title={`Official Coins: ${user.officialCredits ?? user.credits ?? 0}, Hold: ${user.officialHoldCredits ?? user.holdCredits ?? 0}`}
+                          className="inline-flex items-center gap-1 text-[10px] font-black text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2 py-1 rounded-xl"
+                        >
+                          <ShieldCheck className="h-3 w-3 text-amber-400" />
+                          <span>Official: {user.officialCredits ?? user.credits ?? 0}</span>
+                          {(user.officialHoldCredits ?? user.holdCredits ?? 0) > 0 && (
+                            <span className="text-[9px] text-amber-400/80">({user.officialHoldCredits ?? user.holdCredits ?? 0} hold)</span>
+                          )}
                         </span>
-                        <span className="inline-flex items-center gap-1 text-[11px] font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-xl">
-                          <Lock className="h-3 w-3" />
-                          {user.holdCredits || 0} Hold
+                        <span
+                          title={`API Tool Coins: ${user.apiCredits ?? 0}, Hold: ${user.apiHoldCredits ?? 0}`}
+                          className="inline-flex items-center gap-1 text-[10px] font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-2 py-1 rounded-xl"
+                        >
+                          <Zap className="h-3 w-3 text-cyan-400" />
+                          <span>API: {user.apiCredits ?? 0}</span>
+                          {(user.apiHoldCredits ?? 0) > 0 && (
+                            <span className="text-[9px] text-cyan-400/80">({user.apiHoldCredits ?? 0} hold)</span>
+                          )}
                         </span>
                       </div>
                     </div>
@@ -1320,10 +1554,21 @@ function AdminDashboardContent() {
               <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
             </button>
 
-            <div className="space-y-1">
-              <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
-                <BookOpen className="h-3 w-3" /> Document Review Brief
-              </span>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/20 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
+                  <BookOpen className="h-3 w-3" /> Document Review Brief
+                </span>
+                {activeAssignmentModal.scanType === "api" ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-0.5 text-[10px] font-black text-cyan-400">
+                    <Zap className="h-3 w-3" /> API Tool Service (1 API Coin)
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
+                    <ShieldCheck className="h-3 w-3" /> Official Turnitin (1 Official Coin)
+                  </span>
+                )}
+              </div>
               <h3 className="text-base sm:text-lg font-black text-white">{activeAssignmentModal.title}</h3>
               <p className="text-xs text-zinc-400 truncate">
                 Customer: <strong className="text-white">{activeAssignmentModal.userName}</strong> ({activeAssignmentModal.userEmail})
@@ -1422,7 +1667,7 @@ function AdminDashboardContent() {
                   className="w-full sm:w-auto rounded-xl bg-blue-600 px-4 py-2.5 text-xs font-black text-white hover:bg-blue-500 cursor-pointer shadow-lg flex items-center justify-center gap-1.5"
                 >
                   <Paperclip className="h-4 w-4" />
-                  {activeAssignmentModal.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
+                  {activeAssignmentModal.resultFile ? "Update Report" : "Upload Report"}
                 </button>
               </div>
             )}
@@ -1433,7 +1678,7 @@ function AdminDashboardContent() {
                   onClick={() => handleOpenRejectAssignmentModal(activeAssignmentModal)}
                   className="w-full sm:w-auto rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer text-center"
                 >
-                  Reject & Refund 1 Coin
+                  Reject & Refund 1 {activeAssignmentModal.scanType === "api" ? "API" : "Official"} Coin
                 </button>
                 <button
                   onClick={() => {
@@ -1453,87 +1698,103 @@ function AdminDashboardContent() {
       )}
 
       {/* ─── Slip Lightbox Modal ────────────────────────────────────────────── */}
-      {activeSlipModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3.5 sm:p-6 overflow-y-auto">
-          <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
-            <button
-              onClick={() => setActiveSlipModal(null)}
-              className="absolute top-4 right-4 p-1.5 sm:p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
-            >
-              <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
-            </button>
+      {activeSlipModal && (() => {
+        const isApiSlip = activeSlipModal.coinType === "api" || (activeSlipModal.packageName && activeSlipModal.packageName.toLowerCase().includes("api"));
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-3.5 sm:p-6 overflow-y-auto">
+            <div className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl p-5 sm:p-6 space-y-5 relative shadow-2xl max-h-[90vh] overflow-y-auto">
+              <button
+                onClick={() => setActiveSlipModal(null)}
+                className="absolute top-4 right-4 p-1.5 sm:p-2 rounded-xl bg-zinc-800 text-zinc-400 hover:text-white cursor-pointer"
+              >
+                <X className="h-4.5 w-4.5 sm:h-5 sm:w-5" />
+              </button>
 
-            <div className="space-y-1">
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0" />
-                <span>Payment Slip Verification</span>
-              </h3>
-              <p className="text-xs text-zinc-400 font-semibold truncate">
-                Customer: <span className="text-white font-bold">{activeSlipModal.userName}</span> ({activeSlipModal.userEmail})
-              </p>
-            </div>
-
-            <div className="grid grid-cols-3 gap-2 sm:gap-3 p-3 bg-zinc-800/60 border border-zinc-700/60 rounded-2xl text-xs">
-              <div>
-                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Plan</p>
-                <p className="font-extrabold text-white text-xs truncate">{activeSlipModal.packageName}</p>
-              </div>
-              <div>
-                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Coins</p>
-                <p className="font-black text-primary text-xs truncate">+{activeSlipModal.credits} Coins</p>
-              </div>
-              <div>
-                <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Amount</p>
-                <p className="font-bold text-white text-xs truncate">LKR {activeSlipModal.amount.toLocaleString("en-LK")}</p>
-              </div>
-            </div>
-
-            <div className="max-h-[55vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-2">
-              {activeSlipModal.slipImage?.startsWith("data:application/pdf") || activeSlipModal.slipImage?.endsWith(".pdf") ? (
-                <div className="space-y-3 p-4 text-center">
-                  <iframe
-                    src={activeSlipModal.slipImage}
-                    title="PDF Bank Slip Receipt"
-                    className="w-full h-[45vh] rounded-lg border border-zinc-800"
-                  />
-                  <a
-                    href={activeSlipModal.slipImage}
-                    download={`bank_slip_${activeSlipModal.userName}.pdf`}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-black font-extrabold text-xs"
-                  >
-                    Download PDF Slip Receipt 📥
-                  </a>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h3 className="text-base font-black text-white flex items-center gap-2">
+                    <Building2 className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0" />
+                    <span>Payment Slip Verification</span>
+                  </h3>
+                  {isApiSlip ? (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-0.5 text-[10px] font-black text-cyan-400">
+                      <Zap className="h-3 w-3" /> API Tool Package
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
+                      <ShieldCheck className="h-3 w-3" /> Official Turnitin Package
+                    </span>
+                  )}
                 </div>
-              ) : (
-                <img
-                  src={activeSlipModal.slipImage}
-                  alt="Full Slip Receipt"
-                  className="max-w-full h-auto mx-auto rounded-lg"
-                />
+                <p className="text-xs text-zinc-400 font-semibold truncate">
+                  Customer: <span className="text-white font-bold">{activeSlipModal.userName}</span> ({activeSlipModal.userEmail})
+                </p>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 p-3 bg-zinc-800/60 border border-zinc-700/60 rounded-2xl text-xs">
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Plan</p>
+                  <p className="font-extrabold text-white text-xs truncate">{activeSlipModal.packageName}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Coins To Credit</p>
+                  <p className={`font-black text-xs truncate ${isApiSlip ? "text-cyan-400" : "text-amber-400"}`}>
+                    +{activeSlipModal.credits} {isApiSlip ? "API" : "Official"} Coins
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] sm:text-[10px] text-zinc-500 font-bold uppercase truncate">Amount</p>
+                  <p className="font-bold text-white text-xs truncate">LKR {activeSlipModal.amount.toLocaleString("en-LK")}</p>
+                </div>
+              </div>
+
+              <div className="max-h-[55vh] overflow-auto rounded-xl border border-zinc-800 bg-black p-2">
+                {activeSlipModal.slipImage?.startsWith("data:application/pdf") || activeSlipModal.slipImage?.endsWith(".pdf") ? (
+                  <div className="space-y-3 p-4 text-center">
+                    <iframe
+                      src={activeSlipModal.slipImage}
+                      title="PDF Bank Slip Receipt"
+                      className="w-full h-[45vh] rounded-lg border border-zinc-800"
+                    />
+                    <a
+                      href={activeSlipModal.slipImage}
+                      download={`bank_slip_${activeSlipModal.userName}.pdf`}
+                      className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-primary text-black font-extrabold text-xs"
+                    >
+                      Download PDF Slip Receipt 📥
+                    </a>
+                  </div>
+                ) : (
+                  <img
+                    src={activeSlipModal.slipImage}
+                    alt="Full Slip Receipt"
+                    className="max-w-full h-auto mx-auto rounded-lg"
+                  />
+                )}
+              </div>
+
+              {activeSlipModal.status === "pending" && (
+                <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
+                  <button
+                    onClick={() => handleOpenRejectSlipModal(activeSlipModal)}
+                    className="w-full sm:w-auto rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer text-center"
+                  >
+                    Reject Slip
+                  </button>
+                  <button
+                    onClick={() => handleApproveSlip(activeSlipModal)}
+                    disabled={actionLoadingId === (activeSlipModal._id || activeSlipModal.id)}
+                    className="w-full sm:w-auto rounded-xl bg-green-600 px-5 py-2.5 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {actionLoadingId === (activeSlipModal._id || activeSlipModal.id) && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
+                    Approve & Credit {isApiSlip ? "API" : "Official"} Coins
+                  </button>
+                </div>
               )}
             </div>
-
-            {activeSlipModal.status === "pending" && (
-              <div className="flex flex-col sm:flex-row items-center justify-end gap-2.5 pt-2">
-                <button
-                  onClick={() => handleOpenRejectSlipModal(activeSlipModal)}
-                  className="w-full sm:w-auto rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer text-center"
-                >
-                  Reject Slip
-                </button>
-                <button
-                  onClick={() => handleApproveSlip(activeSlipModal)}
-                  disabled={actionLoadingId === (activeSlipModal._id || activeSlipModal.id)}
-                  className="w-full sm:w-auto rounded-xl bg-green-600 px-5 py-2.5 text-xs font-black text-white hover:bg-green-500 cursor-pointer shadow-lg disabled:opacity-50 flex items-center justify-center gap-1.5"
-                >
-                  {actionLoadingId === (activeSlipModal._id || activeSlipModal.id) && <RefreshCw className="h-3.5 w-3.5 animate-spin" />}
-                  Approve & Credit Coins
-                </button>
-              </div>
-            )}
           </div>
-        </div>
-      )}
+        );
+      })()}
 
       {/* ─── Reject Reason Modal ────────────────────────────────────────────── */}
       {isRejectModalOpen && (
@@ -1552,7 +1813,11 @@ function AdminDashboardContent() {
 
             <h4 className="text-sm font-black text-white flex items-center gap-2">
               <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
-              <span>{rejectTargetType === "assignment" ? "Reject Assignment & Refund 1 Coin" : "Reject Payment Slip"}</span>
+              <span>
+                {rejectTargetType === "assignment"
+                  ? `Reject Assignment & Refund 1 ${targetRejectAssignment?.scanType === "api" ? "API" : "Official"} Coin`
+                  : "Reject Payment Slip"}
+              </span>
             </h4>
 
             <p className="text-xs text-zinc-400 font-semibold truncate">
@@ -1610,10 +1875,21 @@ function AdminDashboardContent() {
               <X className="h-4 w-4" />
             </button>
 
-            <div className="space-y-1">
-              <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/20 px-2.5 py-0.5 text-[10px] font-black text-green-400">
-                <CheckCircle className="h-3 w-3" /> Approve Document & Upload Turnitin Report
-              </span>
+            <div className="space-y-1.5">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 border border-green-500/20 px-2.5 py-0.5 text-[10px] font-black text-green-400">
+                  <CheckCircle className="h-3 w-3" /> Approve Document & Deliver Report
+                </span>
+                {targetApproveDocument.scanType === "api" ? (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-cyan-500/15 border border-cyan-500/30 px-2.5 py-0.5 text-[10px] font-black text-cyan-400">
+                    <Zap className="h-3 w-3" /> API Tool Service
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 text-[10px] font-black text-amber-400">
+                    <ShieldCheck className="h-3 w-3" /> Official Turnitin Service
+                  </span>
+                )}
+              </div>
               <h3 className="text-base font-black text-white">{targetApproveDocument.title}</h3>
               <p className="text-xs text-zinc-400 font-medium truncate">
                 Customer: <strong className="text-white">{targetApproveDocument.userName}</strong> ({targetApproveDocument.userEmail})
@@ -1640,7 +1916,7 @@ function AdminDashboardContent() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-extrabold text-white">
-                    Upload Checked Turnitin Report Document(s) <span className="text-red-400">*</span>
+                    Upload Checked {targetApproveDocument.scanType === "api" ? "API Tool" : "Turnitin"} Report Document(s) <span className="text-red-400">*</span>
                   </label>
                   {approveResultFiles.length > 0 && (
                     <span className="text-[10px] font-extrabold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md border border-amber-500/20">
@@ -1662,7 +1938,7 @@ function AdminDashboardContent() {
                     className="hidden"
                   />
                   <p className="text-xs text-zinc-300 font-semibold flex items-center justify-center gap-1.5">
-                    <Paperclip className="h-4 w-4 text-[#fe9a00]" /> Click to select or add Turnitin PDF / Report files
+                    <Paperclip className="h-4 w-4 text-[#fe9a00]" /> Click to select or add PDF / Report files
                   </p>
                   <p className="text-[10px] text-zinc-500 font-medium mt-1">
                     Multiple files supported (e.g. Similarity Report PDF + AI Report PDF)
@@ -1756,7 +2032,7 @@ function AdminDashboardContent() {
                   className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#fe9a00] py-3 text-xs font-extrabold text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 disabled:opacity-40 disabled:pointer-events-none transition-all cursor-pointer"
                 >
                   <CheckCircle className="h-4 w-4" />
-                  Approve & Deliver Turnitin Report
+                  Approve & Deliver {targetApproveDocument.scanType === "api" ? "API Tool" : "Turnitin"} Report
                 </button>
               </div>
             </form>

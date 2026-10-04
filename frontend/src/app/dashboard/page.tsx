@@ -26,6 +26,8 @@ import {
   Send,
   Paperclip,
   Check,
+  ShieldCheck,
+  Zap,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
@@ -45,6 +47,7 @@ interface PaymentSlipRecord {
   userName?: string;
   userEmail?: string;
   packageName: string;
+  coinType?: "official" | "api";
   credits: number;
   amount: number;
   slipImage: string;
@@ -65,6 +68,7 @@ interface DocumentRecord {
   deadline?: string;
   attachment?: string;
   attachmentName?: string;
+  scanType?: "official" | "api";
   resultFile?: string;
   resultFileName?: string;
   resultFiles?: { url?: string; name?: string; fileData?: string }[];
@@ -83,6 +87,10 @@ interface UserData {
   email: string;
   credits: number;
   holdCredits?: number;
+  officialCredits: number;
+  officialHoldCredits?: number;
+  apiCredits: number;
+  apiHoldCredits?: number;
   scans: ScanRecord[];
 }
 
@@ -123,6 +131,10 @@ function DashboardContent() {
   const [mySlips, setMySlips] = useState<PaymentSlipRecord[]>([]);
   const [myAssignments, setMyAssignments] = useState<AssignmentRecord[]>([]);
   const [pendingCoins, setPendingCoins] = useState(0);
+  const [pendingOfficialCoins, setPendingOfficialCoins] = useState(0);
+  const [pendingApiCoins, setPendingApiCoins] = useState(0);
+  const [selectedScanType, setSelectedScanType] = useState<"official" | "api">("official");
+  const [docServiceFilter, setDocServiceFilter] = useState<"all" | "official" | "api">("all");
 
   // Checkout Modal State (Buy Plan)
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -273,11 +285,13 @@ function DashboardContent() {
           const headers: Record<string, string> = { "Content-Type": "application/json" };
           if (token) headers["Authorization"] = `Bearer ${token}`;
 
+          const slipCoinType = ls.coinType || (ls.packageName?.toLowerCase().includes("api") ? "api" : "official");
           const syncRes = await fetch(`${API_URL}/payments/upload-slip`, {
             method: "POST",
             headers,
             body: JSON.stringify({
               packageName: ls.packageName,
+              coinType: slipCoinType,
               credits: ls.credits,
               amount: ls.amount,
               slipImage: ls.slipImage,
@@ -288,6 +302,7 @@ function DashboardContent() {
           const syncData = await syncRes.json();
           if (syncData.success && syncData.slip) {
             localSlips[i]._id = syncData.slip._id;
+            localSlips[i].coinType = syncData.slip.coinType || slipCoinType;
             if (!fetched.some((s) => (s._id || s.id) === syncData.slip._id)) {
               fetched.unshift(syncData.slip);
             }
@@ -318,11 +333,17 @@ function DashboardContent() {
     localStorage.setItem("paymentSlips", JSON.stringify(localSlips));
     setMySlips(combined);
 
-    const totalPending = combined
-      .filter((s) => s.status === "pending")
+    const pendingSlipsList = combined.filter((s) => s.status === "pending");
+    const officialPending = pendingSlipsList
+      .filter((s) => s.coinType !== "api" && !s.packageName?.toLowerCase().includes("api"))
+      .reduce((sum, s) => sum + (Number(s.credits) || 0), 0);
+    const apiPending = pendingSlipsList
+      .filter((s) => s.coinType === "api" || s.packageName?.toLowerCase().includes("api"))
       .reduce((sum, s) => sum + (Number(s.credits) || 0), 0);
 
-    setPendingCoins(totalPending);
+    setPendingOfficialCoins(officialPending);
+    setPendingApiCoins(apiPending);
+    setPendingCoins(officialPending + apiPending);
 
     if (userEmail) {
       const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
@@ -395,8 +416,10 @@ function DashboardContent() {
     // Read current user email & registeredUsers from local storage
     const userSession = localStorage.getItem("currentUser");
     let userEmail = "";
-    let localCredits = 0;
-    let localHoldCredits = 0;
+    let localOfficialCredits = 0;
+    let localOfficialHoldCredits = 0;
+    let localApiCredits = 0;
+    let localApiHoldCredits = 0;
 
     if (userSession) {
       try {
@@ -404,16 +427,20 @@ function DashboardContent() {
         userEmail = cur.email || "";
         const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
         if (allUsers[userEmail]) {
-          localCredits = allUsers[userEmail].credits || 0;
-          localHoldCredits = allUsers[userEmail].holdCredits || 0;
+          localOfficialCredits = allUsers[userEmail].officialCredits ?? allUsers[userEmail].credits ?? 0;
+          localOfficialHoldCredits = allUsers[userEmail].officialHoldCredits ?? allUsers[userEmail].holdCredits ?? 0;
+          localApiCredits = allUsers[userEmail].apiCredits || 0;
+          localApiHoldCredits = allUsers[userEmail].apiHoldCredits || 0;
         }
       } catch (e) {
         console.error("Error parsing userSession:", e);
       }
     }
 
-    let backendCredits = 0;
-    let backendHoldCredits = 0;
+    let backendOfficialCredits = 0;
+    let backendOfficialHold = 0;
+    let backendApiCredits = 0;
+    let backendApiHold = 0;
 
     if (token) {
       try {
@@ -422,8 +449,10 @@ function DashboardContent() {
         });
         const data = await res.json();
         if (data.success && data.user) {
-          backendCredits = typeof data.user.credits === "number" ? data.user.credits : 0;
-          backendHoldCredits = typeof data.user.holdCredits === "number" ? data.user.holdCredits : 0;
+          backendOfficialCredits = typeof data.user.officialCredits === "number" ? data.user.officialCredits : (typeof data.user.credits === "number" ? data.user.credits : 0);
+          backendOfficialHold = typeof data.user.officialHoldCredits === "number" ? data.user.officialHoldCredits : (typeof data.user.holdCredits === "number" ? data.user.holdCredits : 0);
+          backendApiCredits = typeof data.user.apiCredits === "number" ? data.user.apiCredits : 0;
+          backendApiHold = typeof data.user.apiHoldCredits === "number" ? data.user.apiHoldCredits : 0;
         }
       } catch (e) {
         console.error("Error fetching user details:", e);
@@ -433,18 +462,29 @@ function DashboardContent() {
     setUserData((prev) => {
       if (!prev && !userEmail) return prev;
 
-      const prevCredits = prev?.credits || 0;
-      const prevHoldCredits = prev?.holdCredits || 0;
+      const prevOfficial = prev?.officialCredits ?? prev?.credits ?? 0;
+      const prevOfficialHold = prev?.officialHoldCredits ?? prev?.holdCredits ?? 0;
+      const prevApi = prev?.apiCredits ?? 0;
+      const prevApiHold = prev?.apiHoldCredits ?? 0;
 
-      // Select the maximum credit value across state, local storage, and backend
-      const updatedCredits = Math.max(prevCredits, localCredits, backendCredits);
-      const updatedHoldCredits = Math.max(prevHoldCredits, localHoldCredits, backendHoldCredits);
+      // Select highest credit count
+      const updatedOfficialCredits = Math.max(prevOfficial, localOfficialCredits, backendOfficialCredits);
+      const updatedOfficialHold = Math.max(prevOfficialHold, localOfficialHoldCredits, backendOfficialHold);
+      const updatedApiCredits = Math.max(prevApi, localApiCredits, backendApiCredits);
+      const updatedApiHold = Math.max(prevApiHold, localApiHoldCredits, backendApiHold);
+
+      const updatedCredits = updatedOfficialCredits + updatedApiCredits;
+      const updatedHoldCredits = updatedOfficialHold + updatedApiHold;
 
       const base = prev || {
         name: userEmail ? userEmail.split("@")[0] : "User",
         email: userEmail,
         credits: updatedCredits,
         holdCredits: updatedHoldCredits,
+        officialCredits: updatedOfficialCredits,
+        officialHoldCredits: updatedOfficialHold,
+        apiCredits: updatedApiCredits,
+        apiHoldCredits: updatedApiHold,
         scans: [],
       };
 
@@ -452,6 +492,10 @@ function DashboardContent() {
         ...base,
         credits: updatedCredits,
         holdCredits: updatedHoldCredits,
+        officialCredits: updatedOfficialCredits,
+        officialHoldCredits: updatedOfficialHold,
+        apiCredits: updatedApiCredits,
+        apiHoldCredits: updatedApiHold,
       };
 
       // Sync updated credits to local storage
@@ -460,6 +504,10 @@ function DashboardContent() {
         if (allUsers[userEmail]) {
           allUsers[userEmail].credits = updated.credits;
           allUsers[userEmail].holdCredits = updated.holdCredits;
+          allUsers[userEmail].officialCredits = updated.officialCredits;
+          allUsers[userEmail].officialHoldCredits = updated.officialHoldCredits;
+          allUsers[userEmail].apiCredits = updated.apiCredits;
+          allUsers[userEmail].apiHoldCredits = updated.apiHoldCredits;
           localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
         }
       }
@@ -490,10 +538,19 @@ function DashboardContent() {
         email: cur.email,
         credits: 0,
         holdCredits: 0,
+        officialCredits: 0,
+        officialHoldCredits: 0,
+        apiCredits: 0,
+        apiHoldCredits: 0,
         scans: [],
       };
       allUsers[cur.email] = activeUser;
       localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
+    } else {
+      activeUser.officialCredits = activeUser.officialCredits ?? activeUser.credits ?? 0;
+      activeUser.officialHoldCredits = activeUser.officialHoldCredits ?? activeUser.holdCredits ?? 0;
+      activeUser.apiCredits = activeUser.apiCredits ?? 0;
+      activeUser.apiHoldCredits = activeUser.apiHoldCredits ?? 0;
     }
 
     setTimeout(() => {
@@ -628,11 +685,15 @@ function DashboardContent() {
         headers["Authorization"] = `Bearer ${token}`;
       }
 
+      const isApiSlip = selectedPack.name.toLowerCase().includes("api");
+      const packCoinType: "official" | "api" = isApiSlip ? "api" : "official";
+
       const res = await fetch(`${API_URL}/payments/upload-slip`, {
         method: "POST",
         headers,
         body: JSON.stringify({
           packageName: selectedPack.name,
+          coinType: packCoinType,
           credits: selectedPack.slots,
           amount: parseFloat(selectedPack.price),
           slipImage: slipPreview,
@@ -652,6 +713,7 @@ function DashboardContent() {
           userName: userData?.name || "Customer",
           userEmail: userData?.email || "user@example.com",
           packageName: selectedPack.name,
+          coinType: packCoinType,
           credits: selectedPack.slots,
           amount: parseFloat(selectedPack.price),
           slipImage: slipPreview,
@@ -662,7 +724,7 @@ function DashboardContent() {
 
         showAlert({
           title: "Payment Slip Submitted!",
-          message: `Payment slip uploaded successfully! ${selectedPack.slots} coins are now pending admin approval.`,
+          message: `Payment slip uploaded successfully! ${selectedPack.slots} ${packCoinType === "api" ? "API Tool" : "Official Turnitin"} coins are now pending admin approval.`,
           variant: "success",
         });
         setIsCheckoutOpen(false);
@@ -680,11 +742,15 @@ function DashboardContent() {
     }
 
     if (!apiSuccess) {
+      const isApiSlip = selectedPack.name.toLowerCase().includes("api");
+      const packCoinType: "official" | "api" = isApiSlip ? "api" : "official";
+
       const newSlip: PaymentSlipRecord = {
         id: Date.now().toString(),
         userName: userData?.name || "Customer",
         userEmail: userData?.email || "user@example.com",
         packageName: selectedPack.name,
+        coinType: packCoinType,
         credits: selectedPack.slots,
         amount: parseFloat(selectedPack.price),
         slipImage: slipPreview,
@@ -947,14 +1013,34 @@ function DashboardContent() {
   const initiateDocVerification = () => {
     if (!userData || !scanFile) return;
 
-    if ((userData.credits || 0) < 1) {
-      showAlert({
-        title: "Insufficient Coins",
-        message: "You need at least 1 coin to scan a document.",
-        variant: "warning",
-      });
-      setIsCheckoutOpen(true);
-      return;
+    if (selectedScanType === "official") {
+      if ((userData.officialCredits || 0) < 1) {
+        showConfirm({
+          title: "Insufficient Official Turnitin Coins",
+          message: "You need at least 1 Official Turnitin coin to scan with Official Turnitin. Would you like to buy a plan?",
+          confirmText: "Buy Official Plan",
+          cancelText: "Cancel",
+          variant: "warning",
+          onConfirm: () => {
+            router.push("/packages?service=official");
+          },
+        });
+        return;
+      }
+    } else {
+      if ((userData.apiCredits || 0) < 1) {
+        showConfirm({
+          title: "Insufficient API Tool Coins",
+          message: "You need at least 1 API Tool coin to scan with API Tool. Would you like to buy a plan?",
+          confirmText: "Buy API Plan",
+          cancelText: "Cancel",
+          variant: "warning",
+          onConfirm: () => {
+            router.push("/packages?service=api");
+          },
+        });
+        return;
+      }
     }
 
     setIsVerifyDocModalOpen(true);
@@ -969,27 +1055,33 @@ function DashboardContent() {
   const startScan = async () => {
     if (!userData || !scanFile) return;
 
-    if ((userData.credits || 0) < 1) {
+    const isApi = selectedScanType === "api";
+    const availableCoin = isApi ? (userData.apiCredits || 0) : (userData.officialCredits || 0);
+
+    if (availableCoin < 1) {
       showAlert({
         title: "Insufficient Coins",
-        message: "You need at least 1 coin to scan a document.",
+        message: `You need at least 1 ${isApi ? "API Tool" : "Official Turnitin"} coin to scan this document.`,
         variant: "warning",
       });
-      setIsCheckoutOpen(true);
       return;
     }
 
     setIsScanning(true);
     setScanProgress(0);
-    setScanStatusText("Submitting document to Turnitin & placing 1 coin on hold...");
+    setScanStatusText(`Submitting document to ${isApi ? "Turnitin API Tool" : "Official Turnitin"} & placing 1 coin on hold...`);
 
     const token = localStorage.getItem("authToken") || localStorage.getItem("token");
     let apiSuccess = false;
 
-    // Deduct 1 coin from available credits and move to holdCredits
+    // Deduct 1 coin from the matching coin balance and move to holdCredits
     const updatedUser = {
       ...userData,
-      credits: (userData.credits || 0) - 1,
+      officialCredits: !isApi ? Math.max(0, (userData.officialCredits || 0) - 1) : userData.officialCredits,
+      officialHoldCredits: !isApi ? (userData.officialHoldCredits || 0) + 1 : userData.officialHoldCredits,
+      apiCredits: isApi ? Math.max(0, (userData.apiCredits || 0) - 1) : userData.apiCredits,
+      apiHoldCredits: isApi ? (userData.apiHoldCredits || 0) + 1 : userData.apiHoldCredits,
+      credits: Math.max(0, (userData.credits || 0) - 1),
       holdCredits: (userData.holdCredits || 0) + 1,
     };
 
@@ -1004,9 +1096,10 @@ function DashboardContent() {
         headers,
         body: JSON.stringify({
           title: scanFile, // Use filename as title directly!
-          description: `Turnitin No-Repository Scan for ${scanFile}`,
+          description: `${isApi ? "API Tool" : "Official Turnitin"} No-Repository Scan for ${scanFile}`,
           attachment: scanFileData || "",
           attachmentName: scanFile,
+          scanType: selectedScanType,
           userName: userData.name,
           userEmail: userData.email,
           deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
@@ -1019,6 +1112,10 @@ function DashboardContent() {
         apiSuccess = true;
         syncUserData({
           ...userData,
+          officialCredits: data.officialCredits !== undefined ? data.officialCredits : updatedUser.officialCredits,
+          officialHoldCredits: data.officialHoldCredits !== undefined ? data.officialHoldCredits : updatedUser.officialHoldCredits,
+          apiCredits: data.apiCredits !== undefined ? data.apiCredits : updatedUser.apiCredits,
+          apiHoldCredits: data.apiHoldCredits !== undefined ? data.apiHoldCredits : updatedUser.apiHoldCredits,
           credits: data.availableCredits !== undefined ? data.availableCredits : updatedUser.credits,
           holdCredits: data.holdCredits !== undefined ? data.holdCredits : updatedUser.holdCredits,
         });
@@ -1033,10 +1130,11 @@ function DashboardContent() {
       const newDoc: DocumentRecord = {
         id: Date.now().toString(),
         title: scanFile,
-        description: `Turnitin No-Repository Scan for ${scanFile}`,
+        description: `${isApi ? "API Tool" : "Official Turnitin"} No-Repository Scan for ${scanFile}`,
         attachmentName: scanFile,
         userName: userData.name || "User",
         userEmail: userData.email,
+        scanType: selectedScanType,
         deadline: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
         status: "pending",
         createdAt: new Date().toISOString(),
@@ -1054,7 +1152,7 @@ function DashboardContent() {
     // Animation progress simulation
     const intervals = [
       { prg: 25, text: "Extracting document text...", delay: 1500 },
-      { prg: 55, text: "Submitting to Turnitin Feedback Studio (No-Repository Mode)...", delay: 3000 },
+      { prg: 55, text: `Submitting to ${isApi ? "Turnitin API Engine" : "Feedback Studio (No-Repository Mode)"}...`, delay: 3000 },
       { prg: 80, text: "Analyzing matching document databases...", delay: 4500 },
       { prg: 95, text: "Verifying AI writing patterns...", delay: 6000 },
       { prg: 100, text: "Generating originality report...", delay: 7500 },
@@ -1085,6 +1183,10 @@ function DashboardContent() {
 
             const finalizedUser = {
               ...userData,
+              officialCredits: !isApi ? Math.max(0, (userData.officialCredits || 1) - 1) : userData.officialCredits,
+              officialHoldCredits: !isApi ? (userData.officialHoldCredits || 0) + 1 : userData.officialHoldCredits,
+              apiCredits: isApi ? Math.max(0, (userData.apiCredits || 1) - 1) : userData.apiCredits,
+              apiHoldCredits: isApi ? (userData.apiHoldCredits || 0) + 1 : userData.apiHoldCredits,
               credits: Math.max(0, (userData.credits || 1) - 1),
               holdCredits: (userData.holdCredits || 0) + 1,
               scans: [newScan, ...(userData.scans || [])],
@@ -1096,7 +1198,7 @@ function DashboardContent() {
             setScanFileData(null);
             showAlert({
               title: "Document Verified & Submitted!",
-              message: `Document "${scanFile}" verified & submitted successfully! 1 coin deducted. Your document is now pending Turnitin scan report from admin.`,
+              message: `Document "${scanFile}" submitted for ${isApi ? "API Tool" : "Official Turnitin"} analysis! 1 coin deducted. Your document is now pending Turnitin scan report from admin.`,
               variant: "success",
             });
           }, 600);
@@ -1107,9 +1209,13 @@ function DashboardContent() {
 
   const cancelAssignment = (docId: string) => {
     if (!userData) return;
+    const targetDoc = myAssignments.find((a) => (a._id || a.id) === docId);
+    const isApiDoc = targetDoc?.scanType === "api";
+    const coinTypeName = isApiDoc ? "API Tool" : "Official Turnitin";
+
     showConfirm({
       title: "Cancel Document Case?",
-      message: "Are you sure you want to cancel this document submission? 1 coin will be returned to your available balance.",
+      message: `Are you sure you want to cancel this document submission? 1 ${coinTypeName} coin will be returned to your available balance.`,
       confirmText: "Yes, Cancel Case",
       cancelText: "Keep Case",
       variant: "danger",
@@ -1130,6 +1236,10 @@ function DashboardContent() {
             apiSuccess = true;
             syncUserData({
               ...userData,
+              officialCredits: data.officialCredits !== undefined ? data.officialCredits : (!isApiDoc ? (userData.officialCredits || 0) + 1 : userData.officialCredits),
+              officialHoldCredits: data.officialHoldCredits !== undefined ? data.officialHoldCredits : (!isApiDoc ? Math.max(0, (userData.officialHoldCredits || 0) - 1) : userData.officialHoldCredits),
+              apiCredits: data.apiCredits !== undefined ? data.apiCredits : (isApiDoc ? (userData.apiCredits || 0) + 1 : userData.apiCredits),
+              apiHoldCredits: data.apiHoldCredits !== undefined ? data.apiHoldCredits : (isApiDoc ? Math.max(0, (userData.apiHoldCredits || 0) - 1) : userData.apiHoldCredits),
               credits: data.availableCredits !== undefined ? data.availableCredits : (userData.credits || 0) + 1,
               holdCredits: data.holdCredits !== undefined ? data.holdCredits : Math.max(0, (userData.holdCredits || 0) - 1),
             });
@@ -1137,7 +1247,7 @@ function DashboardContent() {
             fetchMe();
             showAlert({
               title: "Case Cancelled",
-              message: "Document case cancelled! 1 coin returned to your available balance.",
+              message: `Document case cancelled! 1 ${coinTypeName} coin returned to your available balance.`,
               variant: "success",
             });
             return;
@@ -1162,13 +1272,17 @@ function DashboardContent() {
 
           const updatedUser = {
             ...userData,
+            officialCredits: !isApiDoc ? (userData.officialCredits || 0) + 1 : userData.officialCredits,
+            officialHoldCredits: !isApiDoc ? Math.max(0, (userData.officialHoldCredits || 0) - 1) : userData.officialHoldCredits,
+            apiCredits: isApiDoc ? (userData.apiCredits || 0) + 1 : userData.apiCredits,
+            apiHoldCredits: isApiDoc ? Math.max(0, (userData.apiHoldCredits || 0) - 1) : userData.apiHoldCredits,
             credits: (userData.credits || 0) + 1,
             holdCredits: Math.max(0, (userData.holdCredits || 0) - 1),
           };
           syncUserData(updatedUser);
           showAlert({
             title: "Case Cancelled",
-            message: "Document case cancelled! 1 coin returned to your available balance.",
+            message: `Document case cancelled! 1 ${coinTypeName} coin returned to your available balance.`,
             variant: "success",
           });
         }
@@ -1210,8 +1324,8 @@ function DashboardContent() {
 
       <main className="flex-1 bg-muted/15 py-6 sm:py-10 text-left">
         <div className="mx-auto max-w-5xl px-3.5 sm:px-6 space-y-6 sm:space-y-8">
-          {/* Welcome row & Stats Cards */}
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm">
+          {/* Welcome row */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-card border border-border p-4 sm:p-6 rounded-2xl shadow-sm">
             <div className="space-y-1">
               <h1 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
                 Welcome, @{userData.name}!
@@ -1220,59 +1334,136 @@ function DashboardContent() {
                 Workspace Dashboard · {userData.email}
               </p>
             </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push("/packages")}
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>View All Plans</span>
+              </button>
+            </div>
+          </div>
 
-            {/* Credit count & Hold Coins */}
-            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2.5 sm:gap-3">
-              {/* Available Coins */}
-              <div className="flex items-center gap-2.5 sm:gap-3 bg-muted/30 border border-border/80 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl">
-                <Coins className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-primary shrink-0 animate-pulse" />
-                <div className="min-w-0">
-                  <p className="text-[9px] sm:text-[10px] font-bold text-muted-foreground uppercase tracking-wider truncate">
-                    Available
-                  </p>
-                  <p className="text-base sm:text-lg font-black text-foreground tracking-tight">
-                    {userData.credits} <span className="text-xs font-bold text-muted-foreground hidden sm:inline">Coins</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Hold Coins */}
-              <div className="flex items-center gap-2.5 sm:gap-3 bg-amber-500/10 border border-amber-500/20 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl">
-                <Lock className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
-                <div className="min-w-0">
-                  <p className="text-[9px] sm:text-[10px] font-extrabold text-amber-600 uppercase tracking-wider truncate">
-                    Hold Position
-                  </p>
-                  <p className="text-base sm:text-lg font-black text-amber-600 tracking-tight">
-                    {holdCoins} <span className="text-xs font-bold text-amber-600/80 hidden sm:inline">Coins</span>
-                  </p>
-                </div>
-              </div>
-
-              {/* Pending Balance Top-up */}
-              {pendingCoins > 0 && (
-                <div className="col-span-2 sm:col-span-1 flex items-center gap-2.5 sm:gap-3 bg-blue-500/10 border border-blue-500/20 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl">
-                  <Clock className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-blue-500 shrink-0 animate-spin" />
-                  <div className="min-w-0">
-                    <p className="text-[9px] sm:text-[10px] font-extrabold text-blue-600 uppercase tracking-wider truncate">
-                      Pending Top-up
-                    </p>
-                    <p className="text-base sm:text-lg font-black text-blue-600 tracking-tight">
-                      +{pendingCoins} Coins
+          {/* ─── 2 Separate Coin Type Balance Cards ──────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+            {/* Card 1: Official Turnitin Coin Balance */}
+            <div className="relative overflow-hidden rounded-2xl border border-amber-500/30 bg-gradient-to-br from-amber-500/10 via-amber-500/5 to-card p-5 sm:p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-500 border border-amber-500/30">
+                    <ShieldCheck className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/25 text-[10px] font-black uppercase tracking-wider text-amber-600 dark:text-amber-400">
+                      Official Service
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight mt-0.5">
+                      Official Turnitin Coins
+                    </h3>
+                    <p className="text-[11px] font-semibold text-muted-foreground">
+                      Feedback Studio • 100% No-Repository • Official PDF
                     </p>
                   </div>
                 </div>
-              )}
-
-              {/* Action Buttons */}
-              <div className="col-span-2 sm:col-span-1 flex items-center">
                 <button
-                  onClick={() => router.push("/packages")}
-                  className="w-full sm:w-auto inline-flex h-10 sm:h-11 items-center justify-center gap-2 rounded-xl bg-primary px-4 text-xs font-black text-primary-foreground hover:bg-primary/95 transition-all shadow-md shadow-primary/10 cursor-pointer"
+                  onClick={() => router.push("/packages?service=official")}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-black text-black hover:bg-amber-400 transition-colors shadow-sm cursor-pointer shrink-0"
                 >
-                  <Plus className="h-4 w-4" />
-                  <span>Buy Plan</span>
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Buy Official</span>
                 </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {/* Available */}
+                <div className="bg-background/80 border border-border/80 rounded-xl p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Available</p>
+                  <p className="text-xl sm:text-2xl font-black text-amber-500 mt-0.5 tracking-tight">
+                    {userData.officialCredits || 0}
+                  </p>
+                  <p className="text-[10px] font-bold text-muted-foreground">Ready to scan</p>
+                </div>
+
+                {/* Hold */}
+                <div className="bg-background/80 border border-border/80 rounded-xl p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">In Hold</p>
+                  <p className="text-xl sm:text-2xl font-black text-foreground mt-0.5 tracking-tight">
+                    {userData.officialHoldCredits || 0}
+                  </p>
+                  <p className="text-[10px] font-bold text-muted-foreground">In processing</p>
+                </div>
+
+                {/* Pending Approval */}
+                <div className="col-span-2 sm:col-span-1 bg-background/80 border border-border/80 rounded-xl p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pending Top-up</p>
+                  <p className={`text-xl sm:text-2xl font-black mt-0.5 tracking-tight ${pendingOfficialCoins > 0 ? "text-blue-500" : "text-muted-foreground"}`}>
+                    {pendingOfficialCoins > 0 ? `+${pendingOfficialCoins}` : "0"}
+                  </p>
+                  <p className="text-[10px] font-bold text-muted-foreground">
+                    {pendingOfficialCoins > 0 ? "Slip in review" : "No pending slip"}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: API Tool Coin Balance */}
+            <div className="relative overflow-hidden rounded-2xl border border-cyan-500/30 bg-gradient-to-br from-cyan-500/10 via-cyan-500/5 to-card p-5 sm:p-6 shadow-sm">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-500/20 text-cyan-500 border border-cyan-500/30">
+                    <Zap className="h-6 w-6" />
+                  </div>
+                  <div>
+                    <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/25 text-[10px] font-black uppercase tracking-wider text-cyan-600 dark:text-cyan-400">
+                      API Service
+                    </div>
+                    <h3 className="text-base sm:text-lg font-black text-foreground tracking-tight mt-0.5">
+                      API Tool Coins
+                    </h3>
+                    <p className="text-[11px] font-semibold text-muted-foreground">
+                      Fast Automated Scan • 100% No-Repository • Instant API
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => router.push("/packages?service=api")}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-cyan-500 px-3 py-1.5 text-xs font-black text-black hover:bg-cyan-400 transition-colors shadow-sm cursor-pointer shrink-0"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>Buy API Plan</span>
+                </button>
+              </div>
+
+              <div className="mt-5 grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+                {/* Available */}
+                <div className="bg-background/80 border border-border/80 rounded-xl p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Available</p>
+                  <p className="text-xl sm:text-2xl font-black text-cyan-500 mt-0.5 tracking-tight">
+                    {userData.apiCredits || 0}
+                  </p>
+                  <p className="text-[10px] font-bold text-muted-foreground">Ready to scan</p>
+                </div>
+
+                {/* Hold */}
+                <div className="bg-background/80 border border-border/80 rounded-xl p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">In Hold</p>
+                  <p className="text-xl sm:text-2xl font-black text-foreground mt-0.5 tracking-tight">
+                    {userData.apiHoldCredits || 0}
+                  </p>
+                  <p className="text-[10px] font-bold text-muted-foreground">In processing</p>
+                </div>
+
+                {/* Pending Approval */}
+                <div className="col-span-2 sm:col-span-1 bg-background/80 border border-border/80 rounded-xl p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Pending Top-up</p>
+                  <p className={`text-xl sm:text-2xl font-black mt-0.5 tracking-tight ${pendingApiCoins > 0 ? "text-blue-500" : "text-muted-foreground"}`}>
+                    {pendingApiCoins > 0 ? `+${pendingApiCoins}` : "0"}
+                  </p>
+                  <p className="text-[10px] font-bold text-muted-foreground">
+                    {pendingApiCoins > 0 ? "Slip in review" : "No pending slip"}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -1289,7 +1480,11 @@ function DashboardContent() {
                     Bank Top-up Slip Under Admin Verification
                   </h4>
                   <p className="text-[11px] font-semibold text-blue-600 dark:text-blue-300">
-                    You have <span className="font-bold">{pendingCoins} coins</span> waiting for slip approval. Once verified, coins will be added to your available balance.
+                    You have{" "}
+                    {pendingOfficialCoins > 0 && <span className="font-bold">{pendingOfficialCoins} Official Turnitin coins</span>}
+                    {pendingOfficialCoins > 0 && pendingApiCoins > 0 && " and "}
+                    {pendingApiCoins > 0 && <span className="font-bold">{pendingApiCoins} API Tool coins</span>}
+                    {" "}waiting for slip approval. Once verified, coins will be added to your balance.
                   </p>
                 </div>
               </div>
@@ -1318,17 +1513,74 @@ function DashboardContent() {
                   Upload your document for review. Submitting places 1 coin on Hold.
                 </p>
               </div>
+            </div>
 
-              {/* 1 Coin Hold Rule & Available Coins Banner */}
-              {/* <div className="flex items-center gap-2.5 sm:gap-3 bg-primary/10 border border-primary/25 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl text-xs font-extrabold text-foreground shrink-0 self-start sm:self-auto">
-                <div className="flex items-center gap-1.5 text-primary">
-                  <Coins className="h-4 w-4 shrink-0" />
-                  <span className="hidden xs:inline">1 Coin Hold Rule:</span>
+            {/* Scan Engine / Coin Type Selector */}
+            <div className="space-y-2">
+              <label className="text-xs font-black uppercase tracking-wider text-muted-foreground">
+                Select Scan Service / Engine
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Official Turnitin Option */}
+                <div
+                  onClick={() => setSelectedScanType("official")}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    selectedScanType === "official"
+                      ? "border-amber-500 bg-amber-500/10 shadow-sm"
+                      : "border-border/80 bg-background hover:border-amber-500/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-500/20 text-amber-500 font-bold">
+                        <ShieldCheck className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-foreground">Official Turnitin</h4>
+                        <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400">Costs 1 Official Coin</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-foreground">
+                        {userData.officialCredits || 0} Available
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground font-semibold mt-2.5 leading-relaxed">
+                    Official Turnitin Feedback Studio report with AI detection, plagiarism score & instructor certificate.
+                  </p>
                 </div>
-                <div className="bg-primary text-primary-foreground px-2.5 py-0.5 rounded-lg text-xs font-black">
-                  Available: {userData.credits || 0} Coins
+
+                {/* API Tool Option */}
+                <div
+                  onClick={() => setSelectedScanType("api")}
+                  className={`p-4 rounded-2xl border-2 cursor-pointer transition-all ${
+                    selectedScanType === "api"
+                      ? "border-cyan-500 bg-cyan-500/10 shadow-sm"
+                      : "border-border/80 bg-background hover:border-cyan-500/50"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-500 font-bold">
+                        <Zap className="h-5 w-5" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-black text-foreground">API Tool</h4>
+                        <span className="text-[10px] font-bold text-cyan-600 dark:text-cyan-400">Costs 1 API Coin</span>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-xs font-black text-foreground">
+                        {userData.apiCredits || 0} Available
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground font-semibold mt-2.5 leading-relaxed">
+                    Fast automated Turnitin API scan. Secure auto-deletion with instant similarity breakdown.
+                  </p>
                 </div>
-              </div> */}
+              </div>
             </div>
 
             {isScanning ? (
@@ -1338,7 +1590,9 @@ function DashboardContent() {
                   <span className="absolute text-xs font-black text-primary font-mono">{scanProgress}%</span>
                 </div>
                 <div className="space-y-2">
-                  <h4 className="text-sm font-bold text-foreground">Turnitin scan processing...</h4>
+                  <h4 className="text-sm font-bold text-foreground">
+                    {selectedScanType === "api" ? "Turnitin API scan processing..." : "Official Turnitin scan processing..."}
+                  </h4>
                   <p className="text-xs text-muted-foreground font-semibold leading-relaxed animate-pulse">
                     {scanStatusText}
                   </p>
@@ -1384,7 +1638,7 @@ function DashboardContent() {
                                 {scanFile}
                               </p>
                               <p className="text-[10px] text-muted-foreground font-semibold">
-                                1 Coin Hold rule applied
+                                1 {selectedScanType === "api" ? "API Tool" : "Official Turnitin"} Coin Hold rule applied
                               </p>
                             </div>
                           </div>
@@ -1424,9 +1678,11 @@ function DashboardContent() {
                   <div className="p-4 bg-muted/30 border border-border/80 rounded-2xl space-y-2.5 text-xs font-semibold text-muted-foreground leading-relaxed">
                     <p className="flex items-center gap-1.5 text-foreground font-extrabold text-xs">
                       <CheckCircle className="h-4 w-4 text-primary shrink-0" />
-                      Scan Policy Summary:
+                      Scan Policy ({selectedScanType === "api" ? "API Tool" : "Official Turnitin"}):
                     </p>
-                    <p className="text-xs">• Deducts exactly <strong className="text-foreground">{"1 coin / credit"}</strong>.</p>
+                    <p className="text-xs">
+                      • Deducts exactly <strong className="text-foreground">1 {selectedScanType === "api" ? "API Tool" : "Official Turnitin"} coin</strong>.
+                    </p>
                     <p className="text-xs">• Strict No-Repository analysis activated.</p>
                     <p className="text-xs">• Data auto-delete executes in exactly 24 hours.</p>
                   </div>
@@ -1434,10 +1690,14 @@ function DashboardContent() {
                   <button
                     onClick={initiateDocVerification}
                     disabled={!scanFile}
-                    className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] py-3.5 text-sm font-extrabold text-white shadow-lg shadow-primary/25 hover:shadow-xl hover:shadow-primary/35 disabled:opacity-40 disabled:pointer-events-none transition-all duration-300 hover:scale-[1.01] cursor-pointer"
+                    className={`w-full inline-flex items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-extrabold text-white shadow-lg disabled:opacity-40 disabled:pointer-events-none transition-all duration-300 hover:scale-[1.01] cursor-pointer ${
+                      selectedScanType === "api"
+                        ? "bg-gradient-to-r from-cyan-600 to-blue-600 shadow-cyan-600/25 hover:shadow-cyan-600/35"
+                        : "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] shadow-primary/25 hover:shadow-primary/35"
+                    }`}
                   >
                     <FileCheck className="h-4.5 w-4.5" />
-                    <span>Analyze Document</span>
+                    <span>Analyze Document (-1 {selectedScanType === "api" ? "API" : "Official"} Coin)</span>
                   </button>
                 </div>
               </div>
@@ -1446,11 +1706,52 @@ function DashboardContent() {
 
           {/* Customer Assignments Table / Section */}
           <div className="bg-card border border-border rounded-2xl p-4 sm:p-6 md:p-8 space-y-6 shadow-sm">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
-                <BookOpen className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
-                <span>Scan Turnitin Document</span>
-              </h2>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/60 pb-4">
+              <div>
+                <h2 className="text-base sm:text-lg font-extrabold text-foreground tracking-tight flex items-center gap-2">
+                  <BookOpen className="h-4.5 w-4.5 sm:h-5 sm:w-5 text-amber-500 shrink-0" />
+                  <span>My Document Submissions</span>
+                </h2>
+                <p className="text-xs text-muted-foreground font-semibold mt-0.5">
+                  Track your scan progress and download official similarity reports
+                </p>
+              </div>
+
+              {/* Service Filter Pills */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-1">
+                <button
+                  onClick={() => setDocServiceFilter("all")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    docServiceFilter === "all"
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted/40 text-muted-foreground hover:text-foreground border border-border"
+                  }`}
+                >
+                  All ({myAssignments.length})
+                </button>
+                <button
+                  onClick={() => setDocServiceFilter("official")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    docServiceFilter === "official"
+                      ? "bg-amber-500 text-black shadow-sm"
+                      : "bg-muted/40 text-muted-foreground hover:text-foreground border border-border"
+                  }`}
+                >
+                  <ShieldCheck className="h-3.5 w-3.5" />
+                  <span>Official ({myAssignments.filter((a) => a.scanType !== "api").length})</span>
+                </button>
+                <button
+                  onClick={() => setDocServiceFilter("api")}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center gap-1.5 ${
+                    docServiceFilter === "api"
+                      ? "bg-cyan-500 text-black shadow-sm"
+                      : "bg-muted/40 text-muted-foreground hover:text-foreground border border-border"
+                  }`}
+                >
+                  <Zap className="h-3.5 w-3.5" />
+                  <span>API Tool ({myAssignments.filter((a) => a.scanType === "api").length})</span>
+                </button>
+              </div>
             </div>
 
             {myAssignments.length === 0 ? (
@@ -1459,35 +1760,45 @@ function DashboardContent() {
                 <div>
                   <p className="text-sm font-bold text-foreground">No documents submitted yet</p>
                   <p className="text-xs text-muted-foreground font-semibold max-w-sm mx-auto mt-1">
-                    Upload your document. 1 coin is placed on hold until admin approves the submission.
+                    Upload your document above. 1 coin is placed on hold until the scan report is generated.
                   </p>
                 </div>
-                <button
-                  onClick={() => setIsAssignmentModalOpen(true)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-500 px-4 py-2 text-xs font-black text-black hover:bg-amber-400 cursor-pointer shadow-md"
-                >
-                  <Plus className="h-3.5 w-3.5" />
-                  Upload First Document
-                </button>
               </div>
             ) : (
               <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
                 <table className="w-full text-sm min-w-[560px]">
                   <thead>
                     <tr className="border-b border-border/80 text-[11px] font-bold uppercase tracking-wider text-muted-foreground/80">
-                      <th className="py-3 text-left font-bold">Document Title</th>
-                      <th className="py-3 text-center font-bold">Document File</th>
+                      <th className="py-3 text-left font-bold">Document & Service</th>
+                      <th className="py-3 text-center font-bold">File</th>
                       <th className="py-3 text-center font-bold">Status</th>
-                      <th className="py-3 text-center font-bold">Turnitin Document / Action</th>
+                      <th className="py-3 text-center font-bold">Scan Report / Action</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border/40 font-semibold text-muted-foreground">
-                    {myAssignments.map((assn, i) => (
+                    {myAssignments
+                      .filter((a) => {
+                        if (docServiceFilter === "official") return a.scanType !== "api";
+                        if (docServiceFilter === "api") return a.scanType === "api";
+                        return true;
+                      })
+                      .map((assn, i) => (
                       <tr key={assn._id || assn.id || i} className="hover:bg-muted/10 transition-colors">
-                        {/* 1. Document Title */}
+                        {/* 1. Document Title & Service Badge */}
                         <td className="py-3.5 text-left text-foreground font-bold max-w-xs truncate">
-                          <div>
-                            <p className="truncate text-xs font-extrabold">{assn.title || assn.attachmentName}</p>
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {assn.scanType === "api" ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-[9px] font-black uppercase text-cyan-600 dark:text-cyan-400">
+                                  <Zap className="h-2.5 w-2.5" /> API Tool
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[9px] font-black uppercase text-amber-600 dark:text-amber-400">
+                                  <ShieldCheck className="h-2.5 w-2.5" /> Official Turnitin
+                                </span>
+                              )}
+                              <p className="truncate text-xs font-extrabold">{assn.title || assn.attachmentName}</p>
+                            </div>
                             <p className="text-[10px] text-muted-foreground font-semibold">
                               Submitted: {assn.createdAt ? new Date(assn.createdAt).toLocaleDateString("en-LK") : "N/A"}
                             </p>
@@ -1514,25 +1825,25 @@ function DashboardContent() {
                           {assn.status === "rejected" || assn.status === "refunded" ? (
                             <span
                               className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 px-2.5 py-0.5 text-[10px] font-black text-blue-600 border border-blue-500/20"
-                              title={assn.adminNote || "1 coin refunded by admin"}
+                              title={assn.adminNote || `1 ${assn.scanType === "api" ? "API Tool" : "Official Turnitin"} coin refunded by admin`}
                             >
                               <RefreshCw className="h-3 w-3" />
-                              Refunded by Admin (+1 Coin Returned)
+                              Refunded (+1 {assn.scanType === "api" ? "API" : "Official"} Coin Returned)
                             </span>
                           ) : assn.status === "cancelled" ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-gray-500/15 px-2.5 py-0.5 text-[10px] font-black text-gray-400 border border-gray-500/20">
                               <XCircle className="h-3 w-3" />
-                              Cancelled (1 Coin Returned)
+                              Cancelled (+1 {assn.scanType === "api" ? "API" : "Official"} Coin Returned)
                             </span>
                           ) : assn.status === "approved" ? (
                             <span className="inline-flex items-center gap-1 rounded-full bg-green-500/15 px-2.5 py-0.5 text-[10px] font-black text-green-600 border border-green-500/20">
                               <CheckCircle className="h-3 w-3" />
-                              Completed Scan
+                              Scan Completed
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/15 px-2.5 py-0.5 text-[10px] font-black text-amber-600 border border-amber-500/20">
                               <Clock className="h-3 w-3" />
-                              1 Coin Deducted / Held
+                              1 {assn.scanType === "api" ? "API" : "Official"} Coin Held
                             </span>
                           )}
                         </td>
@@ -1547,7 +1858,9 @@ function DashboardContent() {
                                     <a
                                       key={idx}
                                       href={`/api/download?file=${encodeURIComponent(rf.url || rf.fileData || "")}&name=${encodeURIComponent(rf.name || `Report_${idx + 1}.pdf`)}`}
-                                      className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-[#fe9a00] px-2.5 py-1 text-[11px] font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer truncate"
+                                      className={`inline-flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-1 text-[11px] font-black text-black shadow-md cursor-pointer truncate ${
+                                        assn.scanType === "api" ? "bg-cyan-500 hover:bg-cyan-400 shadow-cyan-500/20" : "bg-[#fe9a00] hover:bg-[#e08800] shadow-[#fe9a00]/20"
+                                      }`}
                                       title={rf.name}
                                     >
                                       <Download className="h-3 w-3 shrink-0" />
@@ -1558,14 +1871,16 @@ function DashboardContent() {
                               ) : (
                                 <a
                                   href={`/api/download?file=${encodeURIComponent(assn.resultFile || assn.attachment || "")}&name=${encodeURIComponent(assn.resultFileName || `${assn.title}_Turnitin_Report.pdf`)}`}
-                                  className="inline-flex items-center gap-1.5 rounded-xl bg-[#fe9a00] px-3 py-1.5 text-xs font-black text-black hover:bg-[#e08800] shadow-md shadow-[#fe9a00]/20 cursor-pointer"
+                                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-black text-black shadow-md cursor-pointer ${
+                                    assn.scanType === "api" ? "bg-cyan-500 hover:bg-cyan-400 shadow-cyan-500/20" : "bg-[#fe9a00] hover:bg-[#e08800] shadow-[#fe9a00]/20"
+                                  }`}
                                 >
                                   <Download className="h-3.5 w-3.5" />
                                   Download Report 📥
                                 </a>
                               )}
                               {assn.similarityScore !== undefined && assn.similarityScore !== null && (
-                                <span className="text-[10px] font-extrabold text-[#fe9a00]">
+                                <span className={`text-[10px] font-extrabold ${assn.scanType === "api" ? "text-cyan-600 dark:text-cyan-400" : "text-[#fe9a00]"}`}>
                                   Similarity: {assn.similarityScore}% {assn.aiScore !== undefined && assn.aiScore !== null ? `| AI: ${assn.aiScore}%` : ""}
                                 </span>
                               )}
@@ -1573,10 +1888,18 @@ function DashboardContent() {
                           ) : assn.status === "cancelled" || assn.status === "rejected" || assn.status === "refunded" ? (
                             <span className="text-xs text-blue-600 dark:text-blue-400 font-bold italic">Refunded by Admin</span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-extrabold">
-                              <Clock className="h-3.5 w-3.5 animate-spin" />
-                              Awaiting Admin Scan
-                            </span>
+                            <div className="flex items-center justify-center gap-2">
+                              <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-extrabold">
+                                <Clock className="h-3.5 w-3.5 animate-spin" />
+                                In Queue
+                              </span>
+                              <button
+                                onClick={() => cancelAssignment(assn._id || assn.id || "")}
+                                className="text-[10px] text-red-500 hover:underline font-bold"
+                              >
+                                Cancel
+                              </button>
+                            </div>
                           )}
                         </td>
                       </tr>
@@ -1630,7 +1953,18 @@ function DashboardContent() {
                     {mySlips.map((slip, i) => (
                       <tr key={slip._id || slip.id || i} className="hover:bg-muted/10 transition-colors">
                         <td className="py-3.5 text-left text-foreground font-bold">
-                          {slip.packageName}
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {slip.coinType === "api" || slip.packageName?.toLowerCase().includes("api") ? (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-[9px] font-black uppercase text-cyan-600 dark:text-cyan-400">
+                                <Zap className="h-2.5 w-2.5" /> API
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[9px] font-black uppercase text-amber-600 dark:text-amber-400">
+                                <ShieldCheck className="h-2.5 w-2.5" /> Official
+                              </span>
+                            )}
+                            <span className="text-xs">{slip.packageName}</span>
+                          </div>
                         </td>
                         <td className="py-3.5 text-center font-black text-foreground">
                           +{slip.credits} Coins
@@ -2228,7 +2562,7 @@ function DashboardContent() {
               </div>
               <h3 className="text-xl font-black text-foreground tracking-tight">Verify Your Document</h3>
               <p className="text-xs text-muted-foreground font-semibold">
-                Please verify that this is the correct document before proceeding with submission.
+                Please verify your file and selected scan service before proceeding with submission.
               </p>
             </div>
 
@@ -2240,18 +2574,35 @@ function DashboardContent() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-xs font-black text-foreground truncate">{scanFile}</p>
-                  <p className="text-[10px] text-muted-foreground font-semibold">Ready for Turnitin No-Repository Scan</p>
+                  <div className="flex items-center gap-1.5 mt-0.5">
+                    {selectedScanType === "api" ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-black text-cyan-600 dark:text-cyan-400">
+                        <Zap className="h-3 w-3" /> API Tool Scan
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-[10px] font-black text-amber-600 dark:text-amber-400">
+                        <ShieldCheck className="h-3 w-3" /> Official Turnitin Scan
+                      </span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground font-semibold">100% No-Repository</span>
+                  </div>
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-3 pt-3 border-t border-border/60 text-xs">
                 <div className="bg-background/80 p-2.5 rounded-xl border border-border/60">
-                  <p className="text-[10px] font-bold text-muted-foreground uppercase">Current Balance</p>
-                  <p className="text-sm font-black text-foreground">{userData.credits} Coins</p>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase">
+                    {selectedScanType === "api" ? "API Tool Coins" : "Official Turnitin Coins"}
+                  </p>
+                  <p className="text-sm font-black text-foreground">
+                    {selectedScanType === "api" ? (userData.apiCredits || 0) : (userData.officialCredits || 0)} Coins
+                  </p>
                 </div>
                 <div className="bg-primary/10 p-2.5 rounded-xl border border-primary/20">
                   <p className="text-[10px] font-extrabold text-primary uppercase">After Submission</p>
-                  <p className="text-sm font-black text-primary">{Math.max(0, userData.credits - 1)} Coins (-1)</p>
+                  <p className="text-sm font-black text-primary">
+                    {Math.max(0, (selectedScanType === "api" ? (userData.apiCredits || 0) : (userData.officialCredits || 0)) - 1)} Coins (-1)
+                  </p>
                 </div>
               </div>
             </div>
@@ -2260,9 +2611,9 @@ function DashboardContent() {
             <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-xl flex items-start gap-2.5 text-xs text-amber-700 dark:text-amber-400 font-semibold">
               <AlertCircle className="h-4 w-4 shrink-0 mt-0.5 text-amber-500" />
               <div>
-                <p className="font-bold">1 Coin Deduction Notice:</p>
+                <p className="font-bold">1 {selectedScanType === "api" ? "API Tool" : "Official Turnitin"} Coin Deduction:</p>
                 <p className="text-[11px] mt-0.5">
-                  Submitting this document will deduct 1 Coin from your account. Only admin can refund coins if requested.
+                  Submitting this document will deduct 1 {selectedScanType === "api" ? "API Tool" : "Official Turnitin"} coin and place it on hold awaiting scan report.
                 </p>
               </div>
             </div>
@@ -2281,7 +2632,7 @@ function DashboardContent() {
                 className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#fe9a00] to-[#ff7700] px-5 py-2.5 text-xs font-black text-white hover:brightness-110 shadow-md cursor-pointer disabled:opacity-50"
               >
                 <CheckCircle className="h-4 w-4" />
-                <span>Confirm & Submit (-1 Coin)</span>
+                <span>Confirm & Submit (-1 {selectedScanType === "api" ? "API" : "Official"} Coin)</span>
               </button>
             </div>
           </div>

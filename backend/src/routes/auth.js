@@ -70,6 +70,10 @@ router.post("/register", async (req, res) => {
         email: user.email,
         credits: user.credits || 0,
         holdCredits: user.holdCredits || 0,
+        officialCredits: user.officialCredits || 0,
+        officialHoldCredits: user.officialHoldCredits || 0,
+        apiCredits: user.apiCredits || 0,
+        apiHoldCredits: user.apiHoldCredits || 0,
         createdAt: user.createdAt,
       },
     });
@@ -146,6 +150,10 @@ router.post("/login", async (req, res) => {
         email: user.email,
         credits: user.credits || 0,
         holdCredits: user.holdCredits || 0,
+        officialCredits: user.officialCredits || 0,
+        officialHoldCredits: user.officialHoldCredits || 0,
+        apiCredits: user.apiCredits || 0,
+        apiHoldCredits: user.apiHoldCredits || 0,
         createdAt: user.createdAt,
       },
     });
@@ -167,6 +175,10 @@ router.get("/me", protect, async (req, res) => {
         email: req.user.email,
         credits: req.user.credits || 0,
         holdCredits: req.user.holdCredits || 0,
+        officialCredits: req.user.officialCredits || 0,
+        officialHoldCredits: req.user.officialHoldCredits || 0,
+        apiCredits: req.user.apiCredits || 0,
+        apiHoldCredits: req.user.apiHoldCredits || 0,
         createdAt: req.user.createdAt,
       },
     });

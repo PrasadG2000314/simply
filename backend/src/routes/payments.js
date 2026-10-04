@@ -10,7 +10,7 @@ const { saveFileToDisk } = require("../utils/fileStorage");
 // ─── POST /api/payments/upload-slip ──────────────────────────────────────────
 router.post("/upload-slip", async (req, res) => {
   try {
-    const { packageName, credits, amount, slipImage, userName, userEmail } = req.body;
+    const { packageName, credits, amount, slipImage, userName, userEmail, coinType } = req.body;
 
     if (!packageName || !credits || !amount || !slipImage) {
       return res.status(400).json({
@@ -18,6 +18,11 @@ router.post("/upload-slip", async (req, res) => {
         message: "Package name, credits, amount, and payment slip image are required.",
       });
     }
+
+    const finalCoinType =
+      coinType === "api" || (packageName && packageName.toLowerCase().includes("api"))
+        ? "api"
+        : "official";
 
     let userId = null;
     let finalUserName = userName || "Customer";
@@ -57,6 +62,7 @@ router.post("/upload-slip", async (req, res) => {
       userName: finalUserName,
       userEmail: finalUserEmail,
       packageName,
+      coinType: finalCoinType,
       credits: Number(credits),
       amount: Number(amount),
       slipImage: savedSlipPath,
@@ -65,7 +71,7 @@ router.post("/upload-slip", async (req, res) => {
 
     res.status(201).json({
       success: true,
-      message: "Payment slip submitted successfully. Awaiting admin approval.",
+      message: `Payment slip for ${finalCoinType === "api" ? "API Tool" : "Official Turnitin"} submitted successfully. Awaiting admin approval.`,
       slip: newSlip,
     });
   } catch (error) {
@@ -100,14 +106,21 @@ router.get("/my-slips", async (req, res) => {
 
     const slips = await PaymentSlip.find(query).sort({ createdAt: -1 });
 
-    const pendingCredits = slips
-      .filter((s) => s.status === "pending")
+    const pendingSlips = slips.filter((s) => s.status === "pending");
+    const pendingOfficialCredits = pendingSlips
+      .filter((s) => s.coinType !== "api")
       .reduce((sum, s) => sum + s.credits, 0);
+    const pendingApiCredits = pendingSlips
+      .filter((s) => s.coinType === "api")
+      .reduce((sum, s) => sum + s.credits, 0);
+    const pendingCredits = pendingOfficialCredits + pendingApiCredits;
 
     res.status(200).json({
       success: true,
       slips,
       pendingCredits,
+      pendingOfficialCredits,
+      pendingApiCredits,
     });
   } catch (error) {
     console.error("Get my slips error:", error);

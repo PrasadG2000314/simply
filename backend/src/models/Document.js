@@ -55,6 +55,11 @@ const DocumentSchema = new mongoose.Schema(
       enum: ["pending", "approved", "rejected", "cancelled", "refunded"],
       default: "pending",
     },
+    scanType: {
+      type: String,
+      enum: ["official", "api"],
+      default: "official",
+    },
     adminNote: {
       type: String,
       default: "",

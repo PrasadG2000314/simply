@@ -22,6 +22,11 @@ const PaymentSlipSchema = new mongoose.Schema(
       type: String,
       required: [true, "Package name is required"],
     },
+    coinType: {
+      type: String,
+      enum: ["official", "api"],
+      default: "official",
+    },
     credits: {
       type: Number,
       required: [true, "Credits amount is required"],
