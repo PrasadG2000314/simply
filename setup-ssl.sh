@@ -43,10 +43,10 @@ docker run --rm \
 echo ""
 echo "   ✅ Official Let's Encrypt SSL certificate obtained successfully!"
 
-# Step 5: Switch to HTTPS Nginx config
+# Step 5: Switch nginx.conf to the HTTPS version
 echo ""
 echo "🔄 Step 4: Switching Nginx config to HTTPS mode..."
-cp "$PROJECT_DIR/nginx.ssl.conf" "$PROJECT_DIR/nginx.active.conf"
+cp "$PROJECT_DIR/nginx.ssl.conf" "$PROJECT_DIR/nginx.conf"
 echo "   ✅ Nginx config switched to HTTPS mode!"
 
 # Step 6: Start Nginx with official SSL certificate

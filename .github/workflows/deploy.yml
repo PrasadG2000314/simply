@@ -18,6 +18,7 @@ jobs:
           host: ${{ secrets.LIGHTSAIL_HOST }}
           username: ${{ secrets.LIGHTSAIL_USERNAME }}
           key: ${{ secrets.LIGHTSAIL_SSH_KEY }}
+          command_timeout: 10m
           script: |
             set -e
             echo "🚀 Deploying latest Simply updates to AWS Lightsail..."
@@ -36,31 +37,14 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
-            # ─── SSL Auto-Detection ────────────────────────────────────────────
-            # Check if SSL certificates already exist in the certbot volume
-            SSL_EXISTS=$(docker run --rm -v simply_certbot_etc:/etc/letsencrypt alpine sh -c \
-              "test -f /etc/letsencrypt/live/turnipass.com/fullchain.pem && echo yes || echo no" 2>/dev/null || echo "no")
-
-            if [ "$SSL_EXISTS" = "yes" ]; then
-              echo "🔒 SSL certificates found! Using HTTPS nginx config."
-              cp nginx.ssl.conf nginx.active.conf
-            else
-              echo "⚠️  No SSL certificates found. Using HTTP-only nginx config."
-              echo "   Run 'sudo bash setup-ssl.sh' after deployment to enable HTTPS."
-              cp nginx.conf nginx.active.conf
-            fi
-
             echo "🐳 Building and deploying Docker containers..."
             docker compose up -d --build --remove-orphans
-
-            echo "🔄 Reloading Nginx reverse proxy to refresh container IPs..."
-            docker compose restart nginx || docker exec simply_nginx nginx -s reload || true
 
             echo "🧹 Cleaning up old Docker images..."
             docker image prune -f
 
             echo "🩺 Running Pipeline Healthcheck Verification..."
-            MAX_RETRIES=15
+            MAX_RETRIES=20
             RETRY_COUNT=0
             HEALTHY=false
 
@@ -68,30 +52,31 @@ jobs:
               RETRY_COUNT=$((RETRY_COUNT + 1))
               echo "🔍 Healthcheck attempt $RETRY_COUNT/$MAX_RETRIES..."
 
-              API_STATUS=$(curl -k -L -s -o /dev/null -w "%{http_code}" http://localhost/health || true)
-              WEB_STATUS=$(curl -k -L -s -o /dev/null -w "%{http_code}" http://localhost/ || true)
+              API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null || echo "000")
+              WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/ 2>/dev/null || echo "000")
 
-              if [ "$API_STATUS" -eq 200 ] && [ "$WEB_STATUS" -eq 200 ]; then
+              echo "   API: $API_STATUS | Web: $WEB_STATUS"
+
+              if [ "$API_STATUS" = "200" ] && [ "$WEB_STATUS" = "200" ]; then
                 echo "✅ Backend API health status: $API_STATUS OK"
                 echo "✅ Frontend Web health status: $WEB_STATUS OK"
                 HEALTHY=true
                 break
               fi
 
-              echo "⏳ Waiting for containers to start up (API: $API_STATUS, Web: $WEB_STATUS). Retrying in 5s..."
-              sleep 5
+              echo "⏳ Waiting for containers to start up. Retrying in 10s..."
+              sleep 10
             done
 
             if [ "$HEALTHY" = true ]; then
-              echo "🎉 Deployment & Healthcheck verification completed successfully!"
-              if [ "$SSL_EXISTS" = "yes" ]; then
-                echo "   🔒 Site is live at: https://turnipass.com/"
-              else
-                echo "   ⚠️  Site is live at: http://turnipass.com/ (HTTP only)"
-                echo "   🔒 To enable HTTPS, SSH into the server and run: sudo bash /var/www/simply/setup-ssl.sh"
-              fi
+              echo "🎉 Deployment & Healthcheck completed successfully!"
+              echo "   Site is live at: http://turnipass.com/"
+              echo "   To enable HTTPS, run: sudo bash /var/www/simply/setup-ssl.sh"
             else
-              echo "❌ ERROR: Healthcheck failed after $MAX_RETRIES attempts. Displaying recent logs:"
-              docker compose logs --tail=50
+              echo "❌ ERROR: Healthcheck failed after $MAX_RETRIES attempts."
+              echo "--- Container Status ---"
+              docker compose ps
+              echo "--- Recent Logs ---"
+              docker compose logs --tail=30
               exit 1
             fi
