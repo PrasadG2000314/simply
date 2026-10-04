@@ -43,15 +43,21 @@ docker run --rm \
 echo ""
 echo "   ✅ Official Let's Encrypt SSL certificate obtained successfully!"
 
-# Step 5: Start Nginx with official SSL certificate
+# Step 5: Switch to HTTPS Nginx config
 echo ""
-echo "🚀 Step 4: Starting Nginx with HTTPS..."
+echo "🔄 Step 4: Switching Nginx config to HTTPS mode..."
+cp "$PROJECT_DIR/nginx.ssl.conf" "$PROJECT_DIR/nginx.active.conf"
+echo "   ✅ Nginx config switched to HTTPS mode!"
+
+# Step 6: Start Nginx with official SSL certificate
+echo ""
+echo "🚀 Step 5: Starting Nginx with HTTPS..."
 docker compose up -d nginx
 echo "   ✅ Nginx started successfully with HTTPS!"
 
-# Step 6: Set up auto-renewal cron job
+# Step 7: Set up auto-renewal cron job
 echo ""
-echo "🔄 Step 5: Setting up SSL auto-renewal cron job..."
+echo "🔄 Step 6: Setting up SSL auto-renewal cron job..."
 (crontab -l 2>/dev/null | grep -v "certbot renew"; echo "0 3 * * * cd $PROJECT_DIR && docker compose stop nginx && docker run --rm -p 80:80 -v simply_certbot_etc:/etc/letsencrypt certbot/certbot renew --standalone --quiet && docker compose start nginx") | crontab -
 echo "   ✅ Auto-renewal cron job configured (runs daily at 3 AM)"
 

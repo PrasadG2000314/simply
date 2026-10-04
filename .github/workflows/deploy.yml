@@ -36,6 +36,20 @@ jobs:
             git fetch --all
             git reset --hard origin/main
 
+            # ─── SSL Auto-Detection ────────────────────────────────────────────
+            # Check if SSL certificates already exist in the certbot volume
+            SSL_EXISTS=$(docker run --rm -v simply_certbot_etc:/etc/letsencrypt alpine sh -c \
+              "test -f /etc/letsencrypt/live/turnipass.com/fullchain.pem && echo yes || echo no" 2>/dev/null || echo "no")
+
+            if [ "$SSL_EXISTS" = "yes" ]; then
+              echo "🔒 SSL certificates found! Using HTTPS nginx config."
+              cp nginx.ssl.conf nginx.active.conf
+            else
+              echo "⚠️  No SSL certificates found. Using HTTP-only nginx config."
+              echo "   Run 'sudo bash setup-ssl.sh' after deployment to enable HTTPS."
+              cp nginx.conf nginx.active.conf
+            fi
+
             echo "🐳 Building and deploying Docker containers..."
             docker compose up -d --build --remove-orphans
 
@@ -55,7 +69,7 @@ jobs:
               echo "🔍 Healthcheck attempt $RETRY_COUNT/$MAX_RETRIES..."
 
               API_STATUS=$(curl -k -L -s -o /dev/null -w "%{http_code}" http://localhost/health || true)
-              WEB_STATUS=$(curl -k -L -s -o /dev/null -w "%{http_code}" http://localhost/ -H "Host: turnipass.com" || true)
+              WEB_STATUS=$(curl -k -L -s -o /dev/null -w "%{http_code}" http://localhost/ || true)
 
               if [ "$API_STATUS" -eq 200 ] && [ "$WEB_STATUS" -eq 200 ]; then
                 echo "✅ Backend API health status: $API_STATUS OK"
@@ -69,7 +83,13 @@ jobs:
             done
 
             if [ "$HEALTHY" = true ]; then
-              echo "🎉 Deployment & Healthcheck verification completed successfully! https://turnipass.com/ is live."
+              echo "🎉 Deployment & Healthcheck verification completed successfully!"
+              if [ "$SSL_EXISTS" = "yes" ]; then
+                echo "   🔒 Site is live at: https://turnipass.com/"
+              else
+                echo "   ⚠️  Site is live at: http://turnipass.com/ (HTTP only)"
+                echo "   🔒 To enable HTTPS, SSH into the server and run: sudo bash /var/www/simply/setup-ssl.sh"
+              fi
             else
               echo "❌ ERROR: Healthcheck failed after $MAX_RETRIES attempts. Displaying recent logs:"
               docker compose logs --tail=50
