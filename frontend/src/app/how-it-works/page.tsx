@@ -12,7 +12,7 @@ export default function HowItWorks() {
       <Navbar />
 
       <main className="flex-1 bg-background text-left py-10 sm:py-16">
-        <div className="mx-auto max-w-4xl px-4 sm:px-6 space-y-10 sm:space-y-12">
+        <div className="mx-auto max-w-5xl px-4 sm:px-6 space-y-10 sm:space-y-12">
           {/* Header */}
           <div className="space-y-4">
             <span className="inline-block rounded-xl bg-primary/10 border border-primary/20 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-primary">
@@ -31,13 +31,23 @@ export default function HowItWorks() {
           {/* Core Steps */}
           <div className="space-y-8">
             <h2 className="text-xl sm:text-2xl font-black text-foreground tracking-tight">
-              The 3-Step Process
+              The 4-Step Process
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-card border border-border p-6 rounded-2xl space-y-4">
                 <div className="text-2xl font-black text-primary font-mono bg-primary/10 h-10 w-10 flex items-center justify-center rounded-xl">
                   1
+                </div>
+                <h3 className="font-extrabold text-base text-foreground leading-snug">Select Your Checking Standard</h3>
+                <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                  Choose the required standard for your AI + Similarity check. Select either Standard Checking or API-Based Reports based on your requirements.
+                </p>
+              </div>
+
+              <div className="bg-card border border-border p-6 rounded-2xl space-y-4">
+                <div className="text-2xl font-black text-primary font-mono bg-primary/10 h-10 w-10 flex items-center justify-center rounded-xl">
+                  2
                 </div>
                 <h3 className="font-extrabold text-base text-foreground leading-snug">Purchase Scan Balance</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed font-medium">
@@ -47,7 +57,7 @@ export default function HowItWorks() {
 
               <div className="bg-card border border-border p-6 rounded-2xl space-y-4">
                 <div className="text-2xl font-black text-primary font-mono bg-primary/10 h-10 w-10 flex items-center justify-center rounded-xl">
-                  2
+                  3
                 </div>
                 <h3 className="font-extrabold text-base text-foreground leading-snug">Upload Draft File</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed font-medium">
@@ -57,7 +67,7 @@ export default function HowItWorks() {
 
               <div className="bg-card border border-border p-6 rounded-2xl space-y-4">
                 <div className="text-2xl font-black text-primary font-mono bg-primary/10 h-10 w-10 flex items-center justify-center rounded-xl">
-                  3
+                  4
                 </div>
                 <h3 className="font-extrabold text-base text-foreground leading-snug">Get Turnitin Reports</h3>
                 <p className="text-xs text-muted-foreground leading-relaxed font-medium">

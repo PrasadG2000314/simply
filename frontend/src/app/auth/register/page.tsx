@@ -74,9 +74,9 @@ function RegisterContent() {
 
       const buy = searchParams.get("buy");
       const price = searchParams.get("price");
-      const name = searchParams.get("name");
+      const pkgName = searchParams.get("name");
       if (buy && price) {
-        router.push(`/dashboard?buy=${buy}&price=${price}${name ? `&name=${encodeURIComponent(name)}` : ""}`);
+        router.push(`/dashboard?buy=${buy}&price=${price}${pkgName ? `&name=${encodeURIComponent(pkgName)}` : ""}`);
       } else {
         router.push("/dashboard");
       }

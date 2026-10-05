@@ -126,7 +126,7 @@ const FAQS = [
 ];
 
 export default function Home() {
-  const [activeReportTab, setActiveReportTab] = useState<"similarity" | "ai">("similarity");
+  const [activeReportTab, setActiveReportTab] = useState<"official" | "api">("official");
   const [pricingTab, setPricingTab] = useState<"official" | "api">("official");
   const [openFaqs, setOpenFaqs] = useState<Record<number, boolean>>({});
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -421,128 +421,85 @@ export default function Home() {
                 REPORT SAMPLES
               </span>
               <h2 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight text-foreground">
-                Explore Turnitin Feedback Studio Layouts
+                Explore Sample Report Layouts
               </h2>
               <p className="text-xs sm:text-sm text-muted-foreground font-medium max-w-xl mx-auto">
-                Select a tab below to inspect how similarity highlights and AI percentage scorecards look inside the exported PDFs.
+                Select a tab below to inspect how official Turnitin and API Tool report layouts look.
               </p>
             </div>
 
             {/* Tabs Trigger */}
             <div className="flex items-center justify-center gap-2 mb-8">
               <button
-                onClick={() => setActiveReportTab("similarity")}
-                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "similarity"
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                onClick={() => setActiveReportTab("official")}
+                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200 cursor-pointer ${activeReportTab === "official"
+                  ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-[#fe9a00]/25"
                   : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
                   }`}
               >
-                Similarity Report
+                Official Turnitin
               </button>
               <button
-                onClick={() => setActiveReportTab("ai")}
-                className={`px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all duration-200 cursor-pointer ${activeReportTab === "ai"
-                  ? "bg-primary text-primary-foreground shadow-md shadow-primary/25"
+                onClick={() => setActiveReportTab("api")}
+                className={`px-5 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold transition-all duration-200 cursor-pointer ${activeReportTab === "api"
+                  ? "bg-gradient-to-r from-[#fe9a00] to-[#ff7700] text-white shadow-md shadow-[#fe9a00]/25"
                   : "bg-card text-muted-foreground border border-border/80 hover:text-foreground"
                   }`}
               >
-                AI Detection Report
+                API Tool
               </button>
             </div>
 
             {/* Document Viewer Frame */}
             <div className="mx-auto max-w-4xl border border-border rounded-2xl bg-card overflow-hidden shadow-2xl">
-              {activeReportTab === "similarity" ? (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-0 animate-in fade-in duration-300">
-                  {/* Left Doc Body */}
-                  <div className="md:col-span-8 p-5 sm:p-8 space-y-4 border-b md:border-b-0 md:border-r border-border min-h-[300px] sm:min-h-[400px] text-left">
-                    <div className="flex items-center justify-between border-b border-border pb-3 mb-4 sm:mb-6">
-                      <span className="text-xs font-bold text-muted-foreground font-mono truncate max-w-[200px]">document_draft_v2.docx</span>
-                      <span className="text-xs font-bold text-muted-foreground font-mono">Page 1 of 1</span>
-                    </div>
-                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
-                      This research examines the role of neural network architecture in optimization algorithms.
-                      <span className="bg-red-500/20 border-b-2 border-red-500 text-foreground px-1 py-0.5" title="Match 1: Internet Source">
-                        The primary goal of optimization is to locate the global minimum of the loss function, preventing local minimum traps.
-                      </span>
-                      Through our initial benchmarks at the Colombo institute, we observed that network width scales convergence rates non-linearly.
-                    </p>
-                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
-                      Moreover, researchers at the SLIIT laboratory suggest that
-                      <span className="bg-purple-500/20 border-b-2 border-purple-500 text-foreground px-1 py-0.5" title="Match 2: Student Paper">
-                        learning rate decay is a crucial hyperparameter that dictates model generalization.
-                      </span>
-                      This aligns with empirical curves that indicate optimization step counts are heavily dependent on adaptive moment estimation coefficients.
-                    </p>
-                  </div>
-                  {/* Right Panel */}
-                  <div className="md:col-span-4 p-5 sm:p-6 bg-muted/10 flex flex-col justify-between text-left">
+              {activeReportTab === "official" ? (
+                <div className="p-4 sm:p-6 space-y-4 animate-in fade-in duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-3 gap-2">
                     <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 sm:mb-4">Similarity Index</h4>
-                      <div className="flex items-baseline gap-2 mb-4 sm:mb-6">
-                        <span className="text-4xl sm:text-5xl font-black text-red-500">14%</span>
-                        <span className="text-xs font-bold text-muted-foreground">OVERALL MATCH</span>
-                      </div>
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">Primary Matches</h5>
-                      <div className="space-y-2.5 sm:space-y-3">
-                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border text-xs">
-                          <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
-                            <span className="w-2 h-2 rounded-full bg-red-500 shrink-0"></span>
-                            1. Internet Source
-                          </span>
-                          <span className="font-black text-red-500 ml-2">8%</span>
-                        </div>
-                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-card border border-border text-xs">
-                          <span className="font-semibold text-foreground flex items-center gap-1.5 truncate">
-                            <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
-                            2. Student Paper
-                          </span>
-                          <span className="font-black text-purple-500 ml-2">6%</span>
-                        </div>
-                      </div>
+                      <span className="text-xs font-bold text-foreground block">Official Turnitin Report</span>
+                      <span className="text-[11px] text-muted-foreground font-medium">Integrity Overview & Overall Similarity Index</span>
                     </div>
-                    <div className="pt-4 sm:pt-6 mt-4 border-t border-border/80 text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <CheckCircle className="h-3.5 w-3.5 text-primary shrink-0" /> Filtered Quotes: EXCLUDED
-                    </div>
+                    <a
+                      href="/samples/official-turnitin-sample.png"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                    >
+                      <span>View Full Size Image</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                  <div className="relative rounded-xl overflow-hidden border border-border bg-background shadow-inner flex justify-center max-h-[650px] overflow-y-auto">
+                    <img
+                      src="/samples/official-turnitin-sample.png"
+                      alt="Official Turnitin Report Sample"
+                      className="w-full max-w-2xl h-auto object-contain py-2"
+                    />
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-0 animate-in fade-in duration-300">
-                  {/* Left Doc Body */}
-                  <div className="md:col-span-8 p-5 sm:p-8 space-y-4 border-b md:border-b-0 md:border-r border-border min-h-[300px] sm:min-h-[400px] text-left">
-                    <div className="flex items-center justify-between border-b border-border pb-3 mb-4 sm:mb-6">
-                      <span className="text-xs font-bold text-muted-foreground font-mono truncate max-w-[200px]">artificial_intelligence.docx</span>
-                      <span className="text-xs font-bold text-muted-foreground font-mono">Page 1 of 1</span>
-                    </div>
-                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
-                      <span className="bg-cyan-500/20 border-b-2 border-cyan-500 text-foreground px-1 py-0.5" title="98% AI Probability">
-                        Artificial intelligence has experienced significant growth over the past decade, revolutionizing various sectors of modern society. In the field of healthcare, machines diagnose patterns with higher accuracy.
-                      </span>
-                      In contrast, the human element of clinical assessment retains key contextual parameters that standard transformers cannot duplicate.
-                    </p>
-                    <p className="text-xs sm:text-sm leading-relaxed text-foreground">
-                      <span className="bg-cyan-500/20 border-b-2 border-cyan-500 text-foreground px-1 py-0.5" title="94% AI Probability">
-                        The integration of neural layers in computer vision algorithms enables automatic classification. This technique parses matrices in parallel pipelines to expedite the inference cycle.
-                      </span>
-                      However, high power consumption and hardware limits remain optimization challenges.
-                    </p>
-                  </div>
-                  {/* Right Panel */}
-                  <div className="md:col-span-4 p-5 sm:p-6 bg-muted/10 flex flex-col justify-between text-left">
+                <div className="p-4 sm:p-6 space-y-4 animate-in fade-in duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-border pb-3 gap-2">
                     <div>
-                      <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3 sm:mb-4">AI Detection Score</h4>
-                      <div className="flex items-baseline gap-2 mb-4 sm:mb-6">
-                        <span className="text-4xl sm:text-5xl font-black text-cyan-500">68%</span>
-                        <span className="text-xs font-bold text-muted-foreground font-mono">AI GENERATED</span>
-                      </div>
-                      <div className="p-3 bg-cyan-500/5 border border-cyan-500/20 rounded-xl text-xs space-y-2 leading-relaxed font-semibold text-cyan-600 dark:text-cyan-400">
-                        <p>Our model predicts that 68% of the text was generated by an AI tool like ChatGPT, Gemini, or Claude.</p>
-                        <p>Turnitin underlines AI phrases in blue for easy editing.</p>
-                      </div>
+                      <span className="text-xs font-bold text-foreground block">API Tool Report</span>
+                      <span className="text-[11px] text-muted-foreground font-medium">AI Writing Detection & Sentence Analysis</span>
                     </div>
-                    <div className="pt-4 sm:pt-6 mt-4 border-t border-border/80 text-[10px] font-semibold text-muted-foreground flex items-center gap-1.5">
-                      <Brain className="h-3.5 w-3.5 text-cyan-500 shrink-0" /> Language: ENGLISH ONLY
-                    </div>
+                    <a
+                      href="/samples/api-tool-sample.png"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-primary hover:underline"
+                    >
+                      <span>View Full Size Image</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </a>
+                  </div>
+                  <div className="relative rounded-xl overflow-hidden border border-border bg-background shadow-inner flex justify-center max-h-[650px] overflow-y-auto">
+                    <img
+                      src="/samples/api-tool-sample.png"
+                      alt="API Tool AI Detection Report Sample"
+                      className="w-full max-w-2xl h-auto object-contain py-2"
+                    />
                   </div>
                 </div>
               )}
@@ -980,25 +937,46 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
                 {
-                  name: "Kasun Perera",
-                  role: "PhD Candidate",
-                  uni: "University of Kelaniya",
-                  review: "The only platform I trust before submitting draft chapters. No-Repository checks are highly secure — I can check multiple revisions without self-plagiarism flags.",
-                  initial: "K",
+                  name: "Amesh Madusanka",
+                  role: "Final Year Engineering Student",
+                  uni: "University of Moratuwa",
+                  review: "TurniPass was a lifesaver for my final year research thesis! The No-Repository check allowed me to test multiple draft revisions without creating self-plagiarism matches.",
+                  initial: "A",
                 },
                 {
-                  name: "Dilini Senanayake",
-                  role: "Undergraduate Student",
+                  name: "Nipuni Fernando",
+                  role: "Postgraduate Researcher",
+                  uni: "University of Peradeniya",
+                  review: "The Turnitin AI + Similarity report was generated within 5 minutes. The detailed sentence breakdown helped me refine my dissertation before submitting to the faculty portal.",
+                  initial: "N",
+                },
+                {
+                  name: "Chathura Wickramasinghe",
+                  role: "Computing & IT Student",
                   uni: "SLIIT",
-                  review: "Absolutely saved my final research thesis. The turnitin AI report highlights exactly which sentences look generated, so I could edit it with complete transparency.",
-                  initial: "D",
+                  review: "Best Turnitin checking service in Sri Lanka! Paying via local bank transfer was quick and easy, and the official PDF reports were delivered right to my dashboard.",
+                  initial: "C",
                 },
                 {
-                  name: "Tariq Ahamed",
-                  role: "MSc Student",
+                  name: "Fathima Rishda",
+                  role: "Management Studies Student",
+                  uni: "University of Sri Jayewardenepura",
+                  review: "I was worried about accidental AI detection in my final paper. TurniPass gave me complete peace of mind with exact highlights and verified Instructor checking.",
+                  initial: "F",
+                },
+                {
+                  name: "Roshan Tharaka",
+                  role: "Medical Science Student",
                   uni: "University of Colombo",
-                  review: "Super fast reports within 10 minutes. The checkout options support local Sri Lankan cards and payment confirmations are instantaneous.",
-                  initial: "T",
+                  review: "100% No-Repository guarantee works exactly as described. Checked my research paper twice after edits without any self-match issues. Highly recommended!",
+                  initial: "R",
+                },
+                {
+                  name: "Sanduni Jayawardena",
+                  role: "Law Student",
+                  uni: "KDU (Kotelawala Defence University)",
+                  review: "Super fast, accurate, and completely private! Got my official similarity index and AI percentage scorecard in PDF format. A must-use for all Sri Lankan university students.",
+                  initial: "S",
                 },
               ].map((rev, i) => (
                 <div key={i} className="bg-card border border-border rounded-2xl p-6 space-y-4 text-left flex flex-col justify-between">
