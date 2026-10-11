@@ -109,7 +109,7 @@ function AdminDashboardContent() {
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<"assignments" | "slips" | "users">("assignments");
   const [serviceFilter, setServiceFilter] = useState<"all" | "official" | "api">("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "refunded" | "rejected">("pending");
+  const [statusFilter, setStatusFilter] = useState<"all" | "pending" | "approved" | "rejected">("pending");
   const [search, setSearch] = useState("");
   const [adminUser] = useState<{ username: string } | null>(() => {
     if (typeof window !== "undefined") {
@@ -760,75 +760,6 @@ function AdminDashboardContent() {
     fetchData(true);
   };
 
-  const handleRefundDocument = (assn: AssignmentRecord) => {
-    const isApi = assn.scanType === "api";
-    const coinLabel = isApi ? "API Tool" : "Official Turnitin";
-
-    showConfirm({
-      title: `Refund Document & Credit 1 ${coinLabel} Coin?`,
-      message: `Refunding this document scan will return 1 ${coinLabel} coin to ${assn.userName} (${assn.userEmail}).`,
-      confirmText: `Yes, Refund 1 ${coinLabel} Coin`,
-      cancelText: "Cancel",
-      variant: "warning",
-      onConfirm: async () => {
-        const token = getToken();
-        const targetId = assn._id || assn.id;
-        if (targetId) setActionLoadingId(targetId);
-
-        // Sync local storage state
-        const localAssns: AssignmentRecord[] = JSON.parse(
-          localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
-        );
-        const updatedLocalAssns = localAssns.map((a) => {
-          if ((a._id || a.id) === targetId) {
-            return { ...a, status: "refunded" as const, adminNote: "Refunded by Admin" };
-          }
-          return a;
-        });
-        localStorage.setItem("myDocuments", JSON.stringify(updatedLocalAssns));
-        localStorage.setItem("myAssignments", JSON.stringify(updatedLocalAssns));
-
-        // Increment credits in registeredUsers
-        if (assn.userEmail) {
-          const allUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
-          if (allUsers[assn.userEmail]) {
-            if (isApi) {
-              const curCredits = allUsers[assn.userEmail].apiCredits || 0;
-              allUsers[assn.userEmail].apiCredits = curCredits + 1;
-            } else {
-              const curCredits = allUsers[assn.userEmail].officialCredits ?? allUsers[assn.userEmail].credits ?? 0;
-              allUsers[assn.userEmail].officialCredits = curCredits + 1;
-              allUsers[assn.userEmail].credits = (allUsers[assn.userEmail].credits || 0) + 1;
-            }
-            localStorage.setItem("registeredUsers", JSON.stringify(allUsers));
-          }
-        }
-
-        if (token && assn._id) {
-          try {
-            await fetch(`${API_URL}/admin/documents/${assn._id}/refund`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
-              body: JSON.stringify({ adminNote: "Refunded by Admin" }),
-            });
-          } catch (err) {
-            console.error("API refund document error:", err);
-          }
-        }
-
-        showAlert({
-          title: "Document Refunded!",
-          message: `1 ${coinLabel} coin successfully refunded to ${assn.userName}'s account balance.`,
-          variant: "success",
-        });
-        setActionLoadingId(null);
-        fetchData(true);
-      },
-    });
-  };
 
   const filteredUsers = users.filter(
     (u) =>
@@ -1184,7 +1115,7 @@ function AdminDashboardContent() {
           <div className="space-y-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 bg-zinc-900 border border-zinc-800 rounded-2xl p-4">
               <div className="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full scrollbar-none">
-                {(["pending", "approved", "refunded", "rejected", "all"] as const).map((st) => (
+                {(["pending", "approved", "rejected", "all"] as const).map((st) => (
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
@@ -1254,12 +1185,20 @@ function AdminDashboardContent() {
                             <CheckCircle className="h-3 w-3" /> Approved & Delivered
                           </span>
                         )}
-                        {(assn.status === "rejected" || assn.status === "refunded") && (
+                        {assn.status === "rejected" && (
                           <span
-                            className="inline-flex items-center gap-1 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-[10px] font-black text-blue-400"
-                            title={assn.adminNote || "Refunded by admin"}
+                            className="inline-flex items-center gap-1 rounded-full bg-red-500/15 border border-red-500/30 px-3 py-1 text-[10px] font-black text-red-400"
+                            title={assn.adminNote || "Rejected by admin"}
                           >
-                            <RefreshCw className="h-3 w-3" /> Refunded (+1 {assn.scanType === "api" ? "API" : "Official"} Coin)
+                            <X className="h-3 w-3" /> Rejected
+                          </span>
+                        )}
+                        {assn.status === "refunded" && (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full bg-zinc-500/15 border border-zinc-500/30 px-3 py-1 text-[10px] font-black text-zinc-400"
+                            title={assn.adminNote || "Refunded"}
+                          >
+                            <RefreshCw className="h-3 w-3" /> Refunded
                           </span>
                         )}
                       </div>
@@ -1300,36 +1239,18 @@ function AdminDashboardContent() {
 
                       <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap w-full sm:w-auto">
                         {assn.status === "approved" && (
-                          <>
-                            <button
-                              onClick={() => handleRefundDocument(assn)}
-                              disabled={actionLoadingId === (assn._id || assn.id)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-black text-blue-400 hover:bg-blue-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
-                            >
-                              <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
-                              Refund 1 {assn.scanType === "api" ? "API" : "Official"} Coin
-                            </button>
-                            <button
-                              onClick={() => handleOpenApproveModal(assn)}
-                              disabled={actionLoadingId === (assn._id || assn.id)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600/20 border border-blue-500/40 px-4 py-2 text-xs font-black text-blue-400 hover:bg-blue-600/30 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
-                            >
-                              <Paperclip className="h-3.5 w-3.5 text-blue-400" />
-                              {assn.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
-                            </button>
-                          </>
+                          <button
+                            onClick={() => handleOpenApproveModal(assn)}
+                            disabled={actionLoadingId === (assn._id || assn.id)}
+                            className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600/20 border border-blue-500/40 px-4 py-2 text-xs font-black text-blue-400 hover:bg-blue-600/30 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
+                          >
+                            <Paperclip className="h-3.5 w-3.5 text-blue-400" />
+                            {assn.resultFile ? "Update Turnitin Report" : "Upload Turnitin Report"}
+                          </button>
                         )}
 
                         {assn.status === "pending" && (
                           <>
-                            <button
-                              onClick={() => handleRefundDocument(assn)}
-                              disabled={actionLoadingId === (assn._id || assn.id)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-xl border border-blue-500/30 bg-blue-500/10 px-3.5 py-2 text-xs font-black text-blue-400 hover:bg-blue-500/20 cursor-pointer disabled:opacity-50 transition-all w-full sm:w-auto"
-                            >
-                              <RefreshCw className="h-3.5 w-3.5 text-blue-400" />
-                              Refund 1 {assn.scanType === "api" ? "API" : "Official"} Coin
-                            </button>
                             <button
                               onClick={() => handleOpenRejectAssignmentModal(assn)}
                               disabled={actionLoadingId === (assn._id || assn.id)}
@@ -1738,7 +1659,7 @@ function AdminDashboardContent() {
                   onClick={() => handleOpenRejectAssignmentModal(activeAssignmentModal)}
                   className="w-full sm:w-auto rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2.5 text-xs font-black text-red-400 hover:bg-red-500/20 cursor-pointer text-center"
                 >
-                  Reject & Refund 1 {activeAssignmentModal.scanType === "api" ? "API" : "Official"} Coin
+                  Reject Assignment
                 </button>
                 <button
                   onClick={() => {
@@ -1875,7 +1796,7 @@ function AdminDashboardContent() {
               <AlertCircle className="h-4 w-4 text-red-400 shrink-0" />
               <span>
                 {rejectTargetType === "assignment"
-                  ? `Reject Assignment & Refund 1 ${targetRejectAssignment?.scanType === "api" ? "API" : "Official"} Coin`
+                  ? "Reject Assignment"
                   : "Reject Payment Slip"}
               </span>
             </h4>
