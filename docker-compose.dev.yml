@@ -33,14 +33,12 @@ services:
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=admin
       - ADMIN_JWT_SECRET=dev_admin_jwt_secret_12345
-      - SMTP_HOST=mail.privateemail.com
-      - SMTP_PORT=465
-      - SMTP_SECURE=true
-      - SMTP_USER=support@turnipass.com
+      - SMTP_HOST=${SMTP_HOST:-mail.privateemail.com}
+      - SMTP_PORT=${SMTP_PORT:-465}
+      - SMTP_SECURE=${SMTP_SECURE:-true}
+      - SMTP_USER=${SMTP_USER:-support@turnipass.com}
       - SMTP_PASS=${SMTP_PASS:-YOUR_NAMECHEAP_EMAIL_PASSWORD}
-      - EMAIL_FROM="TurniPass Support <support@turnipass.com>"
-    env_file:
-      - ./backend/.env
+      - EMAIL_FROM=${EMAIL_FROM:-TurniPass Support <support@turnipass.com>}
     volumes:
       - ./backend:/app
       - /app/node_modules
