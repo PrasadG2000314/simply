@@ -410,6 +410,65 @@ function AdminDashboardContent() {
     });
   };
 
+  // ─── Delete Customer Account Handler ────────────────────────────────────────
+  const handleDeleteUser = (user: UserRecord) => {
+    const userNameDisplay = user.username || user.fullName || user.email;
+    showConfirm({
+      title: "Remove Customer Account?",
+      message: `Are you sure you want to remove @${userNameDisplay} (${user.email})? This action cannot be undone and will permanently delete this customer account along with their submitted documents and slips.`,
+      confirmText: "Delete Account",
+      cancelText: "Cancel",
+      variant: "danger",
+      onConfirm: async () => {
+        setActionLoadingId(user.id);
+        const token = getToken();
+
+        // Also remove from local registeredUsers storage if stored
+        try {
+          const registeredUsers = JSON.parse(localStorage.getItem("registeredUsers") || "{}");
+          if (registeredUsers[user.email]) {
+            delete registeredUsers[user.email];
+            localStorage.setItem("registeredUsers", JSON.stringify(registeredUsers));
+          }
+        } catch {}
+
+        if (token) {
+          try {
+            const res = await fetch(`${API_URL}/admin/users/${user.id}`, {
+              method: "DELETE",
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const data = await res.json();
+            if (!res.ok) {
+              showAlert({
+                title: "Failed to Delete",
+                message: data.message || "Could not delete user account.",
+                variant: "danger",
+              });
+              setActionLoadingId(null);
+              return;
+            }
+          } catch (err) {
+            console.error("Delete user error:", err);
+          }
+        }
+
+        showAlert({
+          title: "User Account Removed",
+          message: `Customer account for @${userNameDisplay} has been successfully deleted.`,
+          variant: "success",
+        });
+
+        // Update local state immediately
+        setUsers((prev) => prev.filter((u) => u.id !== user.id));
+        setStats((prev) => prev ? { ...prev, totalUsers: Math.max(0, prev.totalUsers - 1) } : prev);
+        setActionLoadingId(null);
+      },
+    });
+  };
+
   // ─── Approve Assignment Handler (Consumes 1 Held Coin) ──────────────────────
   const handleOpenApproveModal = (assn: AssignmentRecord) => {
     setTargetApproveDocument(assn);
@@ -1494,7 +1553,21 @@ function AdminDashboardContent() {
                           <p className="text-[11px] text-zinc-400 font-medium truncate">{user.email}</p>
                         </div>
                       </div>
-                      <span className="text-[10px] font-bold text-zinc-600 shrink-0">#{index + 1}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-[10px] font-bold text-zinc-600">#{index + 1}</span>
+                        <button
+                          onClick={() => handleDeleteUser(user)}
+                          disabled={actionLoadingId === user.id}
+                          title={`Remove ${user.email}`}
+                          className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer disabled:opacity-50"
+                        >
+                          {actionLoadingId === user.id ? (
+                            <RefreshCw className="h-3.5 w-3.5 animate-spin text-red-400" />
+                          ) : (
+                            <Trash2 className="h-3.5 w-3.5" />
+                          )}
+                        </button>
+                      </div>
                     </div>
 
                     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-zinc-800/80 gap-2 text-xs">

@@ -48,7 +48,7 @@ router.post("/login", (req, res) => {
 router.get("/users", adminProtect, async (req, res) => {
   try {
     const users = await User.find()
-      .select("fullName email credits holdCredits officialCredits officialHoldCredits apiCredits apiHoldCredits createdAt token")
+      .select("username fullName email credits holdCredits officialCredits officialHoldCredits apiCredits apiHoldCredits createdAt token")
       .sort({ createdAt: -1 });
 
     res.status(200).json({
@@ -56,6 +56,7 @@ router.get("/users", adminProtect, async (req, res) => {
       total: users.length,
       users: users.map((u) => ({
         id: u._id,
+        username: u.username,
         fullName: u.fullName,
         email: u.email,
         credits: u.credits || 0,
@@ -71,6 +72,45 @@ router.get("/users", adminProtect, async (req, res) => {
   } catch (error) {
     console.error("Admin get users error:", error);
     res.status(500).json({ success: false, message: "Server error." });
+  }
+});
+
+// ─── DELETE /api/admin/users/:id ──────────────────────────────────────────────
+router.delete("/users/:id", adminProtect, async (req, res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    const userId = user._id;
+    const userEmail = user.email ? user.email.toLowerCase() : "";
+
+    // Delete user from database
+    await User.findByIdAndDelete(userId);
+
+    // Clean up associated documents and payment slips
+    if (userEmail) {
+      await Document.deleteMany({ $or: [{ userId }, { userEmail }] });
+      await PaymentSlip.deleteMany({ $or: [{ userId }, { userEmail }] });
+    } else {
+      await Document.deleteMany({ userId });
+      await PaymentSlip.deleteMany({ userId });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `User ${user.fullName || user.username || userEmail} and associated records removed successfully.`,
+    });
+  } catch (error) {
+    console.error("Admin delete user error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to delete user.",
+    });
   }
 });
 
