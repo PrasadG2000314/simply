@@ -37,7 +37,7 @@ services:
       - SMTP_PORT=${SMTP_PORT:-465}
       - SMTP_SECURE=${SMTP_SECURE:-true}
       - SMTP_USER=${SMTP_USER:-support@turnipass.com}
-      - SMTP_PASS=${SMTP_PASS:-YOUR_NAMECHEAP_EMAIL_PASSWORD}
+      - SMTP_PASS=${SMTP_PASS:-yLqZ-FpMB-MhjH-GKnm-gmfu-sCtw}
       - EMAIL_FROM=${EMAIL_FROM:-TurniPass Support <support@turnipass.com>}
     volumes:
       - ./backend:/app
