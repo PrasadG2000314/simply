@@ -3,11 +3,11 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTheme, useLanguage } from "../app/providers";
-import { Globe, Sun, Moon, Menu, X, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
+import { useLanguage } from "../app/providers";
+import { Globe, Menu, X, LogOut, LayoutDashboard, ChevronDown } from "lucide-react";
 
 export default function Navbar() {
-  const { theme, toggleTheme } = useTheme();
+
   const { language, setLanguage } = useLanguage();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [langDropdownOpen, setLangDropdownOpen] = useState(false);
@@ -109,14 +109,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-xl transition-all cursor-pointer"
-            aria-label="Toggle Theme"
-          >
-            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
-          </button>
+
 
           {/* Auth Button */}
           {user ? (
@@ -187,14 +180,7 @@ export default function Navbar() {
             )}
           </div>
 
-          {/* Theme Toggle */}
-          <button
-            onClick={toggleTheme}
-            className="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/60 rounded-xl transition-all cursor-pointer"
-            aria-label="Toggle Theme"
-          >
-            {theme === "light" ? <Moon className="h-4.5 w-4.5" /> : <Sun className="h-4.5 w-4.5" />}
-          </button>
+
 
           {/* Hamburger Menu Toggle */}
           <button

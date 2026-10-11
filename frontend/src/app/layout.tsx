@@ -22,7 +22,7 @@ export default function RootLayout({
   return (
     <html
       lang="en-LK"
-      className="h-full antialiased font-sans"
+      className="h-full antialiased font-sans dark"
       suppressHydrationWarning
     >
       <body className="min-h-full flex flex-col bg-background text-foreground transition-colors duration-200">

@@ -1,25 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  --background: 36 25% 98%;
-  --foreground: 222 47% 11%;
-  --card: 0 0% 100%;
-  --card-foreground: 222 47% 11%;
-  --popover: 0 0% 100%;
-  --popover-foreground: 222 47% 11%;
-  --primary: 36 100% 50%; /* #fe9a00 */
-  --primary-foreground: 0 0% 100%;
-  --secondary: 235 85% 96%;
-  --secondary-foreground: 238 84% 54%; /* Electric Indigo */
-  --muted: 36 15% 94%;
-  --muted-foreground: 215 16% 47%;
-  --accent: 36 100% 95%;
-  --accent-foreground: 36 100% 40%;
-  --border: 36 20% 88%;
-  --ring: 36 100% 50%;
-}
-
-.dark {
   --background: 224 40% 7%; /* Deep Midnight #0b0f17 */
   --foreground: 210 40% 98%;
   --card: 224 35% 10%; /* Dark Glass Card #101726 */
