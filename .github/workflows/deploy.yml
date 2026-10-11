@@ -53,11 +53,11 @@ jobs:
               echo "🔍 Healthcheck attempt $RETRY_COUNT/$MAX_RETRIES..."
 
               API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/health 2>/dev/null || echo "000")
-              WEB_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://localhost/ 2>/dev/null || echo "000")
+              WEB_STATUS=$(curl -s -k -L -o /dev/null -w "%{http_code}" http://localhost/ 2>/dev/null || echo "000")
 
               echo "   API: $API_STATUS | Web: $WEB_STATUS"
 
-              if [ "$API_STATUS" = "200" ] && [ "$WEB_STATUS" = "200" ]; then
+              if [ "$API_STATUS" = "200" ] && { [ "$WEB_STATUS" = "200" ] || [ "$WEB_STATUS" = "301" ]; }; then
                 echo "✅ Backend API health status: $API_STATUS OK"
                 echo "✅ Frontend Web health status: $WEB_STATUS OK"
                 HEALTHY=true

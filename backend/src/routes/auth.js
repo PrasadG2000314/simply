@@ -223,11 +223,14 @@ router.post("/forgot-password", async (req, res) => {
 
     // Always return success even if user not found to prevent user enumeration
     if (!user) {
+      console.log(`ℹ️ [Forgot Password] Requested for '${cleanEmail}' but user was NOT found in DB.`);
       return res.status(200).json({
         success: true,
         message: "If an account exists with this email, a password reset link has been sent.",
       });
     }
+
+    console.log(`🚀 [Forgot Password] User found for '${cleanEmail}'. Generating token and dispatching email...`);
 
     // Generate random unhashed reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
