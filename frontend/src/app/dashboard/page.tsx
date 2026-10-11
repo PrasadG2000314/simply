@@ -1207,89 +1207,6 @@ function DashboardContent() {
     });
   };
 
-  const cancelAssignment = (docId: string) => {
-    if (!userData) return;
-    const targetDoc = myAssignments.find((a) => (a._id || a.id) === docId);
-    const isApiDoc = targetDoc?.scanType === "api";
-    const coinTypeName = isApiDoc ? "API Tool" : "Official Turnitin";
-
-    showConfirm({
-      title: "Cancel Document Case?",
-      message: `Are you sure you want to cancel this document submission? 1 ${coinTypeName} coin will be returned to your available balance.`,
-      confirmText: "Yes, Cancel Case",
-      cancelText: "Keep Case",
-      variant: "danger",
-      onConfirm: async () => {
-        const token = localStorage.getItem("authToken") || localStorage.getItem("token");
-        let apiSuccess = false;
-
-        try {
-          const headers: Record<string, string> = {};
-          if (token) headers["Authorization"] = `Bearer ${token}`;
-
-          const res = await fetch(`${API_URL}/documents/${docId}/cancel`, {
-            method: "POST",
-            headers,
-          });
-          const data = await res.json();
-          if (data.success) {
-            apiSuccess = true;
-            syncUserData({
-              ...userData,
-              officialCredits: data.officialCredits !== undefined ? data.officialCredits : (!isApiDoc ? (userData.officialCredits || 0) + 1 : userData.officialCredits),
-              officialHoldCredits: data.officialHoldCredits !== undefined ? data.officialHoldCredits : (!isApiDoc ? Math.max(0, (userData.officialHoldCredits || 0) - 1) : userData.officialHoldCredits),
-              apiCredits: data.apiCredits !== undefined ? data.apiCredits : (isApiDoc ? (userData.apiCredits || 0) + 1 : userData.apiCredits),
-              apiHoldCredits: data.apiHoldCredits !== undefined ? data.apiHoldCredits : (isApiDoc ? Math.max(0, (userData.apiHoldCredits || 0) - 1) : userData.apiHoldCredits),
-              credits: data.availableCredits !== undefined ? data.availableCredits : (userData.credits || 0) + 1,
-              holdCredits: data.holdCredits !== undefined ? data.holdCredits : Math.max(0, (userData.holdCredits || 0) - 1),
-            });
-            fetchMyAssignments();
-            fetchMe();
-            showAlert({
-              title: "Case Cancelled",
-              message: `Document case cancelled! 1 ${coinTypeName} coin returned to your available balance.`,
-              variant: "success",
-            });
-            return;
-          }
-        } catch (err) {
-          console.error("Cancel document error:", err);
-        }
-
-        if (!apiSuccess) {
-          const localAssns: DocumentRecord[] = JSON.parse(
-            localStorage.getItem("myDocuments") || localStorage.getItem("myAssignments") || "[]"
-          );
-          const updatedLocal: DocumentRecord[] = localAssns.map((d) => {
-            if ((d._id || d.id) === docId) {
-              return { ...d, status: "cancelled" };
-            }
-            return d;
-          });
-          localStorage.setItem("myDocuments", JSON.stringify(updatedLocal));
-          localStorage.setItem("myAssignments", JSON.stringify(updatedLocal));
-          setMyAssignments(updatedLocal);
-
-          const updatedUser = {
-            ...userData,
-            officialCredits: !isApiDoc ? (userData.officialCredits || 0) + 1 : userData.officialCredits,
-            officialHoldCredits: !isApiDoc ? Math.max(0, (userData.officialHoldCredits || 0) - 1) : userData.officialHoldCredits,
-            apiCredits: isApiDoc ? (userData.apiCredits || 0) + 1 : userData.apiCredits,
-            apiHoldCredits: isApiDoc ? Math.max(0, (userData.apiHoldCredits || 0) - 1) : userData.apiHoldCredits,
-            credits: (userData.credits || 0) + 1,
-            holdCredits: Math.max(0, (userData.holdCredits || 0) - 1),
-          };
-          syncUserData(updatedUser);
-          showAlert({
-            title: "Case Cancelled",
-            message: `Document case cancelled! 1 ${coinTypeName} coin returned to your available balance.`,
-            variant: "success",
-          });
-        }
-      },
-    });
-  };
-
   const deleteScan = (scanId: string) => {
     if (!userData) return;
     showConfirm({
@@ -1888,18 +1805,10 @@ function DashboardContent() {
                           ) : assn.status === "cancelled" || assn.status === "rejected" || assn.status === "refunded" ? (
                             <span className="text-xs text-blue-600 dark:text-blue-400 font-bold italic">Refunded by Admin</span>
                           ) : (
-                            <div className="flex items-center justify-center gap-2">
-                              <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-extrabold">
-                                <Clock className="h-3.5 w-3.5 animate-spin" />
-                                In Queue
-                              </span>
-                              <button
-                                onClick={() => cancelAssignment(assn._id || assn.id || "")}
-                                className="text-[10px] text-red-500 hover:underline font-bold"
-                              >
-                                Cancel
-                              </button>
-                            </div>
+                            <span className="inline-flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-extrabold">
+                              <Clock className="h-3.5 w-3.5 animate-spin" />
+                              In Queue
+                            </span>
                           )}
                         </td>
                       </tr>
