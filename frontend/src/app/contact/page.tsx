@@ -4,13 +4,16 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
-import { MessageSquare, Mail, HelpCircle, Send, Check, AlertCircle, X } from "lucide-react";
+import { MessageSquare, Mail, HelpCircle, Send, Check, AlertCircle, X, Loader2 } from "lucide-react";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api";
 
 export default function Contact() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
 
   const [alertDialog, setAlertDialog] = useState<{
@@ -23,7 +26,7 @@ export default function Contact() {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) {
       setAlertDialog({
@@ -33,14 +36,42 @@ export default function Contact() {
       });
       return;
     }
-    setSuccess(true);
-    setName("");
-    setEmail("");
-    setSubject("");
-    setMessage("");
-    setTimeout(() => {
-      setSuccess(false);
-    }, 5000);
+
+    setLoading(true);
+    try {
+      const res = await fetch(`${API_URL}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, subject, message }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setAlertDialog({
+          isOpen: true,
+          title: "Submission Error",
+          message: data.message || "Failed to send message. Please try again later.",
+        });
+        return;
+      }
+
+      setSuccess(true);
+      setName("");
+      setEmail("");
+      setSubject("");
+      setMessage("");
+      setTimeout(() => {
+        setSuccess(false);
+      }, 6000);
+    } catch {
+      setAlertDialog({
+        isOpen: true,
+        title: "Network Error",
+        message: "Could not connect to the server. Please check your connection or email support@turnipass.com directly.",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -129,10 +160,20 @@ export default function Contact() {
 
                 <button
                   type="submit"
-                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 transition-all duration-200 cursor-pointer"
+                  disabled={loading}
+                  className="inline-flex items-center justify-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-extrabold text-primary-foreground hover:bg-primary/95 shadow-md shadow-primary/20 transition-all duration-200 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
                 >
-                  <Send className="h-4 w-4" />
-                  <span>Submit Ticket</span>
+                  {loading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Sending Message...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Send className="h-4 w-4" />
+                      <span>Submit Ticket</span>
+                    </>
+                  )}
                 </button>
               </form>
             </div>

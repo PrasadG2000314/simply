@@ -848,7 +848,7 @@ function AdminDashboardContent() {
             </Link>
             <div className="min-w-0">
               <p className="text-xs sm:text-sm font-black text-white tracking-tight truncate">
-                Simply Admin Panel
+                Admin Panel
               </p>
               <p className="text-[10px] text-zinc-500 font-semibold truncate hidden sm:block">
                 Control Center · {adminUser?.username}
@@ -891,11 +891,10 @@ function AdminDashboardContent() {
             <button
               id="filter-service-all"
               onClick={() => setServiceFilter("all")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${
-                serviceFilter === "all"
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${serviceFilter === "all"
                   ? "bg-zinc-800 text-white shadow-sm border border-zinc-700"
                   : "text-zinc-400 hover:text-white"
-              }`}
+                }`}
             >
               <span>🌐 All Services</span>
               <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-zinc-700/60 text-zinc-300">
@@ -906,18 +905,16 @@ function AdminDashboardContent() {
             <button
               id="filter-service-official"
               onClick={() => setServiceFilter("official")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${
-                serviceFilter === "official"
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${serviceFilter === "official"
                   ? "bg-amber-500 text-black shadow-lg shadow-amber-500/20 font-black"
                   : "text-amber-400/80 hover:text-amber-300 hover:bg-amber-500/10"
-              }`}
+                }`}
             >
               <ShieldCheck className="h-3.5 w-3.5" />
               <span>Official Turnitin</span>
               {pendingOfficialAssnsCount + pendingOfficialSlipsCount > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  serviceFilter === "official" ? "bg-black text-amber-400" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
-                }`}>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${serviceFilter === "official" ? "bg-black text-amber-400" : "bg-amber-500/20 text-amber-400 border border-amber-500/30"
+                  }`}>
                   {pendingOfficialAssnsCount + pendingOfficialSlipsCount}
                 </span>
               )}
@@ -926,18 +923,16 @@ function AdminDashboardContent() {
             <button
               id="filter-service-api"
               onClick={() => setServiceFilter("api")}
-              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${
-                serviceFilter === "api"
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-black transition-all cursor-pointer shrink-0 ${serviceFilter === "api"
                   ? "bg-cyan-500 text-black shadow-lg shadow-cyan-500/20 font-black"
                   : "text-cyan-400/80 hover:text-cyan-300 hover:bg-cyan-500/10"
-              }`}
+                }`}
             >
               <Zap className="h-3.5 w-3.5" />
               <span>API Tool</span>
               {pendingApiAssnsCount + pendingApiSlipsCount > 0 && (
-                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${
-                  serviceFilter === "api" ? "bg-black text-cyan-400" : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
-                }`}>
+                <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-black ${serviceFilter === "api" ? "bg-black text-cyan-400" : "bg-cyan-500/20 text-cyan-400 border border-cyan-500/30"
+                  }`}>
                   {pendingApiAssnsCount + pendingApiSlipsCount}
                 </span>
               )}
@@ -964,11 +959,10 @@ function AdminDashboardContent() {
               setActiveTab("assignments");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer transition-all ${
-              pendingAssnsCount > 0
+            className={`rounded-2xl border p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer transition-all ${pendingAssnsCount > 0
                 ? "border-amber-500/40 bg-amber-500/10 shadow-lg shadow-amber-500/5 hover:border-amber-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-amber-500/20 text-amber-400">
@@ -996,11 +990,10 @@ function AdminDashboardContent() {
               setActiveTab("slips");
               setStatusFilter("pending");
             }}
-            className={`rounded-2xl border p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer transition-all ${
-              pendingSlipsCount > 0
+            className={`rounded-2xl border p-3.5 sm:p-5 flex flex-col justify-between cursor-pointer transition-all ${pendingSlipsCount > 0
                 ? "border-blue-500/40 bg-blue-500/10 shadow-lg shadow-blue-500/5 hover:border-blue-500/60"
                 : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between gap-2">
               <div className="flex h-9 w-9 sm:h-11 sm:w-11 shrink-0 items-center justify-center rounded-xl bg-blue-500/20 text-blue-400">
@@ -1071,11 +1064,10 @@ function AdminDashboardContent() {
           <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full -mx-1 px-1 scrollbar-none">
             <button
               onClick={() => setActiveTab("assignments")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
-                activeTab === "assignments"
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${activeTab === "assignments"
                   ? "bg-amber-500 text-black shadow-md"
                   : "bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"
-              }`}
+                }`}
             >
               <BookOpen className="h-3.5 w-3.5" />
               <span>Document Queue</span>
@@ -1088,11 +1080,10 @@ function AdminDashboardContent() {
 
             <button
               onClick={() => setActiveTab("slips")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
-                activeTab === "slips"
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${activeTab === "slips"
                   ? "bg-primary text-primary-foreground shadow-md"
                   : "bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"
-              }`}
+                }`}
             >
               <Building2 className="h-3.5 w-3.5" />
               <span>Bank Slips</span>
@@ -1105,11 +1096,10 @@ function AdminDashboardContent() {
 
             <button
               onClick={() => setActiveTab("users")}
-              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${
-                activeTab === "users"
+              className={`px-3.5 py-2 rounded-xl text-xs font-black flex items-center gap-2 transition-all shrink-0 cursor-pointer ${activeTab === "users"
                   ? "bg-primary text-primary-foreground shadow-md"
                   : "bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800"
-              }`}
+                }`}
             >
               <Users className="h-3.5 w-3.5" />
               <span>Users</span>
@@ -1139,11 +1129,10 @@ function AdminDashboardContent() {
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer shrink-0 ${
-                      statusFilter === st
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer shrink-0 ${statusFilter === st
                         ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm"
                         : "text-zinc-500 hover:text-zinc-300"
-                    }`}
+                      }`}
                   >
                     {st === "all" ? "All Documents" : st}
                   </button>
@@ -1322,11 +1311,10 @@ function AdminDashboardContent() {
                   <button
                     key={st}
                     onClick={() => setStatusFilter(st)}
-                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer shrink-0 ${
-                      statusFilter === st
+                    className={`px-3 py-1.5 rounded-lg text-[11px] font-extrabold capitalize transition-all cursor-pointer shrink-0 ${statusFilter === st
                         ? "bg-zinc-800 text-white border border-zinc-700 shadow-sm"
                         : "text-zinc-500 hover:text-zinc-300"
-                    }`}
+                      }`}
                   >
                     {st === "all" ? "All Slips" : st}
                   </button>
@@ -1408,9 +1396,8 @@ function AdminDashboardContent() {
                           <p className="text-xs font-bold text-white">{slip.packageName}</p>
                           <div className="flex items-center gap-3">
                             <span className="text-xs font-black text-primary">LKR {slip.amount.toLocaleString("en-LK")}</span>
-                            <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-black ${
-                              isApiSlip ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400" : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
-                            }`}>
+                            <span className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-0.5 text-xs font-black ${isApiSlip ? "bg-cyan-500/10 border border-cyan-500/30 text-cyan-400" : "bg-amber-500/10 border border-amber-500/30 text-amber-400"
+                              }`}>
                               <Coins className="h-3.5 w-3.5" /> +{slip.credits} {isApiSlip ? "API" : "Official"} Coins
                             </span>
                           </div>
@@ -2053,15 +2040,14 @@ function AdminDashboardContent() {
 
             <div className="flex items-start gap-4">
               <div
-                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${
-                  confirmDialog.variant === "danger"
+                className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${confirmDialog.variant === "danger"
                     ? "bg-red-500/10 border-red-500/20 text-red-400"
                     : confirmDialog.variant === "success"
-                    ? "bg-green-500/10 border-green-500/20 text-green-400"
-                    : confirmDialog.variant === "warning"
-                    ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
-                    : "bg-[#fe9a00]/10 border-[#fe9a00]/20 text-[#fe9a00]"
-                }`}
+                      ? "bg-green-500/10 border-green-500/20 text-green-400"
+                      : confirmDialog.variant === "warning"
+                        ? "bg-amber-500/10 border-amber-500/20 text-amber-400"
+                        : "bg-[#fe9a00]/10 border-[#fe9a00]/20 text-[#fe9a00]"
+                  }`}
               >
                 {confirmDialog.variant === "danger" ? (
                   <AlertCircle className="h-6 w-6" />
@@ -2099,13 +2085,12 @@ function AdminDashboardContent() {
                   setConfirmDialog((prev) => ({ ...prev, isOpen: false }));
                   if (cb) cb();
                 }}
-                className={`w-full sm:w-auto rounded-xl px-5 py-2.5 text-xs font-black transition-all shadow-lg cursor-pointer ${
-                  confirmDialog.variant === "danger"
+                className={`w-full sm:w-auto rounded-xl px-5 py-2.5 text-xs font-black transition-all shadow-lg cursor-pointer ${confirmDialog.variant === "danger"
                     ? "bg-red-600 text-white hover:bg-red-500 shadow-red-600/20"
                     : confirmDialog.variant === "success"
-                    ? "bg-green-600 text-white hover:bg-green-500 shadow-green-600/20"
-                    : "bg-[#fe9a00] text-black hover:bg-[#e08800] shadow-[#fe9a00]/20"
-                }`}
+                      ? "bg-green-600 text-white hover:bg-green-500 shadow-green-600/20"
+                      : "bg-[#fe9a00] text-black hover:bg-[#e08800] shadow-[#fe9a00]/20"
+                  }`}
               >
                 {confirmDialog.confirmText || "Confirm"}
               </button>

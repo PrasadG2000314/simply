@@ -70,6 +70,15 @@ const UserSchema = new mongoose.Schema(
       default: 0,
       min: [0, "API Tool hold credits cannot be negative"],
     },
+    // Password Reset
+    resetPasswordToken: {
+      type: String,
+      default: null,
+    },
+    resetPasswordExpire: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true, // Adds createdAt and updatedAt automatically

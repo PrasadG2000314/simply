@@ -57,6 +57,7 @@ app.use("/api/admin", require("./routes/admin"));
 app.use("/api/documents", require("./routes/documents"));
 app.use("/api/assignments", require("./routes/documents"));
 app.use("/api/payments", require("./routes/payments"));
+app.use("/api/contact", require("./routes/contact"));
 
 // ─── Health check ─────────────────────────────────────────────────────────────
 const handleHealthCheck = (req, res) => {

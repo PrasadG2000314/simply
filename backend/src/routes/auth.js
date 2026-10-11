@@ -1,7 +1,9 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
+const crypto = require("crypto");
 const User = require("../models/User");
 const { protect } = require("../middleware/auth");
+const { sendPasswordResetEmail, verifySMTP } = require("../utils/mailer");
 
 const router = express.Router();
 
@@ -201,6 +203,178 @@ router.post("/logout", protect, async (req, res) => {
   } catch (error) {
     console.error("Logout error:", error);
     res.status(500).json({ success: false, message: "Server error. Please try again." });
+  }
+});
+
+// ─── POST /api/auth/forgot-password ──────────────────────────────────────────
+router.post("/forgot-password", async (req, res) => {
+  try {
+    const { email } = req.body;
+    const cleanEmail = (email || "").toLowerCase().trim();
+
+    if (!cleanEmail) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide your email address.",
+      });
+    }
+
+    const user = await User.findOne({ email: cleanEmail });
+
+    // Always return success even if user not found to prevent user enumeration
+    if (!user) {
+      return res.status(200).json({
+        success: true,
+        message: "If an account exists with this email, a password reset link has been sent.",
+      });
+    }
+
+    // Generate random unhashed reset token
+    const resetToken = crypto.randomBytes(32).toString("hex");
+
+    // Store SHA256 hashed token in DB with 1-hour expiration
+    user.resetPasswordToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+    user.resetPasswordExpire = Date.now() + 60 * 60 * 1000; // 1 hour
+
+    await user.save({ validateBeforeSave: false });
+
+    // Build reset URL
+    const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+    const resetUrl = `${frontendUrl}/auth/reset-password?token=${resetToken}`;
+
+    // Send reset email
+    await sendPasswordResetEmail({
+      to: user.email,
+      resetUrl,
+      userName: user.fullName || user.username,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "If an account exists with this email, a password reset link has been sent.",
+      // Include devPreview only in non-production for easy testing
+      ...(process.env.NODE_ENV !== "production" ? { devResetUrl: resetUrl } : {}),
+    });
+  } catch (error) {
+    console.error("Forgot password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Failed to send password reset email. Please try again later.",
+    });
+  }
+});
+
+// ─── GET /api/auth/verify-reset-token ────────────────────────────────────────
+router.get("/verify-reset-token", async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    if (!token) {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        message: "Token is required.",
+      });
+    }
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        valid: false,
+        message: "Password reset link is invalid or has expired.",
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      valid: true,
+      message: "Token is valid.",
+    });
+  } catch (error) {
+    console.error("Verify reset token error:", error);
+    res.status(500).json({
+      success: false,
+      valid: false,
+      message: "Server error while verifying token.",
+    });
+  }
+});
+
+// ─── POST /api/auth/reset-password ───────────────────────────────────────────
+router.post("/reset-password", async (req, res) => {
+  try {
+    const { token, password } = req.body;
+
+    if (!token || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Reset token and new password are required.",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long.",
+      });
+    }
+
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(token)
+      .digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({
+        success: false,
+        message: "Password reset link is invalid or has expired. Please request a new one.",
+      });
+    }
+
+    // Update password (pre-save hook will hash it automatically)
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Your password has been successfully reset. You can now log in.",
+    });
+  } catch (error) {
+    console.error("Reset password error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again.",
+    });
+  }
+});
+
+// ─── GET /api/auth/test-smtp ─────────────────────────────────────────────────
+router.get("/test-smtp", async (req, res) => {
+  try {
+    const result = await verifySMTP();
+    res.status(result.success ? 200 : 400).json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
   }
 });
 

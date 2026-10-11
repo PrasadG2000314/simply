@@ -30,6 +30,14 @@ services:
       - ADMIN_USERNAME=admin
       - ADMIN_PASSWORD=simply@admin2024
       - ADMIN_JWT_SECRET=admin_super_secret_change_in_production
+      - SMTP_HOST=mail.privateemail.com
+      - SMTP_PORT=465
+      - SMTP_SECURE=true
+      - SMTP_USER=support@turnipass.com
+      - SMTP_PASS=${SMTP_PASS}
+      - EMAIL_FROM="TurniPass Support <support@turnipass.com>"
+    env_file:
+      - ./backend/.env
     expose:
       - "5000"
     volumes:
