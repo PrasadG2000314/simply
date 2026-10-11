@@ -1458,66 +1458,116 @@ function AdminDashboardContent() {
                 </p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                {filteredUsers.map((user, index) => (
-                  <div
-                    key={user.id}
-                    className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 sm:p-5 space-y-3.5 hover:border-zinc-700 transition-all shadow-lg"
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-black text-sm border border-primary/20">
-                          {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
-                        </div>
-                        <div className="min-w-0">
-                          <p className="text-xs font-black text-white truncate">@{user.username || user.fullName}</p>
-                          <p className="text-[11px] text-zinc-400 font-medium truncate">{user.email}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-[10px] font-bold text-zinc-600">#{index + 1}</span>
-                        <button
-                          onClick={() => handleDeleteUser(user)}
-                          disabled={actionLoadingId === user.id}
-                          title={`Remove ${user.email}`}
-                          className="p-1.5 rounded-lg text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer disabled:opacity-50"
-                        >
-                          {actionLoadingId === user.id ? (
-                            <RefreshCw className="h-3.5 w-3.5 animate-spin text-red-400" />
-                          ) : (
-                            <Trash2 className="h-3.5 w-3.5" />
-                          )}
-                        </button>
-                      </div>
-                    </div>
+              <div className="overflow-x-auto rounded-2xl border border-zinc-800 bg-zinc-900 shadow-xl">
+                <table className="w-full text-left text-xs min-w-[720px] border-collapse">
+                  <thead>
+                    <tr className="border-b border-zinc-800 bg-zinc-950/60 text-[10px] font-black uppercase tracking-wider text-zinc-400">
+                      <th className="py-3.5 px-4 text-center w-12">#</th>
+                      <th className="py-3.5 px-4">Customer</th>
+                      <th className="py-3.5 px-4 text-center">Official Turnitin Coins</th>
+                      <th className="py-3.5 px-4 text-center">API Tool Coins</th>
+                      <th className="py-3.5 px-4 text-center">Joined Date</th>
+                      <th className="py-3.5 px-4 text-right w-24">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/60 font-medium">
+                    {filteredUsers.map((user, index) => {
+                      const officialAvail = user.officialCredits ?? user.credits ?? 0;
+                      const officialHold = user.officialHoldCredits ?? user.holdCredits ?? 0;
+                      const apiAvail = user.apiCredits ?? 0;
+                      const apiHold = user.apiHoldCredits ?? 0;
 
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-2 border-t border-zinc-800/80 gap-2 text-xs">
-                      <p className="text-[10px] text-zinc-500 font-semibold">Joined: {formatDate(user.createdAt)}</p>
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span
-                          title={`Official Coins: ${user.officialCredits ?? user.credits ?? 0}, Hold: ${user.officialHoldCredits ?? user.holdCredits ?? 0}`}
-                          className="inline-flex items-center gap-1 text-[10px] font-black text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2 py-1 rounded-xl"
+                      return (
+                        <tr
+                          key={user.id}
+                          className="hover:bg-zinc-800/40 transition-colors group"
                         >
-                          <ShieldCheck className="h-3 w-3 text-amber-400" />
-                          <span>Official: {user.officialCredits ?? user.credits ?? 0}</span>
-                          {(user.officialHoldCredits ?? user.holdCredits ?? 0) > 0 && (
-                            <span className="text-[9px] text-amber-400/80">({user.officialHoldCredits ?? user.holdCredits ?? 0} hold)</span>
-                          )}
-                        </span>
-                        <span
-                          title={`API Tool Coins: ${user.apiCredits ?? 0}, Hold: ${user.apiHoldCredits ?? 0}`}
-                          className="inline-flex items-center gap-1 text-[10px] font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-2 py-1 rounded-xl"
-                        >
-                          <Zap className="h-3 w-3 text-cyan-400" />
-                          <span>API: {user.apiCredits ?? 0}</span>
-                          {(user.apiHoldCredits ?? 0) > 0 && (
-                            <span className="text-[9px] text-cyan-400/80">({user.apiHoldCredits ?? 0} hold)</span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                          {/* Row # */}
+                          <td className="py-3.5 px-4 text-center font-bold text-zinc-500 text-[11px]">
+                            {index + 1}
+                          </td>
+
+                          {/* Customer Name & Email */}
+                          <td className="py-3.5 px-4">
+                            <div className="flex items-center gap-3">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary font-black text-xs border border-primary/20">
+                                {user.fullName ? user.fullName.charAt(0).toUpperCase() : "U"}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-2">
+                                  <p className="font-black text-white truncate text-xs">
+                                    {user.fullName}
+                                  </p>
+                                  {user.username && user.username !== user.fullName && (
+                                    <span className="text-[10px] text-zinc-500 font-semibold truncate">
+                                      (@{user.username})
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-[11px] text-zinc-400 font-medium truncate">
+                                  {user.email}
+                                </p>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* Official Coins */}
+                          <td className="py-3.5 px-4 text-center">
+                            <span
+                              title={`Official Coins: ${officialAvail}, On Hold: ${officialHold}`}
+                              className="inline-flex items-center gap-1.5 text-xs font-black text-amber-300 bg-amber-500/10 border border-amber-500/25 px-2.5 py-1 rounded-xl"
+                            >
+                              <ShieldCheck className="h-3.5 w-3.5 text-amber-400 shrink-0" />
+                              <span>{officialAvail}</span>
+                              {officialHold > 0 && (
+                                <span className="text-[10px] text-amber-400/80 font-semibold">
+                                  ({officialHold} hold)
+                                </span>
+                              )}
+                            </span>
+                          </td>
+
+                          {/* API Coins */}
+                          <td className="py-3.5 px-4 text-center">
+                            <span
+                              title={`API Coins: ${apiAvail}, On Hold: ${apiHold}`}
+                              className="inline-flex items-center gap-1.5 text-xs font-black text-cyan-300 bg-cyan-500/10 border border-cyan-500/25 px-2.5 py-1 rounded-xl"
+                            >
+                              <Zap className="h-3.5 w-3.5 text-cyan-400 shrink-0" />
+                              <span>{apiAvail}</span>
+                              {apiHold > 0 && (
+                                <span className="text-[10px] text-cyan-400/80 font-semibold">
+                                  ({apiHold} hold)
+                                </span>
+                              )}
+                            </span>
+                          </td>
+
+                          {/* Joined Date */}
+                          <td className="py-3.5 px-4 text-center text-[11px] text-zinc-400 font-semibold whitespace-nowrap">
+                            {formatDate(user.createdAt)}
+                          </td>
+
+                          {/* Action (Delete User) */}
+                          <td className="py-3.5 px-4 text-right">
+                            <button
+                              onClick={() => handleDeleteUser(user)}
+                              disabled={actionLoadingId === user.id}
+                              title={`Remove ${user.email}`}
+                              className="inline-flex items-center justify-center p-2 rounded-xl text-zinc-500 hover:text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-all cursor-pointer disabled:opacity-50"
+                            >
+                              {actionLoadingId === user.id ? (
+                                <RefreshCw className="h-3.5 w-3.5 animate-spin text-red-400" />
+                              ) : (
+                                <Trash2 className="h-3.5 w-3.5" />
+                              )}
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
             )}
           </div>
