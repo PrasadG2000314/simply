@@ -239,6 +239,176 @@ const sendEmail = async ({ to, subject, html, text }) => {
   }
 };
 
+/**
+ * Send 6-digit Email Verification OTP with TurniPass branding
+ */
+const sendOtpEmail = async ({ to, otp, userName }) => {
+  const transporter = createTransporter();
+  const displayName = userName || "User";
+  const fromAddress = process.env.EMAIL_FROM || `"TurniPass Support" <${process.env.SMTP_USER || "support@turnipass.com"}>`;
+
+  const html = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Your TurniPass Verification Code</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #0b0f19;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      color: #f1f5f9;
+    }
+    .container {
+      max-width: 540px;
+      margin: 32px auto;
+      background: #111827;
+      border-radius: 20px;
+      overflow: hidden;
+      border: 1px solid #1f2937;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+    }
+    .header {
+      background: #030712;
+      padding: 28px 24px;
+      text-align: center;
+      border-bottom: 1px solid #1f2937;
+    }
+    .logo-text {
+      color: #ffffff;
+      font-size: 24px;
+      font-weight: 900;
+      letter-spacing: -0.5px;
+    }
+    .logo-sub {
+      color: #38bdf8;
+    }
+    .body-content {
+      padding: 32px 28px;
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      margin-top: 0;
+      margin-bottom: 12px;
+      color: #ffffff;
+    }
+    p {
+      font-size: 14px;
+      line-height: 1.6;
+      color: #94a3b8;
+      margin-top: 0;
+      margin-bottom: 16px;
+    }
+    .otp-box {
+      text-align: center;
+      margin: 28px 0;
+      padding: 24px 20px;
+      background: #1e293b;
+      border: 1px dashed #38bdf8;
+      border-radius: 16px;
+    }
+    .otp-code {
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 36px;
+      font-weight: 900;
+      letter-spacing: 10px;
+      color: #38bdf8;
+      display: inline-block;
+      padding-left: 10px;
+    }
+    .otp-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #64748b;
+      margin-top: 8px;
+    }
+    .notice {
+      background: rgba(56, 189, 248, 0.08);
+      border-left: 4px solid #38bdf8;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #cbd5e1;
+      margin: 20px 0;
+    }
+    .footer {
+      background: #030712;
+      padding: 20px;
+      text-align: center;
+      font-size: 12px;
+      color: #64748b;
+      border-top: 1px solid #1f2937;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div class="logo-text">Turni<span class="logo-sub">Pass</span></div>
+    </div>
+    <div class="body-content">
+      <h1>Verify Your Email Address</h1>
+      <p>Hello <strong>${displayName}</strong>,</p>
+      <p>Thank you for signing up with TurniPass. To complete your account registration, please enter the following 6-digit verification code:</p>
+      
+      <div class="otp-box">
+        <div class="otp-code">${otp}</div>
+        <div class="otp-label">One-Time Verification Code</div>
+      </div>
+
+      <div class="notice">
+        ⏰ <strong>Security Notice:</strong> This code is valid for <strong>10 minutes</strong>. Do not share this code with anyone. If you did not request this, you can safely ignore this email.
+      </div>
+    </div>
+    <div class="footer">
+      &copy; ${new Date().getFullYear()} TurniPass. All rights reserved.<br />
+      Need help? Contact <a href="mailto:support@turnipass.com" style="color: #38bdf8; text-decoration: none;">support@turnipass.com</a>
+    </div>
+  </div>
+</body>
+</html>
+  `;
+
+  if (!transporter) {
+    console.log("\n=======================================================");
+    console.log("📧 [SIMULATED EMAIL - DEV MODE]");
+    console.log(`To: ${to}`);
+    console.log(`Subject: TurniPass Verification Code: ${otp}`);
+    console.log(`OTP Code: ${otp}`);
+    console.log("=======================================================\n");
+    return { success: true, simulated: true, otp };
+  }
+
+  const mailOptions = {
+    from: fromAddress,
+    to,
+    subject: `${otp} is your TurniPass verification code`,
+    html,
+  };
+
+  try {
+    return await transporter.sendMail(mailOptions);
+  } catch (err) {
+    if (process.env.NODE_ENV !== "production") {
+      console.warn("\n⚠️  [Mailer Warning] Failed to send OTP email via SMTP:", err.message);
+      console.log("=======================================================");
+      console.log("📧 [SIMULATED EMAIL - LOCAL DEV FALLBACK]");
+      console.log(`To: ${to}`);
+      console.log(`Subject: ${otp} is your TurniPass verification code`);
+      console.log(`OTP Code: ${otp}`);
+      console.log("=======================================================\n");
+      return { success: true, simulated: true, otp };
+    }
+    throw err;
+  }
+};
+
 const verifySMTP = async () => {
   const transporter = createTransporter();
   if (!transporter) {
@@ -255,6 +425,7 @@ const verifySMTP = async () => {
 module.exports = {
   createTransporter,
   sendPasswordResetEmail,
+  sendOtpEmail,
   sendEmail,
   verifySMTP,
 };

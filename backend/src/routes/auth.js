@@ -1,9 +1,11 @@
 const express = require("express");
 const jwt = require("jsonwebtoken");
 const crypto = require("crypto");
+const dns = require("dns").promises;
 const User = require("../models/User");
+const EmailOtp = require("../models/EmailOtp");
 const { protect } = require("../middleware/auth");
-const { sendPasswordResetEmail, verifySMTP } = require("../utils/mailer");
+const { sendPasswordResetEmail, sendOtpEmail, verifySMTP } = require("../utils/mailer");
 
 const router = express.Router();
 
@@ -14,17 +16,76 @@ const signToken = (id) => {
   });
 };
 
-// ─── POST /api/auth/register ──────────────────────────────────────────────────
-router.post("/register", async (req, res) => {
+// ─── Helper: Strict Email Format Validation ──────────────────────────────────
+const isValidEmailFormat = (email) => {
+  if (!email || typeof email !== "string") return false;
+  const emailRegex = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+  return emailRegex.test(email.trim());
+};
+
+// ─── Helper: Verify Domain DNS MX Records ─────────────────────────────────────
+const verifyEmailDomain = async (email) => {
+  try {
+    const domain = (email || "").split("@")[1];
+    if (!domain) return false;
+    const resolvePromise = dns.resolveMx(domain.trim());
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error("DNS_TIMEOUT")), 3500)
+    );
+    const mxRecords = await Promise.race([resolvePromise, timeoutPromise]);
+    return Array.isArray(mxRecords) && mxRecords.length > 0;
+  } catch (err) {
+    if (err.message === "DNS_TIMEOUT") {
+      return true; // Fallback on slow DNS
+    }
+    if (err.code === "ENOTFOUND" || err.code === "ENODATA" || err.code === "ESERVFAIL") {
+      return false;
+    }
+    return true;
+  }
+};
+
+// ─── POST /api/auth/send-register-otp ─────────────────────────────────────────
+router.post("/send-register-otp", async (req, res) => {
   try {
     const { username, fullName, email, password } = req.body;
     const finalUsername = (username || fullName || "").toLowerCase().trim();
+    const cleanEmail = (email || "").toLowerCase().trim();
 
-    // Validate required fields
-    if (!finalUsername || !email || !password) {
+    if (!finalUsername || !cleanEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "Username, email, and password are required.",
+      });
+    }
+
+    if (!/^[a-zA-Z0-9_.-]+$/.test(finalUsername) || finalUsername.length < 3 || finalUsername.length > 30) {
+      return res.status(400).json({
+        success: false,
+        message: "Username must be 3-30 characters with letters, numbers, '.', '_', or '-' only.",
+      });
+    }
+
+    if (!isValidEmailFormat(cleanEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please enter a valid email address.",
+      });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long.",
+      });
+    }
+
+    // Verify domain MX records
+    const hasMx = await verifyEmailDomain(cleanEmail);
+    if (!hasMx) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email domain. Please enter an active email address capable of receiving mail.",
       });
     }
 
@@ -38,7 +99,105 @@ router.post("/register", async (req, res) => {
     }
 
     // Check if email already exists
-    const existingEmail = await User.findOne({ email: email.toLowerCase() });
+    const existingEmail = await User.findOne({ email: cleanEmail });
+    if (existingEmail) {
+      return res.status(409).json({
+        success: false,
+        message: "An account with this email already exists. Please log in instead.",
+      });
+    }
+
+    // Rate limiting: 45 seconds between OTP requests
+    const recentOtp = await EmailOtp.findOne({ email: cleanEmail }).sort({ createdAt: -1 });
+    if (recentOtp && Date.now() - new Date(recentOtp.createdAt).getTime() < 45 * 1000) {
+      const waitSec = Math.ceil((45000 - (Date.now() - new Date(recentOtp.createdAt).getTime())) / 1000);
+      return res.status(429).json({
+        success: false,
+        message: `Please wait ${waitSec} seconds before requesting another code.`,
+      });
+    }
+
+    // Generate 6-digit OTP
+    const otp = crypto.randomInt(100000, 1000000).toString();
+
+    // Store in DB
+    await EmailOtp.deleteMany({ email: cleanEmail });
+    await EmailOtp.create({
+      email: cleanEmail,
+      otp,
+      createdAt: new Date(),
+    });
+
+    // Send verification email
+    await sendOtpEmail({
+      to: cleanEmail,
+      otp,
+      userName: finalUsername,
+    });
+
+    res.status(200).json({
+      success: true,
+      message: `A 6-digit verification code has been sent to ${cleanEmail}.`,
+    });
+  } catch (error) {
+    console.error("Send register OTP error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Unable to send verification code. Please check your email and try again.",
+    });
+  }
+});
+
+// ─── POST /api/auth/register ──────────────────────────────────────────────────
+router.post("/register", async (req, res) => {
+  try {
+    const { username, fullName, email, password, otp } = req.body;
+    const finalUsername = (username || fullName || "").toLowerCase().trim();
+    const cleanEmail = (email || "").toLowerCase().trim();
+    const cleanOtp = (otp || "").toString().trim();
+
+    // Validate required fields
+    if (!finalUsername || !cleanEmail || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "Username, email, and password are required.",
+      });
+    }
+
+    if (!cleanOtp) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code is required to complete registration.",
+      });
+    }
+
+    // Verify OTP
+    const otpRecord = await EmailOtp.findOne({ email: cleanEmail }).sort({ createdAt: -1 });
+    if (!otpRecord) {
+      return res.status(400).json({
+        success: false,
+        message: "Verification code has expired or was not requested. Please request a new code.",
+      });
+    }
+
+    if (otpRecord.otp !== cleanOtp) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid verification code. Please check your email and try again.",
+      });
+    }
+
+    // Check if username already exists
+    const existingUsername = await User.findOne({ username: finalUsername });
+    if (existingUsername) {
+      return res.status(409).json({
+        success: false,
+        message: "Username is already taken. Please choose a different username.",
+      });
+    }
+
+    // Check if email already exists
+    const existingEmail = await User.findOne({ email: cleanEmail });
     if (existingEmail) {
       return res.status(409).json({
         success: false,
@@ -50,9 +209,12 @@ router.post("/register", async (req, res) => {
     const user = await User.create({
       username: finalUsername,
       fullName: finalUsername,
-      email: email.toLowerCase(),
+      email: cleanEmail,
       password,
     });
+
+    // Delete used OTP
+    await EmailOtp.deleteMany({ email: cleanEmail });
 
     // Generate JWT token
     const token = signToken(user._id);
